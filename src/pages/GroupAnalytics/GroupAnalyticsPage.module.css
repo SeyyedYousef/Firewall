@@ -1,0 +1,354 @@
+﻿@import url('../../css/theme.css');
+
+.page {
+  min-height: 100vh;
+  background: var(--app-color-background);
+  color: var(--app-color-text-primary);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 20px;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 12px 16px;
+  background: radial-gradient(circle at top, rgba(30, 162, 255, 0.14) 0%, rgba(8, 12, 22, 0.96) 55%, rgba(5, 7, 15, 0.98) 100%);
+  box-shadow: var(--app-shadow-ambient);
+  border-bottom: 1px solid var(--app-color-border);
+  z-index: 5;
+}
+
+.headerLeft,
+.headerRight {
+  display: flex;
+  align-items: center;
+}
+
+.headerLeft {
+  justify-content: flex-start;
+}
+
+.headerRight {
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.headerCenter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+}
+
+.headerTitles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.groupName {
+  margin: 0;
+  color: var(--app-color-text-primary);
+}
+
+.groupSubtitle {
+  color: var(--app-color-text-muted);
+}
+
+.burger {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.burger span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: var(--app-color-text-primary);
+  border-radius: 999px;
+}
+
+.menuButton {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.24);
+}
+
+.backButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.16);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--app-color-text-primary);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+}
+
+.backIcon {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-right: 8px solid var(--app-color-text-primary);
+}
+
+.body {
+  flex: 1;
+  padding: 24px 16px 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.filtersCard {
+  border-radius: 20px;
+  background: rgba(13, 20, 36, 0.88);
+  box-shadow: var(--app-shadow-ambient);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rangeButtons,
+.granularityButtons,
+.viewButtons,
+.downloadBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filterRow {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filterRowInline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.dateInputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dateInputs input[type="date"] {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: var(--app-color-surface-muted);
+  color: var(--app-color-text-primary);
+}
+
+.messageFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.messageFilter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: rgba(148, 163, 184, 0.16);
+  color: var(--app-color-text-primary);
+  font-size: 13px;
+}
+
+.messageFilter input {
+  accent-color: var(--tg-theme-link-color, #0a84ff);
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.summaryCard {
+  border-radius: 18px;
+  background: rgba(13, 20, 36, 0.88);
+  box-shadow: var(--app-shadow-ambient);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.summaryLabel {
+  color: var(--app-color-text-muted);
+  font-size: 13px;
+}
+
+.summaryValue {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--app-color-text-primary);
+}
+
+.summaryTrendPositive {
+  color: #16a34a;
+}
+
+.summaryTrendNegative {
+  color: #dc2626;
+}
+
+.chartCard {
+  border-radius: 20px;
+  background: rgba(13, 20, 36, 0.88);
+  box-shadow: var(--app-shadow-ambient);
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chartHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chartHeaderTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.chartTitle {
+  margin: 0;
+  color: var(--app-color-text-primary);
+}
+
+.chartLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--app-color-text-primary);
+}
+
+.legendSwatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: currentColor;
+}
+
+.hiddenSeries {
+  opacity: 0.4;
+}
+
+.chartContainer {
+  position: relative;
+  width: 100%;
+  min-height: 260px;
+}
+
+.chartSvg {
+  width: 100%;
+  height: 260px;
+}
+
+.tooltip {
+  position: absolute;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(30, 41, 59, 0.9);
+  color: #fff;
+  font-size: 13px;
+  pointer-events: none;
+  transform: translate(-50%, -110%);
+  min-width: 140px;
+}
+
+.tooltipList {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.emptyState {
+  border-radius: 16px;
+  background: rgba(5, 7, 15, 0.75);
+  color: var(--app-color-text-muted);
+  padding: 16px;
+  text-align: center;
+}
+
+.placeholderActions {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.skeleton {
+  border-radius: 20px;
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.15) 25%, rgba(148, 163, 184, 0.25) 50%, rgba(148, 163, 184, 0.15) 75%);
+  background-size: 400% 100%;
+  animation: shimmer 1.6s infinite;
+  min-height: 220px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+.downloadBar {
+  justify-content: flex-end;
+}
+
+@media (min-width: 768px) {
+  .body {
+    padding: 32px 40px 160px;
+  }
+
+  .chartHeader {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+

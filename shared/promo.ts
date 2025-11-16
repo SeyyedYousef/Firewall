@@ -1,0 +1,43 @@
+export type PromoSlideAnalytics = {
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  avgTimeSpent: number;
+  bounceRate: number;
+};
+
+export type PromoSlideRecord = {
+  id: string;
+  title?: string | null;
+  subtitle?: string | null;
+  description?: string | null;
+  imageUrl: string;
+  thumbnailUrl?: string | null;
+  thumbnailStorageKey?: string | null;
+  storageKey?: string | null;
+  originalFileId?: string | null;
+  contentType?: string | null;
+  fileSize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  checksum?: string | null;
+  accentColor?: string | null;
+  linkUrl?: string | null;
+  ctaLabel?: string | null;
+  ctaLink?: string | null;
+  position: number;
+  active: boolean;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  abTestGroupId?: string | null;
+  variant?: string | null;
+  analytics: PromoSlideAnalytics;
+  views?: number;
+  clicks?: number;
+  totalViewDurationMs?: number;
+  bounces?: number;
+  createdBy?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  metadata?: Record<string, unknown>;
+};

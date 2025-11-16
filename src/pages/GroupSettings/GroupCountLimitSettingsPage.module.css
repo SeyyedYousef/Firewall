@@ -1,0 +1,207 @@
+.page {
+  min-height: 100vh;
+  background: var(--app-color-background);
+  display: flex;
+  flex-direction: column;
+}
+.header {
+  position: sticky;
+  top: 0;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  padding: 12px 16px;
+  background: var(--app-color-surface);
+  z-index: 5;
+}
+.headerLeft,
+.headerRight {
+  display: flex;
+}
+.headerLeft {
+  justify-content: flex-start;
+}
+.headerRight {
+  justify-content: flex-end;
+  gap: 12px;
+}
+.headerCenter {
+  display: flex;
+  gap: 12px;
+}
+.headerTitles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.groupName {
+  margin: 0;
+}
+.groupSubtitle {
+  color: var(--app-color-text-muted);
+}
+.burger {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.burger span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: var(--app-color-text-primary);
+  border-radius: 999px;
+}
+.backButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.16);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--app-color-text-primary);
+  box-shadow: var(--app-shadow-ambient);
+}
+
+.backIcon {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-right: 8px solid var(--app-color-text-primary);
+}
+
+.menuButton {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.14);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--app-shadow-ambient);
+}
+.body {
+  flex: 1;
+  padding: 24px 16px 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.notice {
+  border-radius: 16px;
+  background: rgba(99, 102, 241, 0.1);
+  color: rgba(30, 64, 175, 1);
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.card {
+  border-radius: 20px;
+  background: var(--app-color-surface);
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.cardTitle {
+  margin: 0;
+  display: flex;
+  gap: 8px;
+}
+.cardHint {
+  margin-top: 4px;
+  color: var(--app-color-text-muted);
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.fieldLabelRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.fieldLabel {
+  font-weight: 600;
+}
+.tooltipButton {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--app-color-text-muted);
+  background: transparent;
+  color: var(--app-color-text-muted);
+  line-height: 1;
+  cursor: help;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.tooltipButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35);
+}
+.tooltipButton:hover {
+  background: rgba(99, 102, 241, 0.12);
+  color: rgba(30, 64, 175, 1);
+}
+.numberInput {
+  width: 100%;
+}
+.fieldHint {
+  color: var(--app-color-text-muted);
+  font-size: 13px;
+}
+.fieldStatus {
+  font-size: 14px;
+  font-weight: 600;
+}
+.statusActive {
+  color: var(--tg-theme-link-color, #0a84ff);
+}
+.statusDisabled {
+  color: var(--tg-theme-destructive-text-color, #ff3b30);
+}
+.saveBar {
+  position: sticky;
+  bottom: 0;
+  padding: 16px;
+  background: linear-gradient(180deg, rgba(5, 7, 15, 0) 0%, rgba(5, 7, 15, 0.85) 40%, rgba(5, 7, 15, 1) 100%);
+  box-shadow: 0 -12px 32px rgba(3, 6, 14, 0.6);
+  display: flex;
+  z-index: 6;
+}
+.snackbar {
+  position: fixed;
+  inset-inline: 16px;
+  bottom: 24px;
+}
+@media (min-width: 768px) {
+  .body {
+    padding: 32px 40px 140px;
+  }
+}
+.loadingState {
+  min-height: 100vh;
+  display: flex;
+  background: var(--app-color-background);
+}
+
+
+
+

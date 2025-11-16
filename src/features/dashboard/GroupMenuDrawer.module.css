@@ -1,0 +1,100 @@
+﻿.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.25);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease;
+  z-index: 40;
+}
+
+.overlayVisible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: -320px;
+  width: 280px;
+  background: var(--tg-theme-bg-color, #ffffff);
+  box-shadow: -12px 0 30px rgba(15, 23, 42, 0.12);
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: right 0.3s ease;
+  z-index: 41;
+}
+
+.drawerVisible {
+  right: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  padding-inline-end: 4px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: transparent;
+  color: var(--tg-theme-text-color, #1c1c1f);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Ensure text is visible in both light and dark themes */
+:global(.telegram-theme-dark) .item {
+  color: var(--tg-theme-text-color, #e5e7eb);
+}
+
+.item:hover {
+  background: var(--tg-theme-secondary-bg-color, rgba(15, 23, 42, 0.08));
+}
+
+.itemActive {
+  background: var(--tg-theme-button-color, rgba(59, 130, 246, 0.18));
+  color: var(--tg-theme-button-text-color, #1d4ed8);
+  font-weight: 600;
+}
+
+.itemIcon {
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+}
+
+.itemLabel {
+  flex: 1;
+  text-align: right;
+  color: inherit;
+}
+
+/* Improve touch targets */
+@media (max-width: 768px) {
+  .item {
+    padding: 12px 16px;
+  }
+}

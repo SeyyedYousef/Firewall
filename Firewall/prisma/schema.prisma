@@ -1,0 +1,493 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(uuid())
+  telegramId  String   @unique
+  role        String
+  displayName String?
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  groups                 Group[]               @relation("GroupOwners")
+  memberships            GroupAdmin[]
+  wallet                 StarsWallet?
+  starTransactions       StarTransaction[]
+  giveaways              Giveaway[]            @relation("GiveawayOwner")
+  giveawayParticipations GiveawayParticipant[] @relation("GiveawayParticipantUser")
+
+  @@index([role])
+}
+
+model Group {
+  id             String   @id @default(uuid())
+  title          String
+  telegramChatId String   @unique
+  inviteLink     String?
+  language       String?
+  status         String
+  creditBalance  Decimal  @default(0)
+  ownerId        String?
+  generalSettings Json?
+  banSettings    Json?
+  limitSettings  Json?
+  silenceSettings Json?
+  mandatorySettings Json?
+  customTextSettings Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  owner             User?              @relation("GroupOwners", fields: [ownerId], references: [id], onDelete: SetNull)
+  managers          GroupAdmin[]
+  firewallRules     FirewallRule[]
+  ruleAudits        RuleAudit[]
+  wallet            StarsWallet?
+  starTransactions  StarTransaction[]
+  reports           Report[]
+  moderationActions ModerationAction[]
+  membershipEvents  MembershipEvent[]
+  giveaways         Giveaway[]         @relation("GiveawayGroup")
+  creditCodes       CreditRedemptionCode[] @relation("CreditRedemptionGroup")
+
+  @@index([ownerId])
+}
+
+model GroupAdmin {
+  id        String   @id @default(uuid())
+  groupId   String
+  userId    String
+  role      String // manager, viewer
+  createdAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+}
+
+model FirewallRule {
+  id                 String   @id @default(uuid())
+  groupId            String?
+  scope              String // group/global
+  type               String // Legacy matcher type (text/media/link etc.)
+  pattern            String? // Legacy pattern
+  action             String? // Legacy primary action (delete/mute/kick)
+  severity           Int      @default(1)
+  schedule           Json?
+  metadata           Json?
+  name               String   @default("")
+  description        String?
+  enabled            Boolean  @default(true)
+  priority           Int      @default(100)
+  matchAllConditions Boolean  @default(false)
+  conditions         Json?
+  actions            Json?
+  escalation         Json?
+  createdBy          String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  group      Group?      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  ruleAudits RuleAudit[]
+
+  @@index([groupId])
+}
+
+model RuleAudit {
+  id         String   @id @default(uuid())
+  groupId    String
+  ruleId     String?
+  offenderId String?
+  action     String
+  payload    Json?
+  createdAt  DateTime @default(now())
+
+  group Group         @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  rule  FirewallRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+
+  @@index([groupId, createdAt])
+}
+
+model ModerationAction {
+  id        String   @id @default(uuid())
+  groupId   String
+  userId    String?
+  actorId   String?
+  action    String
+  severity  String?
+  reason    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, createdAt])
+}
+
+model MembershipEvent {
+  id        String   @id @default(uuid())
+  groupId   String
+  userId    String
+  event     String
+  payload   Json?
+  createdAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, createdAt])
+}
+
+model StarsWallet {
+  id        String   @id @default(uuid())
+  groupId   String?  @unique
+  ownerId   String?  @unique
+  balance   Int      @default(0)
+  currency  String   @default("stars")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  group        Group?            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  owner        User?             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  transactions StarTransaction[]
+}
+
+model StarTransaction {
+  id          String    @id @default(uuid())
+  walletId    String
+  groupId     String?
+  userId      String?
+  type        String // purchase/gift/refund
+  amount      Int
+  reference   String?   @unique
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  status      String    @default("pending")
+  externalId  String?   @unique
+  completedAt DateTime?
+
+  wallet          StarsWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  group           Group?      @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  user            User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  fundedGiveaways Giveaway[]  @relation("GiveawayFundingTransaction")
+
+  @@index([walletId, createdAt])
+  @@index([status, createdAt])
+}
+
+model Giveaway {
+  id                   String    @id @default(uuid())
+  ownerId              String?
+  groupId              String?
+  fundingTransactionId String?
+  title                String
+  status               String    @default("scheduled")
+  seed                 String    @default(uuid())
+  planId               String?
+  prizeDays            Int
+  winnersCount         Int
+  pricePerWinner       Int
+  totalCost            Int
+  startsAt             DateTime
+  endsAt               DateTime
+  validation           Json?
+  refundPolicy         Json?
+  requirements         Json?
+  analytics            Json?
+  minParticipants      Int       @default(0)
+  cancellationReason   String?
+  cancelledAt          DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  owner              User?                 @relation("GiveawayOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  group              Group?                @relation("GiveawayGroup", fields: [groupId], references: [id], onDelete: SetNull)
+  fundingTransaction StarTransaction?      @relation("GiveawayFundingTransaction", fields: [fundingTransactionId], references: [id], onDelete: SetNull)
+  participants       GiveawayParticipant[]
+  winners            GiveawayWinner[]
+
+  @@index([ownerId])
+  @@index([groupId])
+  @@index([status, endsAt])
+}
+
+model GiveawayParticipant {
+  id             String   @id @default(uuid())
+  giveawayId     String
+  userId         String?
+  telegramId     String
+  username       String?
+  displayName    String?
+  joinedAt       DateTime @default(now())
+  status         String   @default("validated")
+  accountAgeDays Int?
+  isBot          Boolean  @default(false)
+  sourceIp       String?
+  metadata       Json?
+
+  giveaway Giveaway        @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  user     User?           @relation("GiveawayParticipantUser", fields: [userId], references: [id], onDelete: SetNull)
+  winner   GiveawayWinner? @relation("GiveawayWinnerParticipant")
+
+  @@unique([giveawayId, telegramId])
+  @@index([giveawayId, status])
+  @@index([giveawayId, sourceIp])
+}
+
+model GiveawayWinner {
+  id            String    @id @default(uuid())
+  giveawayId    String
+  participantId String?
+  telegramId    String
+  code          String    @unique
+  selectedAt    DateTime  @default(now())
+  claimedAt     DateTime?
+  metadata      Json?
+
+  giveaway    Giveaway             @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  participant GiveawayParticipant? @relation("GiveawayWinnerParticipant", fields: [participantId], references: [id], onDelete: SetNull)
+
+  @@unique([participantId])
+  @@index([giveawayId])
+}
+
+model BotSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+model PromoSlide {
+  id                  String    @id @default(uuid())
+  title               String?
+  subtitle            String?
+  description         String?
+  imageUrl            String
+  thumbnailUrl        String?
+  thumbnailStorageKey String?
+  storageKey          String?
+  originalFileId      String?
+  contentType         String?
+  fileSize            Int?
+  width               Int?
+  height              Int?
+  checksum            String?
+  linkUrl             String?
+  position            Int       @default(0)
+  accentColor         String?   @default("#0f172a")
+  ctaLabel            String?
+  ctaLink             String?
+  active              Boolean   @default(true)
+  startsAt            DateTime?
+  endsAt              DateTime?
+  abTestGroupId       String?
+  variant             String?
+  views               Int       @default(0)
+  clicks              Int       @default(0)
+  totalViewDurationMs BigInt    @default(0)
+  bounces             Int       @default(0)
+  analytics           Json?
+  metadata            Json?
+  createdBy           String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  analyticsBuckets PromoSlideAnalytics[]
+
+  @@index([active, startsAt, endsAt])
+  @@index([abTestGroupId])
+}
+
+model PromoSlideAnalytics {
+  id                  String   @id @default(uuid())
+  slideId             String
+  bucket              DateTime
+  impressions         Int      @default(0)
+  clicks              Int      @default(0)
+  totalViewDurationMs BigInt   @default(0)
+  bounces             Int      @default(0)
+  segment             String?
+  metadata            Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  slide PromoSlide @relation(fields: [slideId], references: [id], onDelete: Cascade)
+
+  @@unique([slideId, bucket, segment])
+  @@index([bucket])
+}
+
+model Report {
+  id        String   @id @default(uuid())
+  groupId   String
+  type      String // e.g. daily_summary, anomaly
+  payload   Json
+  createdAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, createdAt])
+}
+
+model PanelBan {
+  id         String   @id @default(uuid())
+  telegramId String   @unique
+  reason     String?
+  createdAt  DateTime @default(now())
+  createdBy  String?
+
+  @@index([telegramId])
+}
+
+model UserProfile {
+  id             String   @id @default(uuid())
+  telegramUserId String   @unique
+  username       String?
+  displayName    String?
+  avatarUrl      String?
+  totalXp        Int      @default(0)
+  level          Int      @default(1)
+  streak         Int      @default(0)
+  lastCheckIn    DateTime?
+  preferences    Json?    // User automation preferences
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  missions     UserMission[]
+  achievements UserAchievement[]
+  redemptions  RewardRedemption[]
+  badges       UserBadge[]
+  creditCodes  CreditRedemptionCode[] @relation("ProfileCreditCodes")
+  missionEvents MissionEvent[]
+
+  @@index([telegramUserId])
+}
+
+model UserMission {
+  id             String   @id @default(uuid())
+  userProfileId  String
+  missionId      String
+  category       String
+  cycleKey       String
+  xpEarned       Int      @default(0)
+  completedAt    DateTime @default(now())
+  verificationState  String   @default("verified")
+  verificationReason String?
+  metadata       Json?
+
+  profile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([userProfileId, missionId, category, cycleKey])
+  @@index([userProfileId, completedAt])
+  @@index([userProfileId, category, cycleKey])
+}
+
+model UserAchievement {
+  id             String   @id @default(uuid())
+  userProfileId  String
+  achievementId  String
+  unlockedAt     DateTime @default(now())
+  metadata       Json?
+
+  profile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([userProfileId, achievementId])
+  @@index([userProfileId, unlockedAt])
+}
+
+model RewardRedemption {
+  id            String   @id @default(uuid())
+  userProfileId String
+  rewardId      String
+  cost          Int      @default(0)
+  redeemedAt    DateTime @default(now())
+  metadata      Json?
+
+  profile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@index([userProfileId, redeemedAt])
+}
+
+model MissionCycle {
+  id          String   @id @default(uuid())
+  category    String
+  cycleKey    String
+  windowStart DateTime
+  windowEnd   DateTime
+  resetAt     DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([category, cycleKey])
+  @@unique([category])
+  @@index([cycleKey])
+}
+
+model MissionEvent {
+  id            String   @id @default(uuid())
+  userProfileId String?
+  missionId     String
+  category      String
+  cycleKey      String
+  state         String
+  payload       Json?
+  occurredAt    DateTime @default(now())
+
+  profile UserProfile? @relation(fields: [userProfileId], references: [id], onDelete: SetNull)
+
+  @@index([missionId, category, cycleKey])
+  @@index([userProfileId, occurredAt])
+}
+
+model CreditRedemptionCode {
+  id                String   @id @default(uuid())
+  codeHash          String   @unique
+  valueDays         Int
+  issuedToProfileId String
+  issuedAt          DateTime @default(now())
+  redeemedAt        DateTime?
+  redeemedGroupId   String?
+  status            String   @default("active")
+  metadata          Json?
+
+  issuedTo UserProfile @relation("ProfileCreditCodes", fields: [issuedToProfileId], references: [id], onDelete: Cascade)
+  redeemedGroup Group? @relation("CreditRedemptionGroup", fields: [redeemedGroupId], references: [id], onDelete: SetNull)
+
+  @@index([issuedToProfileId, status])
+  @@index([redeemedGroupId])
+}
+
+model UserBadge {
+  id            String   @id @default(uuid())
+  userProfileId String
+  badgeId       String
+  awardedAt     DateTime @default(now())
+  metadata      Json?
+
+  profile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([userProfileId, badgeId])
+  @@index([userProfileId, awardedAt])
+}
+
+model Referral {
+  id             String    @id @default(uuid())
+  referrerId     String
+  referredUserId String
+  source         String?
+  trackedAt      DateTime  @default(now())
+  activatedAt    DateTime?
+  purchaseAmount Decimal?
+  metadata       Json?
+
+  @@unique([referrerId, referredUserId])
+  @@index([referrerId, activatedAt])
+  @@index([referredUserId])
+}

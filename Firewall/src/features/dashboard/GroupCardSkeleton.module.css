@@ -1,0 +1,71 @@
+﻿.card {
+  border-radius: 20px;
+  background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+  padding: 0;
+  overflow: hidden;
+}
+
+.content {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, rgba(255,255,255,0.2), rgba(255,255,255,0.35), rgba(255,255,255,0.2));
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite;
+}
+
+.lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lineLong,
+.lineShort,
+.lineFull,
+.lineMedium {
+  height: 12px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.2), rgba(255,255,255,0.35), rgba(255,255,255,0.2));
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite;
+}
+
+.lineLong {
+  width: 160px;
+}
+
+.lineShort {
+  width: 110px;
+}
+
+.lineFull {
+  width: 100%;
+}
+
+.lineMedium {
+  width: 70%;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

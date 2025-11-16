@@ -1,0 +1,293 @@
+@import url('../../css/theme.css');
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-spacing-xl);
+  padding: var(--app-spacing-lg);
+  padding-bottom: calc(var(--app-spacing-xxl) * 1.5);
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-spacing-sm);
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  gap: var(--app-spacing-sm);
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.subtitle {
+  margin: 0;
+  color: rgba(241, 245, 255, 0.7);
+  font-size: 15px;
+  max-width: 640px;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-spacing-md);
+  font-size: 13px;
+  color: rgba(241, 245, 255, 0.6);
+}
+
+.feedback {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  border-radius: var(--app-radius-md);
+  padding: var(--app-spacing-xs) var(--app-spacing-sm);
+  font-size: 13px;
+  width: fit-content;
+}
+
+.error {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: var(--app-radius-md);
+  padding: var(--app-spacing-xs) var(--app-spacing-sm);
+  font-size: 13px;
+  width: fit-content;
+}
+
+.sectionTitle {
+  font-size: 20px;
+  margin: 0;
+}
+
+.sectionHint {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(241, 245, 255, 0.65);
+}
+
+.uploadSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-spacing-md);
+  background: rgba(8, 12, 22, 0.75);
+  border-radius: var(--app-radius-lg);
+  padding: var(--app-spacing-lg);
+  box-shadow: var(--app-shadow-ambient);
+}
+
+.dropzone {
+  border: 1px dashed rgba(148, 163, 184, 0.5);
+  border-radius: var(--app-radius-lg);
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.6);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.previewImage {
+  width: 100%;
+  max-height: 240px;
+  object-fit: cover;
+  border-radius: var(--app-radius-lg);
+}
+
+.dropzonePlaceholder {
+  color: rgba(241, 245, 255, 0.6);
+  font-size: 14px;
+}
+
+.fileInput {
+  display: none;
+}
+
+.uploadForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-spacing-md);
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--app-spacing-md);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-spacing-2xs);
+}
+
+.fieldWide {
+  grid-column: 1 / -1;
+}
+
+.fieldLabel {
+  font-size: 13px;
+  color: rgba(226, 232, 240, 0.76);
+}
+
+.input,
+.textarea {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(100, 116, 139, 0.35);
+  border-radius: var(--app-radius-md);
+  padding: var(--app-spacing-xs) var(--app-spacing-sm);
+  color: #f8fafc;
+  font-size: 14px;
+}
+
+.textarea {
+  resize: vertical;
+}
+
+.colorInput {
+  width: 100%;
+  height: 36px;
+  border-radius: var(--app-radius-md);
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+.actionsRow {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.listSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-spacing-md);
+}
+
+.placeholder {
+  font-size: 14px;
+  color: rgba(148, 163, 184, 0.75);
+}
+
+.cardList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-spacing-md);
+}
+
+.card {
+  background: rgba(8, 12, 22, 0.8);
+  border-radius: var(--app-radius-lg);
+  padding: var(--app-spacing-md);
+  box-shadow: var(--app-shadow-ambient);
+  border: 1px solid rgba(30, 41, 59, 0.6);
+}
+
+.cardDragOver {
+  border-color: rgba(56, 189, 248, 0.8);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--app-spacing-sm);
+  margin-bottom: var(--app-spacing-md);
+}
+
+.cardTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--app-spacing-sm);
+}
+
+.cardBadge {
+  font-family: var(--app-font-mono);
+  font-size: 12px;
+  padding: var(--app-spacing-2xs) var(--app-spacing-xs);
+  border-radius: var(--app-radius-sm);
+  background: rgba(148, 163, 184, 0.18);
+  color: rgba(226, 232, 240, 0.9);
+}
+
+.cardStatus {
+  font-size: 13px;
+  color: rgba(94, 234, 212, 0.84);
+}
+
+.cardActions {
+  display: flex;
+  align-items: center;
+  gap: var(--app-spacing-xs);
+}
+
+.cardBody {
+  display: flex;
+  gap: var(--app-spacing-lg);
+  flex-wrap: wrap;
+}
+
+.previewColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-spacing-sm);
+  width: min(240px, 100%);
+}
+
+.cardPreview {
+  width: 100%;
+  border-radius: var(--app-radius-md);
+  object-fit: cover;
+}
+
+.analytics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--app-spacing-2xs);
+  font-size: 12px;
+  color: rgba(226, 232, 240, 0.7);
+}
+
+.fieldsColumn {
+  flex: 1;
+  min-width: 280px;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--app-spacing-sm);
+}
+
+.dropTail {
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+  border-radius: var(--app-radius-md);
+  padding: var(--app-spacing-sm);
+  text-align: center;
+  font-size: 13px;
+  color: rgba(148, 163, 184, 0.7);
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding: var(--app-spacing-md);
+  }
+
+  .uploadSection {
+    padding: var(--app-spacing-md);
+  }
+
+  .cardBody {
+    flex-direction: column;
+  }
+}

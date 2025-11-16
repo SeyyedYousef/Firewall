@@ -1,0 +1,13 @@
+name = "tg-firewall-worker"
+main = "worker/index.ts"
+compatibility_date = "2025-01-12"
+
+[site]
+bucket = "./dist"
+
+[vars]
+# Replace with the origin where the Node.js bot/API server is running.
+BACKEND_URL = "https://your-backend.example.com"
+
+[env.local.vars]
+BACKEND_URL = "http://127.0.0.1:3000"

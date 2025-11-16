@@ -1,0 +1,50 @@
+@import url('../../css/theme.css');
+
+.wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--app-spacing-xl) 0;
+}
+
+.placeholder {
+  width: 100%;
+  border-radius: var(--app-radius-md);
+  background: radial-gradient(circle at top, rgba(30, 162, 255, 0.12) 0%, rgba(8, 12, 22, 0.92) 60%);
+  box-shadow: var(--app-shadow-ambient);
+  padding: 0 var(--app-spacing-lg);
+}
+
+.animationContainer {
+  width: 220px;
+  margin: 0 auto var(--app-spacing-md);
+}
+
+.loader {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, 0.12);
+  border-top-color: var(--app-color-accent-cyan);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.description {
+  text-align: center;
+  color: var(--app-color-text-secondary);
+}
+
+.cta {
+  margin-top: var(--app-spacing-sm);
+}
+

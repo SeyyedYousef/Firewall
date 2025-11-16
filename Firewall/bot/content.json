@@ -1,0 +1,21 @@
+{
+  "messages": {
+    "start": "Hello {user} 👋🏻\n\n• <b>Firewall</b> is a <b>complete Telegram Mini App bot</b> built for <i>smart</i>, <i>fast</i>, and <i>secure</i> group management.\nWith <b>Firewall</b>, you can keep everything under control — from <b>removing spam</b> and <b>locking unwanted content</b> to <b>maintaining order</b> and <b>user security</b>.\n\n👈🏻 Just <b>add the bot to your supergroup</b> and <b>grant admin rights</b> to start smart management.\n\n<b>Firewall — Security, without the noise.</b> 🔥",
+    "welcome": "Welcome {user}! 👋\n\nGreat to have you here in <b>{group}</b>!",
+    "managementPanel": "⚙️ <b>Management Panel</b>\n\nKeep your community running like clockwork. Review active locks, monitor insights, and fine-tune automation — all from one streamlined panel.",
+    "channel": "📢 <b>Stay in the loop</b>\n\nGet instant updates on new features, best practices, and security alerts. Join the official Firewall channel and never miss a release.",
+    "commands": "📚 <b>Quick Guide</b>\nTo get started, explore these key commands:\n\n• <code>Coming soon</code>\n\n💡 For the best experience, configure your settings in the Mini App right after setup.",
+    "info": "🚀 <b>Firewall</b> was created and is continuously developed with care by <b>@iamSeyyed</b>.\n\n🙏 Special thanks to <b>@maxim</b>, <b>@username</b>, all server admins, the development team, supporters, and every user who reports bugs or suggests new features — your feedback keeps this project alive.\n\n💬 We deeply appreciate every group that uses <b>Firewall</b>.\nYour trust is our motivation — and we'll keep making <b>Firewall</b> stronger every day. 🔥",
+    "inlinePanel": "🛠 <b>Inline Panel</b>\n\n⏳ This feature will be added soon!\n\nFor now, use the Mini App to manage your group settings and controls.",
+    "managementQuestion": "How would you like to manage the group?\n\n• <b>Mini App</b> — Full visual dashboard with analytics, locks, and billing.\n• <b>Inline Panel</b> — Lightweight controls right inside the chat."
+  },
+  "buttons": {
+    "addToGroup": "➕ Add to Group",
+    "managementPanel": "⚙️ Management Panel",
+    "channel": "📢 Channel",
+    "commands": "📚 Commands",
+    "info": "💬 Info",
+    "miniApp": "🧩 Open Mini App",
+    "inlinePanel": "⌨️ Inline Panel"
+  }
+}

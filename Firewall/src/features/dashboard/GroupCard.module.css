@@ -1,0 +1,153 @@
+﻿.card {
+  border-radius: 24px;
+  background: linear-gradient(135deg, 
+    rgba(30, 162, 255, 0.1) 0%,
+    rgba(59, 130, 246, 0.05) 40%,
+    var(--tg-theme-secondary-bg-color, rgba(20, 20, 30, 0.95)) 70%
+  );
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(30, 162, 255, 0.2);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(30, 162, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle,
+    rgba(30, 162, 255, 0.15) 0%,
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.card:hover {
+  transform: translateY(-4px) scale(1.01);
+  border-color: rgba(30, 162, 255, 0.4);
+  box-shadow: 
+    0 16px 50px rgba(30, 162, 255, 0.3),
+    0 0 40px rgba(30, 162, 255, 0.2),
+    0 0 0 1px rgba(30, 162, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.card:hover::before {
+  opacity: 1;
+}
+
+.cardExpired {
+  background: linear-gradient(135deg, 
+    rgba(255, 59, 48, 0.15) 0%,
+    rgba(239, 68, 68, 0.08) 40%,
+    var(--tg-theme-secondary-bg-color, rgba(30, 20, 20, 0.95)) 70%
+  );
+  border-color: rgba(255, 59, 48, 0.3);
+  box-shadow: 
+    0 12px 40px rgba(255, 59, 48, 0.25),
+    0 0 30px rgba(255, 59, 48, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.cardExpired:hover {
+  box-shadow: 
+    0 16px 50px rgba(255, 59, 48, 0.4),
+    0 0 40px rgba(255, 59, 48, 0.3);
+}
+
+.cardRemoved {
+  opacity: 0.7;
+  background: linear-gradient(135deg, 
+    rgba(100, 100, 120, 0.1) 0%,
+    var(--tg-theme-section-bg-color, rgba(25, 25, 35, 0.9)) 60%
+  );
+  border-color: rgba(255, 255, 255, 0.1);
+  filter: grayscale(0.3);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px;
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: right;
+  flex: 1;
+  gap: 4px;
+}
+
+.title {
+  margin: 0;
+  color: var(--tg-theme-text-color, #111);
+}
+
+.meta {
+  color: var(--tg-theme-hint-color, #6c7883);
+}
+
+.statusRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.status {
+  margin: 0;
+  color: var(--tg-theme-text-color, #1c1c1f);
+}
+
+.statusNeutral {
+  color: var(--tg-theme-text-color, #1c1c1f);
+}
+
+.statusPositive {
+  color: var(--tg-theme-link-color, #0a84ff);
+}
+
+.statusNegative {
+  color: var(--tg-theme-destructive-text-color, #ff3b30);
+}
+
+.statusRemoved {
+  color: var(--tg-theme-hint-color, #6c7883);
+}
+
+.renewButton {
+  white-space: nowrap;
+}
+
+.manageButton {
+  margin-top: 4px;
+}
+
+.removalHint {
+  margin-top: 8px;
+  color: var(--tg-theme-hint-color, #6c7883);
+  text-align: right;
+}

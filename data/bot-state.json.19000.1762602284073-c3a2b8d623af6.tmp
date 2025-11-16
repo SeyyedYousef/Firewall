@@ -1,0 +1,77 @@
+{
+  "panelAdmins": [],
+  "bannedUserIds": [],
+  "groups": {
+    "-100123456": {
+      "chatId": "-100123456",
+      "title": "Demo Group",
+      "creditBalance": 60,
+      "createdAt": "2025-11-06T05:07:56.413Z",
+      "updatedAt": "2025-11-06T10:27:26.973Z",
+      "lastAdjustmentNote": null,
+      "membersCount": 0,
+      "inviteLink": null,
+      "photoUrl": null,
+      "managed": true,
+      "adminRestricted": false,
+      "adminWarningSentAt": null,
+      "ownerId": null,
+      "adminIds": [],
+      "status": null,
+      "statusUpdatedAt": null,
+      "dbId": null
+    }
+  },
+  "settings": {
+    "freeTrialDays": 0,
+    "monthlyStars": 10,
+    "welcomeMessages": [],
+    "onboardingMessages": [
+      "<b>Firewall Bot</b> just joined to keep your community safe with smart moderation, security locks, and automated actions.",
+      "Your free trial is now active for <b>{trial_days}</b> days. Use the owner panel to explore every feature during this period.",
+      "Please promote <b>Firewall Bot</b> to Administrator with permissions to manage chat, delete messages, ban users, and manage video chats so it can enforce the rules."
+    ],
+    "gpidHelpText": "Share the group ID or forward a message so the bot can detect it automatically.",
+    "buttonLabels": {
+      "start_add_to_group": "Start"
+    },
+    "channelAnnouncement": "Channel link not configured yet.",
+    "infoCommands": "Use /panel in a private chat to access owner tools."
+  },
+  "promoSlides": [],
+  "broadcasts": [],
+  "stars": {
+    "balance": 0,
+    "plans": [
+      {
+        "id": "stars-30",
+        "days": 30,
+        "price": 500
+      },
+      {
+        "id": "stars-60",
+        "days": 60,
+        "price": 900
+      },
+      {
+        "id": "stars-90",
+        "days": 90,
+        "price": 1300
+      }
+    ],
+    "groups": {
+      "-100123456": {
+        "groupId": "-100123456",
+        "expiresAt": "2025-11-21T05:07:56.421Z",
+        "gifted": true,
+        "trialReminderSentAt": null,
+        "trialExpiredAt": null,
+        "disabled": false
+      }
+    }
+  },
+  "ownerSession": {
+    "state": "idle"
+  },
+  "pendingOnboarding": {}
+}

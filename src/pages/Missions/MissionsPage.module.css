@@ -1,0 +1,1033 @@
+.page {
+  min-height: 100vh;
+  background: var(--app-color-background);
+  padding: 24px 16px calc(160px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  background: linear-gradient(140deg, 
+    rgba(30, 162, 255, 0.4) 0%, 
+    rgba(59, 130, 246, 0.25) 30%,
+    rgba(74, 222, 128, 0.2) 100%
+  );
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(30, 162, 255, 0.3);
+  box-shadow: 
+    0 20px 60px rgba(30, 162, 255, 0.3),
+    0 0 80px rgba(74, 222, 128, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background: radial-gradient(circle at center, 
+    rgba(30, 162, 255, 0.6) 0%,
+    rgba(74, 222, 128, 0.3) 40%,
+    transparent 70%
+  );
+  opacity: 0.4;
+  pointer-events: none;
+  animation: float 6s ease-in-out infinite;
+}
+
+.heroHeader {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  z-index: 1;
+}
+
+.heroProfile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.heroMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.heroLabel {
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(245, 247, 255, 0.75);
+}
+
+.heroTitle {
+  margin: 0;
+  color: var(--app-color-text-primary);
+}
+
+.heroSubtitle {
+  color: rgba(226, 233, 255, 0.85);
+  max-width: 320px;
+}
+
+.heroActions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.heroStats {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 1;
+}
+
+.levelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.progressTrack {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(8, 12, 22, 0.35);
+  overflow: hidden;
+}
+
+.progressValue {
+  position: absolute;
+  inset: 0;
+  width: 0;
+  background: linear-gradient(90deg, rgba(30, 162, 255, 0.9), rgba(72, 187, 120, 0.9));
+  transition: width var(--app-motion-duration-base) var(--app-motion-ease);
+}
+
+.levelMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.levelProgress {
+  color: rgba(226, 233, 255, 0.9);
+  font-size: 14px;
+}
+
+.chipRow {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(5, 7, 15, 0.35);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  font-size: 13px;
+  color: rgba(245, 247, 255, 0.9);
+  backdrop-filter: blur(12px);
+}
+
+.quickStats {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.statCard {
+  background: rgba(8, 12, 22, 0.9);
+  border-radius: var(--app-radius-lg);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--app-shadow-ambient);
+}
+
+.statTitle {
+  color: rgba(226, 233, 255, 0.9);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
+.statValue {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--app-color-text-primary);
+}
+
+.statProgress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.progressTrackSmall {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.2);
+  overflow: hidden;
+}
+
+.progressValueSmall {
+  position: absolute;
+  inset: 0;
+  width: 0;
+  background: linear-gradient(90deg, rgba(30, 162, 255, 0.85), rgba(20, 184, 166, 0.85));
+  transition: width var(--app-motion-duration-base) var(--app-motion-ease);
+}
+
+.statValueSmall {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(226, 233, 255, 0.85);
+}
+
+.statHint {
+  color: rgba(148, 163, 184, 0.75);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: rgba(8, 12, 22, 0.65);
+  border-radius: var(--app-radius-tab-pill);
+  padding: 6px;
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2);
+}
+
+.tabButton {
+  position: relative;
+  border: none;
+  border-radius: calc(var(--app-radius-tab-pill) - 6px);
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  background: transparent;
+  color: rgba(226, 233, 255, 0.65);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  transition: background var(--app-motion-duration-fast) var(--app-motion-ease),
+    color var(--app-motion-duration-fast) var(--app-motion-ease);
+}
+
+.tabButtonActive {
+  background: rgba(30, 162, 255, 0.2);
+  color: var(--app-color-text-primary);
+  box-shadow: 0 0 18px rgba(30, 162, 255, 0.35);
+}
+
+.tabCount {
+  min-width: 36px;
+  padding: 4px 0;
+  border-radius: 999px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(8, 12, 22, 0.55);
+  color: rgba(226, 233, 255, 0.75);
+}
+
+.missionList {
+  display: grid;
+  gap: 16px;
+}
+
+.missionCard {
+  background: rgba(8, 12, 22, 0.92);
+  border-radius: var(--app-radius-lg);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: var(--app-shadow-ambient);
+  transition: transform var(--app-motion-duration-fast) var(--app-motion-ease),
+    border-color var(--app-motion-duration-fast) var(--app-motion-ease);
+}
+
+.missionCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(30, 162, 255, 0.35);
+}
+
+.missionCardCompleted {
+  border-color: rgba(74, 222, 128, 0.45);
+  background: rgba(10, 16, 28, 0.92);
+}
+
+.missionCardHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.missionIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: rgba(30, 162, 255, 0.18);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.missionIcon::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: 14px;
+  background: rgba(30, 162, 255, 0.24);
+  filter: blur(12px);
+  pointer-events: none;
+}
+
+.missionDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.missionTitle {
+  margin: 0;
+  color: var(--app-color-text-primary);
+}
+
+.missionDescription {
+  color: rgba(148, 163, 184, 0.78);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.missionMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.missionXp {
+  font-weight: 700;
+  color: var(--app-color-accent-cyan);
+}
+
+.statusChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.statusChipPending {
+  background: rgba(148, 163, 184, 0.18);
+  color: rgba(226, 233, 255, 0.78);
+}
+
+.statusChipDone {
+  background: rgba(74, 222, 128, 0.18);
+  color: rgba(74, 222, 128, 0.95);
+}
+
+.missionAction {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.missionAction button[disabled] {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.autoTrackedLabel {
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.8);
+  align-self: center;
+}
+
+.footerSummary {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.footerCard {
+  background: rgba(8, 12, 22, 0.92);
+  border-radius: var(--app-radius-lg);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  padding: 20px;
+  box-shadow: var(--app-shadow-ambient);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.footerTitle {
+  color: rgba(226, 233, 255, 0.9);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
+.footerValue {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--app-color-text-primary);
+}
+
+.footerHint {
+  color: rgba(148, 163, 184, 0.78);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 7, 15, 0.82);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 24px 16px calc(96px + env(safe-area-inset-bottom, 0px));
+  backdrop-filter: blur(12px);
+  z-index: 30;
+  overflow: hidden;
+}
+
+.modal {
+  width: min(520px, 100%);
+  background: rgba(8, 12, 22, 0.95);
+  border-radius: var(--app-radius-xl);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  box-shadow: var(--app-shadow-raised);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-height: clamp(
+    320px,
+    calc(100vh - 48px - 96px - env(safe-area-inset-bottom, 0px)),
+    720px
+  );
+  overflow: hidden;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modalContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding-right: 6px;
+  margin-right: -6px;
+}
+
+.rewardItem {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border-radius: var(--app-radius-md);
+  background: rgba(11, 16, 28, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.rewardMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rewardHint {
+  color: rgba(148, 163, 184, 0.78);
+  font-size: 14px;
+}
+
+.rewardAside {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.rewardCost {
+  font-weight: 600;
+  color: var(--app-color-accent-cyan);
+}
+
+.rewardAside button {
+  flex-shrink: 0;
+}
+
+.leaderboardList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.leaderboardRow {
+  display: grid;
+  grid-template-columns: 64px 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--app-radius-md);
+  background: rgba(8, 12, 22, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.leaderboardTop {
+  border-color: rgba(250, 204, 67, 0.42);
+  box-shadow: 0 0 18px rgba(250, 204, 67, 0.28);
+}
+
+.leaderboardRank {
+  font-size: 18px;
+  font-weight: 700;
+  color: rgba(226, 233, 255, 0.85);
+}
+
+.leaderboardUser {
+  font-weight: 600;
+  color: var(--app-color-text-primary);
+}
+
+.leaderboardXp {
+  color: rgba(226, 233, 255, 0.8);
+  font-size: 13px;
+}
+
+.leaderboardLevel {
+  justify-self: end;
+  font-size: 13px;
+  color: rgba(148, 163, 184, 0.78);
+}
+
+.myRankCard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+  border-radius: var(--app-radius-lg);
+  background: rgba(8, 12, 22, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  box-shadow: var(--app-shadow-ambient);
+}
+
+.myRankHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.myRankIdentity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.myRankIdentityText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.myRankPercentile {
+  font-size: 13px;
+  color: rgba(148, 163, 184, 0.78);
+}
+
+.myRankStats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.myRankBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rewardTierHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rewardTierBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: rgba(30, 162, 255, 0.18);
+  color: var(--app-color-accent-cyan);
+}
+
+.rewardTierSummary {
+  color: rgba(148, 163, 184, 0.78);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.rewardTierList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: rgba(226, 233, 255, 0.88);
+  font-size: 14px;
+}
+
+.rewardTierList li::before {
+  content: "-";
+  margin-right: 8px;
+  color: rgba(30, 162, 255, 0.6);
+}
+
+.rewardTierCode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  background: rgba(5, 7, 15, 0.85);
+  border-radius: var(--app-radius-md);
+  padding: 12px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.rewardTierCode button {
+  flex-shrink: 0;
+}
+
+.rewardCode {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  color: rgba(129, 233, 255, 0.95);
+  background: rgba(13, 20, 36, 0.82);
+  border-radius: var(--app-radius-sm);
+  padding: 6px 10px;
+}
+
+.rewardTierHint {
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.7);
+}
+
+.modalContent::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modalContent::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+}
+
+.modalContent::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modalContent {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+
+.tierCard {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border-radius: var(--app-radius-lg);
+  background: rgba(5, 7, 15, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.tierList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tierRow {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: var(--app-radius-md);
+  background: rgba(8, 12, 22, 0.88);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.tierRowMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tierBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: rgba(250, 204, 67, 0.16);
+  color: rgba(250, 204, 67, 0.95);
+}
+
+.tierSummary {
+  color: rgba(148, 163, 184, 0.78);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.tierRewards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: rgba(226, 233, 255, 0.85);
+}
+
+.tierRewards li::before {
+  content: "-";
+  margin-right: 8px;
+  color: rgba(148, 163, 184, 0.78);
+}
+
+.leaderboardTrend {
+  font-size: 14px;
+  font-weight: 600;
+  justify-self: end;
+}
+
+.trendUp {
+  color: rgba(74, 222, 128, 0.9);
+}
+
+.trendDown {
+  color: rgba(248, 113, 113, 0.9);
+}
+
+.trendSteady {
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.leaderboardCta {
+  align-self: center;
+  color: var(--app-color-accent-cyan);
+}
+
+.iconStub {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: rgba(30, 162, 255, 0.2);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.iconAccent {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  filter: blur(12px);
+  opacity: 0.9;
+}
+
+.iconDot {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  box-shadow: 0 0 12px rgba(30, 162, 255, 0.45);
+}
+
+.iconStub::after {
+  position: relative;
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(245, 247, 255, 0.92);
+  mix-blend-mode: screen;
+}
+
+.iconStub[data-kind="check"]::after { content: "C"; }
+.iconStub[data-kind="renew"]::after { content: "R"; }
+.iconStub[data-kind="settings"]::after { content: "S"; }
+.iconStub[data-kind="chat"]::after { content: "M"; }
+.iconStub[data-kind="target"]::after { content: "T"; }
+.iconStub[data-kind="gift"]::after { content: "G"; }
+.iconStub[data-kind="invite"]::after { content: "I"; }
+.iconStub[data-kind="shield"]::after { content: "D"; }
+.iconStub[data-kind="uptime"]::after { content: "U"; }
+.iconStub[data-kind="stars"]::after { content: "*"; }
+.iconStub[data-kind="brain"]::after { content: "B"; }
+.iconStub[data-kind="trophy"]::after { content: "#"; }
+.iconStub[data-kind="link"]::after { content: "L"; }
+.iconStub[data-kind="review"]::after { content: "W"; }
+.iconStub[data-kind="groups"]::after { content: "A"; }
+.iconStub[data-kind="puzzle"]::after { content: "P"; }
+.iconStub[data-kind="analytics"]::after { content: "%"; }
+.iconStub[data-kind="broadcast"]::after { content: "!"; }
+.iconStub[data-kind="security"]::after { content: "X"; }
+.iconStub[data-kind="insight"]::after { content: "?"; }
+
+.iconStub[data-complete="true"] {
+  background: rgba(74, 222, 128, 0.3);
+  border-color: rgba(74, 222, 128, 0.4);
+}
+
+.iconStub[data-complete="true"] .iconDot {
+  box-shadow: 0 0 14px rgba(74, 222, 128, 0.5);
+}
+
+@media (max-width: 560px) {
+  .rewardItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .rewardAside {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .rewardAside button {
+    width: 100%;
+  }
+
+  .myRankHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .myRankStats {
+    align-items: flex-start;
+  }
+
+  .rewardTierCode {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rewardTierCode button {
+    width: 100%;
+  }
+}
+
+@media (min-width: 768px) {
+  .page {
+    padding: 32px 40px 140px;
+  }
+
+  .hero {
+    padding: 32px;
+  }
+
+  .missionList {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  }
+}
+.marketSection {
+  display: grid;
+  gap: var(--app-spacing-md);
+}
+
+@media (min-width: 768px) {
+  .marketSection {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.storeCard, .referralCard {
+  background: rgba(8, 12, 22, 0.92);
+  border-radius: var(--app-radius-lg);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-spacing-md);
+  box-shadow: var(--app-shadow-ambient);
+}
+
+.storeHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.storeTitle {
+  margin: 0;
+  color: var(--app-color-text-primary);
+}
+
+.storeSubtitle {
+  color: rgba(148, 163, 184, 0.78);
+  font-size: 14px;
+}
+
+.storeBalance {
+  font-size: 13px;
+  color: rgba(226, 233, 255, 0.85);
+}
+
+.rewardGrid {
+  display: grid;
+  gap: var(--app-spacing-sm);
+}
+
+.rewardCard {
+  border-radius: var(--app-radius-md);
+  background: rgba(13, 20, 36, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  padding: var(--app-spacing-sm) var(--app-spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-spacing-sm);
+  transition: all 0.2s ease;
+}
+
+.rewardOwned {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.rewardInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rewardName {
+  margin: 0;
+  color: var(--app-color-text-primary);
+}
+
+.rewardDescription {
+  color: rgba(148, 163, 184, 0.78);
+  font-size: 13px;
+}
+
+.rewardActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--app-spacing-sm);
+}
+
+.rewardCost {
+  font-weight: 600;
+  color: var(--app-color-accent-cyan);
+}
+
+.rewardRedeemed {
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.75);
+}
+
+.referralTitle {
+  margin: 0;
+  color: var(--app-color-text-primary);
+}
+
+.referralSubtitle {
+  color: rgba(148, 163, 184, 0.78);
+  font-size: 14px;
+}
+
+.referralStats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: rgba(226, 233, 255, 0.78);
+}
+
+.referralHint {
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.65);
+}
+
+.referralLink {
+  display: block;
+  word-break: break-all;
+  padding: 10px 12px;
+  border-radius: var(--app-radius-sm);
+  background: rgba(5, 7, 15, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  font-size: 13px;
+  color: var(--app-color-accent-cyan);
+}
+
+.referralActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-spacing-sm);
+}

@@ -1,0 +1,128 @@
+@import url('../../css/theme.css');
+
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(circle at top, rgba(30, 162, 255, 0.08) 0%, rgba(5, 7, 15, 0) 45%), var(--app-color-background);
+  color: var(--app-color-text-primary);
+}
+
+.main {
+  flex: 1;
+  overflow-y: auto;
+  padding: calc(var(--app-spacing-md) + env(safe-area-inset-top, 0)) var(--app-spacing-lg) calc(var(--app-spacing-2xl) + env(safe-area-inset-bottom, 0));
+}
+
+.mainFluid {
+  flex: 1;
+  overflow-y: auto;
+  padding: calc(var(--app-spacing-md) + env(safe-area-inset-top, 0)) 0 calc(var(--app-spacing-2xl) + env(safe-area-inset-bottom, 0));
+}
+
+.content {
+  max-width: var(--app-card-max-width);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-spacing-lg);
+}
+
+.contentFluid {
+  width: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-spacing-lg);
+}
+
+.tabBar {
+  position: sticky;
+  bottom: 0;
+  z-index: 35;
+  padding: var(--app-spacing-md) var(--app-spacing-lg) calc(var(--app-spacing-lg) + env(safe-area-inset-bottom, 0));
+  background: linear-gradient(0deg, rgba(5, 7, 15, 0.95) 0%, rgba(5, 7, 15, 0.82) 45%, rgba(5, 7, 15, 0));
+  backdrop-filter: blur(26px);
+}
+
+.tabList {
+  display: flex;
+  gap: var(--app-spacing-sm);
+  background: rgba(13, 20, 36, 0.82);
+  border-radius: var(--app-radius-tab-pill);
+  padding: var(--app-spacing-xs);
+  box-shadow: var(--app-shadow-ambient);
+}
+
+.tabButton {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: var(--app-spacing-xs) var(--app-spacing-sm);
+  border-radius: calc(var(--app-radius-tab-pill) - 6px);
+  border: none;
+  background: transparent;
+  color: var(--app-color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background var(--app-motion-duration-base) var(--app-motion-ease),
+    color var(--app-motion-duration-fast) var(--app-motion-ease),
+    box-shadow var(--app-motion-duration-fast) var(--app-motion-ease),
+    transform var(--app-motion-duration-fast) var(--app-motion-ease);
+}
+
+.tabButton:active {
+  transform: translateY(1px);
+}
+
+.tabButtonActive {
+  background: linear-gradient(135deg, rgba(30, 162, 255, 0.18) 0%, rgba(30, 162, 255, 0.06) 100%);
+  color: var(--app-color-text-primary);
+  box-shadow: var(--app-glow-cyan);
+}
+
+.tabIconWrapper {
+  width: 28px;
+  height: 28px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  transition: background var(--app-motion-duration-fast) var(--app-motion-ease),
+    box-shadow var(--app-motion-duration-fast) var(--app-motion-ease);
+}
+
+.tabButtonActive .tabIconWrapper {
+  background: rgba(30, 162, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(30, 162, 255, 0.26);
+}
+
+.tabLabel {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (min-width: 860px) {
+  .main {
+    padding-left: calc(var(--app-spacing-2xl));
+    padding-right: calc(var(--app-spacing-2xl));
+  }
+
+  .mainFluid {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .tabBar {
+    padding-left: calc(var(--app-spacing-2xl));
+    padding-right: calc(var(--app-spacing-2xl));
+  }
+}
+

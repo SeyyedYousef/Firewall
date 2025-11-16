@@ -1,0 +1,25 @@
+{
+    "compilerOptions":  {
+                            "target":  "ES2020",
+                            "module":  "NodeNext",
+                            "moduleResolution":  "NodeNext",
+                            "outDir":  "dist/bot",
+                            "rootDir":  ".",
+                            "esModuleInterop":  true,
+                            "resolveJsonModule":  true,
+                            "types":  [
+                                          "node"
+                                      ],
+                            "strict":  true,
+                            "noEmitOnError":  true,
+                            "typeRoots":  [
+                                              "./types",
+                                              "./node_modules/@types"
+                                          ]
+                        },
+    "include":  [
+                    "bot/**/*.ts",
+                    "server/**/*.ts",
+                    "shared/**/*.ts"
+                ]
+}

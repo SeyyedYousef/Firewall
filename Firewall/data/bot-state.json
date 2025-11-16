@@ -1,0 +1,78 @@
+{
+  "panelAdmins": [],
+  "bannedUserIds": [],
+  "groups": {
+    "-100123456": {
+      "chatId": "-100123456",
+      "title": "Demo Group",
+      "creditBalance": 60,
+      "createdAt": "2025-11-06T05:07:56.413Z",
+      "updatedAt": "2025-11-06T10:27:26.973Z",
+      "lastAdjustmentNote": null,
+      "membersCount": 0,
+      "inviteLink": null,
+      "photoUrl": null,
+      "managed": true,
+      "adminRestricted": false,
+      "adminWarningSentAt": null,
+      "ownerId": null,
+      "adminIds": [],
+      "status": null,
+      "statusUpdatedAt": null,
+      "dbId": null
+    }
+  },
+  "settings": {
+    "freeTrialDays": 15,
+    "monthlyStars": 10,
+    "welcomeMessages": [],
+    "onboardingMessages": [
+      "<b>Firewall Bot</b> just joined to keep your community safe with smart moderation, security locks, and automated actions.",
+      "Your free trial is now active for <b>{trial_days}</b> days. Use the owner panel to explore every feature during this period.",
+      "Please promote <b>Firewall Bot</b> to Administrator with permissions to manage chat, delete messages, ban users, and manage video chats so it can enforce the rules."
+    ],
+    "gpidHelpText": "Share the group ID or forward a message so the bot can detect it automatically.",
+    "buttonLabels": {
+      "start_add_to_group": "➕ Add To Group"
+    },
+    "channelAnnouncement": "Channel link not configured yet.",
+    "commands": "📚 <b>Quick Guide</b>\nTo get started, explore these key commands:\n\n• <code>Coming soon</code>\n\n💡 For the best experience, configure your settings in the Mini App right after setup.",
+    "infoCommands": "🚀 <b>Firewall</b> was created and is continuously developed with care by <b>@iamSeyyed</b>.\n\n🙏 Special thanks to <b>@maxim</b>, <b>@username</b>, all server admins, the development team, supporters, and every user who reports bugs or suggests new features — your feedback keeps this project alive.\n\n💬 We deeply appreciate every group that uses <b>Firewall</b>.\nYour trust is our motivation — and we'll keep making <b>Firewall</b> stronger every day. 🔥"
+  },
+  "promoSlides": [],
+  "broadcasts": [],
+  "stars": {
+    "balance": 0,
+    "plans": [
+      {
+        "id": "stars-30",
+        "days": 30,
+        "price": 60
+      },
+      {
+        "id": "stars-60",
+        "days": 60,
+        "price": 120
+      },
+      {
+        "id": "stars-90",
+        "days": 90,
+        "price": 180
+      }
+    ],
+    "groups": {
+      "-100123456": {
+        "groupId": "-100123456",
+        "expiresAt": "2025-11-21T05:07:56.421Z",
+        "gifted": true,
+        "trialReminderSentAt": null,
+        "trialExpiredAt": null,
+        "disabled": false
+      }
+    }
+  },
+  "ownerSession": {
+    "state": "idle"
+  },
+  "pendingOnboarding": {}
+}

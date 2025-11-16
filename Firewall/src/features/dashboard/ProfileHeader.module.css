@@ -1,0 +1,27 @@
+﻿.header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--tg-theme-bg-color, #ffffff);
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  margin-bottom: 20px;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: right;
+}
+
+.name {
+  margin: 0;
+  color: var(--tg-theme-text-color, #111);
+}
+
+.username {
+  margin: 0;
+  color: var(--tg-theme-hint-color, #6c7883);
+}

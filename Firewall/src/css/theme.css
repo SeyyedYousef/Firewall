@@ -1,0 +1,91 @@
+/* Theme tokens for dark, high-contrast experience */
+:root {
+  --tg-theme-bg-color: var(--app-color-surface);
+  --tg-theme-secondary-bg-color: var(--app-color-background);
+  --tg-theme-text-color: var(--app-color-text-primary);
+  --tg-theme-hint-color: var(--app-color-text-muted);
+  --tg-theme-link-color: var(--app-color-accent-cyan);
+  --tg-theme-button-color: var(--app-color-accent-cyan);
+  --tg-theme-button-text-color: var(--app-color-text-primary);
+  --tg-theme-secondary-bg-color-rgb: 5, 7, 15;
+
+  --tgui--bg_color: var(--app-color-background);
+  --tgui--secondary_bg_color: var(--app-color-surface-muted);
+  --tgui--secondary_hint_color: rgba(148, 163, 184, 0.45);
+  --tgui--link_color: var(--app-color-accent-cyan);
+  --tgui--white: #ffffff;
+  --tgui--outline: rgba(15, 23, 42, 0.35);
+  --tgui--button_text_color: #000000;
+  --tgui--plain_background: transparent;
+  --tgui--plain_foreground: var(--app-color-text-primary);
+  --tgui--button_color: var(--app-color-accent-cyan);
+  --tgui--secondary_fill: rgba(148, 163, 184, 0.16);
+
+  color-scheme: dark;
+  --app-font-family: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+  --app-font-size-base: 16px;
+  --app-line-height-base: 1.52;
+
+  --app-color-background: #05070f;
+  --app-color-background-elevated: #080c16;
+  --app-color-surface: #0d1424;
+  --app-color-surface-muted: #121a2b;
+  --app-color-surface-glow: #182135;
+  --app-color-border: rgba(62, 74, 102, 0.36);
+  --app-color-outline: rgba(50, 130, 255, 0.32);
+
+  --app-color-text-primary: #f5f7ff;
+  --app-color-text-secondary: rgba(226, 233, 255, 0.82);
+  --app-color-text-muted: rgba(164, 178, 214, 0.65);
+
+  --app-color-success: #41d65e;
+  --app-color-warning: #ffb547;
+  --app-color-danger: #ff5c5c;
+
+  --app-color-accent-cyan: #1ea2ff;
+  --app-color-accent-gold: #facc43;
+  --app-color-accent-green: #4ade80;
+  --app-color-accent-pink: #f472b6;
+
+  --app-radius-xs: 8px;
+  --app-radius-sm: 12px;
+  --app-radius-md: 16px;
+  --app-radius-lg: 20px;
+  --app-radius-xl: 28px;
+  --app-radius-tab-pill: 24px;
+
+  --app-shadow-ambient: 0 18px 48px rgba(5, 12, 28, 0.32), 0 4px 18px rgba(0, 0, 0, 0.35);
+  --app-shadow-raised: 0 24px 60px rgba(2, 11, 24, 0.45);
+  --app-shadow-glass: 
+    0 12px 40px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(30, 162, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --app-shadow-neon: 
+    0 0 20px rgba(30, 162, 255, 0.5),
+    0 0 40px rgba(30, 162, 255, 0.3),
+    0 0 60px rgba(30, 162, 255, 0.2);
+  --app-glow-cyan: 0 0 18px rgba(30, 162, 255, 0.45);
+  --app-glow-gold: 0 0 20px rgba(250, 204, 67, 0.4);
+  --app-glow-green: 0 0 22px rgba(65, 214, 94, 0.45);
+  --app-glow-red: 0 0 20px rgba(255, 92, 92, 0.45);
+  --app-glow-purple: 0 0 25px rgba(132, 94, 247, 0.5);
+
+  --app-spacing-2xs: 4px;
+  --app-spacing-xs: 8px;
+  --app-spacing-sm: 12px;
+  --app-spacing-md: 16px;
+  --app-spacing-lg: 24px;
+  --app-spacing-xl: 32px;
+  --app-spacing-2xl: 44px;
+
+  --app-input-height: 52px;
+  --app-border-width: 1px;
+  --app-card-max-width: 960px;
+
+  --app-motion-duration-fast: 150ms;
+  --app-motion-duration-base: 180ms;
+  --app-motion-duration-slow: 220ms;
+  --app-motion-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+

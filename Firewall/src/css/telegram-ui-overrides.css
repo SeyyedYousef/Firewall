@@ -1,0 +1,89 @@
+/* Minimal Telegram UI input styling - only override what's absolutely necessary */
+
+/* Reset any conflicting styles */
+[class*="tgui-"] {
+  box-sizing: border-box;
+}
+
+/* Main input container - simple dark style */
+.tgui-8ca550c2fc85eff5 {
+  background: var(--app-color-surface-muted) !important;
+  border: 1px solid rgba(148, 163, 184, 0.25) !important;
+  border-radius: 12px !important;
+}
+/* Focus state */
+.tgui-8ca550c2fc85eff5:focus-within {
+  border-color: var(--app-color-accent-cyan) !important;
+}
+
+/* Input text color - همه ورودی‌ها */
+.tgui-0f5050defacbf813,
+[class*="tgui-"] input,
+[class*="tgui-"] textarea {
+  color: #E2E8F0 !important; /* رنگ روشن و خوانا */
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+}
+
+/* Textarea مخصوص */
+.tgui-d40ec83150e66029,
+textarea[class*="tgui-"] {
+  color: #E2E8F0 !important; /* رنگ سفید کرمی */
+  background: transparent !important;
+  line-height: 1.6 !important;
+  font-size: 15px !important;
+}
+
+/* Placeholder text - رنگ روشن‌تر */
+.tgui-0f5050defacbf813::placeholder,
+.tgui-d40ec83150e66029::placeholder,
+[class*="tgui-"] input::placeholder,
+[class*="tgui-"] textarea::placeholder {
+  color: #94A3B8 !important; /* رنگ خاکستری روشن */
+  opacity: 1 !important;
+}
+
+/* Placeholder component styling */
+[class*="Placeholder"] {
+  background: var(--app-color-surface) !important;
+  color: var(--app-color-text-primary) !important;
+  border-radius: 12px !important;
+  padding: 24px !important;
+  text-align: center !important;
+}
+
+[class*="Placeholder"] h1,
+[class*="Placeholder"] h2,
+[class*="Placeholder"] h3 {
+  color: var(--app-color-text-primary) !important;
+  margin-bottom: 8px !important;
+}
+
+[class*="Placeholder"] p,
+[class*="Placeholder"] div {
+  color: var(--app-color-text-muted) !important;
+  line-height: 1.5 !important;
+}
+
+/* Switch styling */
+.tgui-a1dc55b304d32032 {
+  background: var(--app-color-surface-muted);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.tgui-a1dc55b304d32032::before {
+  background: rgba(148, 163, 184, 0.9);
+  box-shadow: var(--app-shadow-ambient);
+}
+
+.tgui-520270a6b0e44a8b .tgui-a1dc55b304d32032 {
+  background: var(--app-color-accent-cyan);
+  border-color: var(--app-color-accent-cyan);
+}
+
+.tgui-520270a6b0e44a8b .tgui-a1dc55b304d32032::before {
+  transform: translateX(20px);
+  background: var(--app-color-text-primary);
+  box-shadow: 0 0 20px rgba(30, 162, 255, 0.45);
+}

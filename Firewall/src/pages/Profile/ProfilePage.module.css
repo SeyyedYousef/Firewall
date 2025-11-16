@@ -1,0 +1,575 @@
+@import url("../../css/theme.css");
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding: 32px 16px 140px;
+}
+
+.heroCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 24px;
+  border-radius: var(--app-radius-xl);
+  padding: 32px;
+  background:
+    radial-gradient(140% 160% at -20% 0%, rgba(14, 127, 255, 0.32), rgba(14, 127, 255, 0) 65%),
+    radial-gradient(120% 160% at 115% -10%, rgba(155, 90, 255, 0.24), rgba(155, 90, 255, 0) 70%),
+    linear-gradient(145deg, rgba(5, 7, 15, 0.98) 0%, rgba(4, 8, 23, 0.92) 55%, rgba(3, 6, 15, 0.9) 100%);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--app-shadow-raised);
+}
+
+.heroCard::after {
+  content: "";
+  position: absolute;
+  top: -55%;
+  left: -25%;
+  width: 160%;
+  height: 180%;
+  background: radial-gradient(circle at 38% 50%, rgba(21, 168, 255, 0.28), rgba(21, 168, 255, 0) 72%);
+  opacity: 0.45;
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+.heroProfile {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  align-self: center;
+}
+
+.heroMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  text-align: center;
+}
+
+.heroLabel {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(245, 247, 255, 0.75);
+}
+
+.heroName {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--app-color-text-primary);
+  word-wrap: break-word;
+  max-width: 100%;
+}
+
+.heroUsername {
+  font-size: 14px;
+  color: rgba(226, 233, 255, 0.75);
+}
+
+.heroProgress {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.heroBadge {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 18px;
+  border-radius: 18px;
+  background: rgba(5, 7, 15, 0.42);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  box-shadow: 0 16px 36px rgba(5, 12, 28, 0.36);
+}
+
+.heroBadgeLabel {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(245, 247, 255, 0.7);
+}
+
+.heroBadgeValue {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--app-color-accent-gold);
+}
+
+.progressTrack {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(8, 12, 22, 0.45);
+  overflow: hidden;
+}
+
+.progressValue {
+  position: absolute;
+  inset: 0;
+  width: 0;
+  background: linear-gradient(90deg, rgba(30, 162, 255, 0.92), rgba(72, 187, 120, 0.92));
+  transition: width var(--app-motion-duration-base) var(--app-motion-ease);
+}
+
+.progressCaption {
+  font-size: 12px;
+  color: rgba(226, 233, 255, 0.78);
+}
+
+.layout {
+  display: grid;
+  gap: 32px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.columnPrimary,
+.columnSide {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.section {
+  background: rgba(10, 16, 28, 0.92);
+  border-radius: var(--app-radius-lg);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: var(--app-shadow-ambient);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.sectionHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--app-color-text-primary);
+}
+
+.sectionHint {
+  font-size: 13px;
+  color: rgba(148, 163, 184, 0.75);
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
+  border-radius: var(--app-radius-lg);
+  background: rgba(8, 12, 22, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.statLabel {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(226, 233, 255, 0.68);
+}
+
+.statValue {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--app-color-text-primary);
+}
+
+.statHint {
+  font-size: 13px;
+  color: rgba(148, 163, 184, 0.78);
+}
+
+.progressGrid {
+  display: grid;
+  gap: 14px;
+}
+
+.progressCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: var(--app-radius-lg);
+  background: rgba(8, 12, 22, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.progressPercent {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--app-color-text-primary);
+}
+
+.progressCard .progressTrack {
+  height: 6px;
+  background: rgba(148, 163, 184, 0.2);
+}
+
+.actionsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.actionCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: var(--app-radius-lg);
+  background: rgba(10, 16, 28, 0.9);
+  cursor: pointer;
+  text-align: left;
+  transition: transform var(--app-motion-duration-fast) var(--app-motion-ease),
+    border-color var(--app-motion-duration-fast) var(--app-motion-ease);
+}
+
+.actionCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(30, 162, 255, 0.45);
+}
+
+.actionLabel {
+  font-weight: 600;
+  color: var(--app-color-text-primary);
+}
+
+.actionHint {
+  font-size: 13px;
+  color: rgba(148, 163, 184, 0.78);
+}
+
+.toggleRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: var(--app-radius-md);
+  background: rgba(5, 7, 15, 0.65);
+}
+
+.toggleText {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 70%;
+}
+
+.linkHint {
+  font-size: 13px;
+  color: rgba(148, 163, 184, 0.78);
+}
+
+.statusList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.statusItem {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: var(--app-radius-md);
+  background: rgba(5, 7, 15, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.statusMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.statusHint {
+  font-size: 13px;
+  color: rgba(148, 163, 184, 0.78);
+}
+
+.statusBadge {
+  align-self: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(30, 162, 255, 0.18);
+  color: var(--app-color-accent-cyan);
+}
+
+.activityList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.activityCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--app-radius-md);
+  background: rgba(5, 7, 15, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  transition: all 0.3s ease;
+}
+
+.activityCard:hover {
+  background: rgba(5, 7, 15, 0.85);
+  border-color: rgba(30, 162, 255, 0.35);
+  transform: translateX(4px);
+}
+
+.emptyActivity {
+  padding: 24px;
+  text-align: center;
+  color: rgba(148, 163, 184, 0.7);
+  background: rgba(5, 7, 15, 0.4);
+  border-radius: var(--app-radius-md);
+  border: 1px dashed rgba(148, 163, 184, 0.3);
+}
+
+.activityItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--app-radius-md);
+  background: rgba(5, 7, 15, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.activityTitle {
+  font-size: 14px;
+  color: var(--app-color-text-primary);
+  line-height: 1.5;
+}
+
+.activityTime {
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.75);
+}
+
+.alertsCard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+  border-radius: var(--app-radius-lg);
+  background: rgba(8, 12, 22, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.alertsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.alertsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.alertsList li {
+  padding: 10px 14px;
+  border-radius: var(--app-radius-sm);
+  background: rgba(5, 7, 15, 0.6);
+  color: rgba(226, 233, 255, 0.85);
+  font-size: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  transition: all 0.2s ease;
+}
+
+.alertsList li:hover {
+  background: rgba(30, 162, 255, 0.1);
+  border-color: rgba(30, 162, 255, 0.3);
+}
+
+.securityGrid {
+  display: grid;
+  gap: 14px;
+}
+
+.securityCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-radius: var(--app-radius-lg);
+  background: rgba(8, 12, 22, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  transition: all 0.3s ease;
+}
+
+.securityCard:hover {
+  border-color: rgba(30, 162, 255, 0.35);
+  background: rgba(8, 12, 22, 0.95);
+}
+
+.securityLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--app-color-text-primary);
+  letter-spacing: 0.02em;
+}
+
+.securityStatus {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 8px;
+  align-self: flex-start;
+  background: rgba(72, 187, 120, 0.15);
+  color: #48bb78;
+  border: 1px solid rgba(72, 187, 120, 0.3);
+}
+
+.securityCard[data-status="Needs review"] .securityStatus {
+  background: rgba(250, 204, 67, 0.15);
+  color: #facc43;
+  border-color: rgba(250, 204, 67, 0.3);
+}
+
+.securityHint {
+  font-size: 13px;
+  color: rgba(148, 163, 184, 0.75);
+  line-height: 1.5;
+}
+
+.supportCard {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  border-radius: var(--app-radius-lg);
+  background: linear-gradient(135deg, rgba(30, 162, 255, 0.12) 0%, rgba(8, 12, 22, 0.95) 50%);
+  border: 1px solid rgba(30, 162, 255, 0.25);
+  box-shadow: 0 4px 16px rgba(30, 162, 255, 0.15);
+}
+
+.supportHint {
+  font-size: 13px;
+  color: rgba(226, 233, 255, 0.8);
+  line-height: 1.6;
+}
+
+.columnSecondary {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.supportList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.supportItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: var(--app-radius-md);
+  background: rgba(5, 7, 15, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+@media (min-width: 640px) {
+  .heroProfile {
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    align-self: flex-start;
+  }
+
+  .heroName {
+    font-size: 30px;
+  }
+
+  .heroMeta {
+    align-items: flex-start;
+    text-align: left;
+  }
+}
+
+@media (min-width: 768px) {
+  .page {
+    padding-inline: 40px;
+  }
+
+  .heroCard {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .heroProgress {
+    max-width: 260px;
+  }
+
+  .layout {
+    grid-template-columns: 2.2fr 1fr;
+    gap: 32px;
+  }
+
+  .actionsGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .columnSide {
+    position: sticky;
+    top: 32px;
+    align-self: flex-start;
+  }
+
+  .columnSecondary {
+    position: sticky;
+    top: 32px;
+    align-self: flex-start;
+  }
+}
