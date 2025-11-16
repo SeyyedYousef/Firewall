@@ -589,7 +589,11 @@ ${dailyTaskChannel.channelLink}`,
 
   const referralLink = useMemo(() => {
     // Telegram deep link format: https://t.me/<bot_username>?start=ref_<user_id>
-    const base = dashboardConfig.inviteLink?.trim() || "https://t.me/FirewallBot";
+    // Prefer explicit dashboard config; otherwise use the fixed bot username @Firewallmainbot
+    const configured = dashboardConfig.inviteLink?.trim();
+    const fixedBotBase = "https://t.me/Firewallmainbot";
+    const base = configured && configured.length > 0 ? configured : fixedBotBase;
+
     const userId = String(profile?.id || "");
     const refParam = userId ? `start=ref_${userId}` : "start=ref";
     const separator = base.includes("?") ? "&" : "?";
