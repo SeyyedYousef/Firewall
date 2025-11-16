@@ -474,21 +474,35 @@ export function MissionsPage() {
   const [completingMissionId, setCompletingMissionId] = useState<string | null>(null);
   const [completedMissions, setCompletedMissions] = useState<Record<MissionCategory, Set<string>>>(() => {
     // Load completed missions from localStorage if available
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('completedMissions');
-      return saved ? JSON.parse(saved) : {
-        daily: new Set<string>(),
-        weekly: new Set<string>(),
-        monthly: new Set<string>(),
-        general: new Set<string>(),
-      };
-    }
-    return {
+    // Ensure we always return Sets (older saved data may be plain arrays/objects)
+    const empty = {
       daily: new Set<string>(),
       weekly: new Set<string>(),
       monthly: new Set<string>(),
       general: new Set<string>(),
     };
+
+    if (typeof window === 'undefined') {
+      return empty;
+    }
+
+    const saved = localStorage.getItem('completedMissions');
+    if (!saved) {
+      return empty;
+    }
+
+    try {
+      const parsed = JSON.parse(saved) as Record<string, any>;
+      return {
+        daily: new Set<string>(Array.isArray(parsed.daily) ? parsed.daily : []),
+        weekly: new Set<string>(Array.isArray(parsed.weekly) ? parsed.weekly : []),
+        monthly: new Set<string>(Array.isArray(parsed.monthly) ? parsed.monthly : []),
+        general: new Set<string>(Array.isArray(parsed.general) ? parsed.general : []),
+      };
+    } catch (err) {
+      console.warn('[missions] failed to parse completedMissions from localStorage', err);
+      return empty;
+    }
   });
   
   const [dailyWheelReward, setDailyWheelReward] = useState<number | null>(() => {
