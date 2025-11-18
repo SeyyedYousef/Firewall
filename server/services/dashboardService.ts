@@ -764,10 +764,11 @@ function buildMetricsFromData(
   // For the dashboard, we want to show TODAY's metrics, not lifetime
   // So membersTotal should be the new members TODAY, not the total members in the group
   const membersTodayCount = newMembersToday;
+  const membersTotal = group.membersCount;
   const estimatedPreviousMembers = newMembersYesterday || (membersTodayCount > 0 ? membersTodayCount : 1);
 
   return {
-    membersTotal: membersTodayCount,
+    membersTotal,
     membersTrend: createTrend(membersTodayCount, estimatedPreviousMembers),
     remainingMs,
     isExpired,

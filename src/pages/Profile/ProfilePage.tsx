@@ -21,29 +21,6 @@ const TEXT = {
   supportTitle: "Support & resources",
 };
 
-const LEVEL_THRESHOLDS = [0, 250, 600, 1050, 1600, 2200, 2850, 3550, 4300, 5100, 5950, 6850];
-
-const ACTIONS = [
-  { key: "missions", label: "Open missions", hint: "Prioritize next objectives", to: "/missions" },
-  { key: "rewards", label: "Claim rewards", hint: "Spend collected XP", to: "/missions" },
-  { key: "activity", label: "Activity log", hint: "Purchases & escalations", to: "/stars" },
-  { key: "groups", label: "Manage groups", hint: "Jump to dashboard", to: "/groups" },
-  { key: "analytics", label: "Review analytics", hint: "Week-over-week trends", to: "/groups" },
-  { key: "giveaway", label: "Launch giveaway", hint: "Boost community energy", to: "/giveaway/create" },
-] as const;
-
-const SECURITY_STATUS = [
-  { key: "admins", label: "Admin security", status: "Protected", hint: "Multi-factor enforced for 5 admins" },
-  { key: "backups", label: "Backup rules", status: "Healthy", hint: "Automated export ran 3 hours ago" },
-  { key: "keywords", label: "Keyword shield", status: "Needs review", hint: "12 flagged terms require confirmation" },
-] as const;
-
-const ACTIVITY_LOG = [
-  { key: "renewal", title: "Renewed @firewall-hq for 14 days", time: "2h ago" },
-  { key: "mission", title: "Completed weekly mission: Launch giveaway", time: "9h ago" },
-  { key: "automation", title: "Enabled auto-escalate for @command-lab", time: "1d ago" },
-] as const;
-
 const BADGE_LABELS: Record<string, string> = {
   rookie: "Rookie",
   active: "Active",
@@ -51,36 +28,6 @@ const BADGE_LABELS: Record<string, string> = {
   elite: "Elite",
   legend: "Legend",
 };
-
-function computeLevel(xp: number) {
-  let level = 1;
-  let nextThreshold = LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1];
-
-  for (let index = 0; index < LEVEL_THRESHOLDS.length; index += 1) {
-    const threshold = LEVEL_THRESHOLDS[index];
-    const next = LEVEL_THRESHOLDS[index + 1];
-    if (xp >= threshold) {
-      level = index + 1;
-      if (typeof next === "number") {
-        nextThreshold = next;
-      } else {
-        nextThreshold = threshold;
-      }
-    }
-  }
-
-  const previousThreshold = LEVEL_THRESHOLDS[Math.max(0, level - 1)];
-  const delta = nextThreshold - previousThreshold || 1;
-  const progress = Math.min(1, Math.max(0, (xp - previousThreshold) / delta));
-
-  return {
-    level,
-    previousThreshold,
-    nextThreshold,
-    progress,
-    hasNext: nextThreshold > previousThreshold,
-  };
-}
 
 function buildPerformance(xp: number, profile: UserProfileSummary | null) {
   const uptimeScore = profile?.uptimeScore ?? 0;
@@ -162,7 +109,7 @@ function buildProgressTracks(profile: UserProfileSummary | null, missions: Profi
 export function ProfilePage() {
   const navigate = useNavigate();
   const owner = useOwnerProfile();
-  const { profile, missions, loading } = useUserProfile();
+  const { profile, missions, achievements, completions, loading, checkIn } = useUserProfile();
 
   const displayName = profile?.displayName ?? owner.displayName ?? "Firewall Commander";
   const username = profile?.username ?? owner.username ?? null;
@@ -181,7 +128,46 @@ export function ProfilePage() {
   const xp = profile?.totalXp ?? 0;
   const performance = useMemo(() => buildPerformance(xp, profile), [xp, profile]);
   const progressTracks = useMemo(() => buildProgressTracks(profile, missions), [profile, missions]);
-  const levelInfo = useMemo(() => computeLevel(xp), [xp]);
+  const level = profile?.level ?? 1;
+  const progressToNext = clampProgress(profile?.progressToNext ?? 0);
+  const hasNextLevel = typeof profile?.nextLevelXp === "number" && profile.nextLevelXp !== null;
+  const remainingToNext =
+    hasNextLevel && typeof profile?.nextLevelXp === "number"
+      ? Math.max(0, profile.nextLevelXp - xp)
+      : 0;
+
+  const activityItems = useMemo(
+    () => {
+      const items: { key: string; title: string; time: string; timestamp: number }[] = [];
+
+      completions.forEach((completion) => {
+        const date = new Date(completion.completedAt);
+        const timestamp = date.getTime();
+        items.push({
+          key: `completion-${completion.missionId}-${completion.cycleKey}-${completion.completedAt}`,
+          title: `Completed ${completion.category} mission (+${completion.xpEarned.toLocaleString("en-US")} XP)`,
+          time: date.toLocaleString("en-US"),
+          timestamp,
+        });
+      });
+
+      achievements.forEach((achievement) => {
+        const date = new Date(achievement.unlockedAt);
+        const timestamp = date.getTime();
+        items.push({
+          key: `achievement-${achievement.achievementId}-${achievement.unlockedAt}`,
+          title: `Unlocked achievement ${achievement.achievementId}`,
+          time: date.toLocaleString("en-US"),
+          timestamp,
+        });
+      });
+
+      items.sort((a, b) => b.timestamp - a.timestamp);
+
+      return items.slice(0, 10);
+    },
+    [completions, achievements],
+  );
 
   const [preferences, setPreferences] = useState<UserPreferences>({
     pushEnabled: true,
@@ -189,6 +175,8 @@ export function ProfilePage() {
     autoEscalate: false,
     silentFailures: true,
   });
+
+  const [checkInLoading, setCheckInLoading] = useState(false);
 
   // Load preferences on mount
   useEffect(() => {
@@ -207,7 +195,7 @@ export function ProfilePage() {
   const handlePreferenceChange = useCallback(async (key: keyof UserPreferences, value: boolean) => {
     const newPreferences = { ...preferences, [key]: value };
     setPreferences(newPreferences);
-    
+
     try {
       await updateUserPreferences(newPreferences);
     } catch (error) {
@@ -218,6 +206,20 @@ export function ProfilePage() {
       // Loading state removed
     }
   }, [preferences]);
+
+  const handleDailyCheckIn = useCallback(async () => {
+    if (!checkIn || !profile) {
+      return;
+    }
+    try {
+      setCheckInLoading(true);
+      await checkIn();
+    } catch (error) {
+      console.error("Failed to record daily check-in:", error);
+    } finally {
+      setCheckInLoading(false);
+    }
+  }, [checkIn, profile]);
 
   const automationOptions = [
     {
@@ -282,15 +284,15 @@ export function ProfilePage() {
             <span className={styles.heroBadgeValue}>{latestBadgeLabel}</span>
           </div>
           <div className={styles.progressTrack}>
-            <div className={styles.progressValue} style={{ width: `${levelInfo.progress * 100}%` }} />
+            <div className={styles.progressValue} style={{ width: `${progressToNext * 100}%` }} />
           </div>
           <span className={styles.progressCaption}>
-            {levelInfo.hasNext
-              ? `${(levelInfo.nextThreshold - xp).toLocaleString("en-US")} XP until level ${levelInfo.level + 1}`
+            {hasNextLevel
+              ? `${remainingToNext.toLocaleString("en-US")} XP until level ${level + 1}`
               : "Season level cap reached"}
           </span>
           <span className={styles.heroSubtitle}>
-            Level {levelInfo.level.toString().padStart(2, "0")}
+            Level {level.toString().padStart(2, "0")}
           </span>
         </div>
       </section>
@@ -301,6 +303,16 @@ export function ProfilePage() {
             <header className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>{TEXT.statsTitle}</h2>
               <Text className={styles.sectionHint}>Pulse metrics that define your rank each season.</Text>
+              <Button
+                size="s"
+                mode="filled"
+                disabled={checkInLoading || !profile}
+                onClick={() => {
+                  void handleDailyCheckIn();
+                }}
+              >
+                {checkInLoading ? "Checking in..." : "Daily check-in"}
+              </Button>
             </header>
             <div className={styles.statsGrid}>
               {performance.map((item) => (
@@ -312,6 +324,30 @@ export function ProfilePage() {
               ))}
             </div>
           </section>
+
+          {achievements.length > 0 && (
+            <section className={styles.section}>
+              <header className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>Achievements</h2>
+                <Text className={styles.sectionHint}>Recently unlocked milestones.</Text>
+              </header>
+              <div className={styles.activityList}>
+                {achievements.slice(0, 8).map((achievement) => {
+                  const label = BADGE_LABELS[achievement.achievementId] ?? achievement.achievementId;
+                  const unlockedAt = new Date(achievement.unlockedAt).toLocaleString("en-US");
+                  return (
+                    <article
+                      key={`${achievement.achievementId}-${achievement.unlockedAt}`}
+                      className={styles.activityCard}
+                    >
+                      <span className={styles.activityTitle}>{label}</span>
+                      <span className={styles.activityTime}>{unlockedAt}</span>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
           <section className={styles.section}>
             <header className={styles.sectionHeader}>
@@ -340,7 +376,14 @@ export function ProfilePage() {
               <Text className={styles.sectionHint}>Jump straight to the commands you use the most.</Text>
             </header>
             <div className={styles.actionsGrid}>
-              {ACTIONS.map((action) => (
+              {[
+                { key: "missions", label: "Open missions", hint: "Prioritize next objectives", to: "/missions" },
+                { key: "rewards", label: "Claim rewards", hint: "Spend collected XP", to: "/missions" },
+                { key: "activity", label: "Activity log", hint: "Purchases & escalations", to: "/stars" },
+                { key: "groups", label: "Manage groups", hint: "Jump to dashboard", to: "/groups" },
+                { key: "analytics", label: "Review analytics", hint: "Week-over-week trends", to: "/groups" },
+                { key: "giveaway", label: "Launch giveaway", hint: "Boost community energy", to: "/giveaway/create" },
+              ].map((action) => (
                 <button
                   key={action.key}
                   type="button"
@@ -378,8 +421,8 @@ export function ProfilePage() {
               <Text className={styles.sectionHint}>Signals from your latest missions, renewals, and automations.</Text>
             </header>
             <div className={styles.activityList}>
-              {profile && profile.totalXp > 0 ? (
-                ACTIVITY_LOG.map((item) => (
+              {activityItems.length > 0 ? (
+                activityItems.map((item) => (
                   <article key={item.key} className={styles.activityCard}>
                     <span className={styles.activityTitle}>{item.title}</span>
                     <span className={styles.activityTime}>{item.time}</span>
@@ -395,43 +438,6 @@ export function ProfilePage() {
         </div>
 
         <aside className={styles.columnSecondary}>
-          <section className={styles.section}>
-            <header className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>{TEXT.alertsTitle}</h2>
-              <Text className={styles.sectionHint}>Control which anomalies should page you instantly.</Text>
-            </header>
-            <div className={styles.alertsCard}>
-              <div className={styles.alertsHeader}>
-                <Text weight="2">Signal monitor</Text>
-                <Button size="s" mode="plain">
-                  Configure
-                </Button>
-              </div>
-              <ul className={styles.alertsList}>
-                <li>Flood alerts</li>
-                <li>Firewall breaches</li>
-                <li>Botnet detection</li>
-                <li>Stars payment failures</li>
-              </ul>
-            </div>
-          </section>
-
-          <section className={styles.section}>
-            <header className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>{TEXT.securityTitle}</h2>
-              <Text className={styles.sectionHint}>High-level signal on your security posture right now.</Text>
-            </header>
-            <div className={styles.securityGrid}>
-              {SECURITY_STATUS.map((item) => (
-                <div key={item.key} className={styles.securityCard} data-status={item.status}>
-                  <span className={styles.securityLabel}>{item.label}</span>
-                  <span className={styles.securityStatus}>{item.status}</span>
-                  <span className={styles.securityHint}>{item.hint}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-
           <section className={styles.section}>
             <header className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>{TEXT.supportTitle}</h2>

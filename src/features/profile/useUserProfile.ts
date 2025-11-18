@@ -2,10 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 
 import {
   fetchAchievements,
+  fetchMissionCompletions,
   fetchUserProfile,
   recordDailyCheckIn,
   redeemReward as apiRedeemReward,
   type AchievementRecord,
+  type MissionCompletionRecord,
   type ProfileBootstrap,
   type RewardRedemptionRecord,
   type UserProfileSummary,
@@ -27,6 +29,7 @@ type UseUserProfileResult = {
   profile: UserProfileSummary | null;
   missions: ProfileBootstrap["missions"];
   achievements: AchievementRecord[];
+  completions: MissionCompletionRecord[];
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
@@ -45,6 +48,7 @@ export function useUserProfile(): UseUserProfileResult {
   const [profile, setProfile] = useState<UserProfileSummary | null>(null);
   const [missions, setMissions] = useState<ProfileBootstrap["missions"]>(EMPTY_MISSIONS);
   const [achievements, setAchievements] = useState<AchievementRecord[]>([]);
+  const [completions, setCompletions] = useState<MissionCompletionRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -110,6 +114,13 @@ export function useUserProfile(): UseUserProfileResult {
         general: bootstrap.missions.general ?? [],
       });
       setAchievements(unlocked);
+
+      try {
+        const completionRecords = await fetchMissionCompletions();
+        setCompletions(completionRecords);
+      } catch (err) {
+        console.warn("Failed to load mission completions:", err);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to load profile";
       setError(message);
@@ -156,6 +167,7 @@ export function useUserProfile(): UseUserProfileResult {
     profile,
     missions,
     achievements,
+    completions,
     loading,
     error,
     refresh,

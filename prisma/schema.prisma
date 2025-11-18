@@ -55,6 +55,7 @@ model Group {
   membershipEvents  MembershipEvent[]
   giveaways         Giveaway[]         @relation("GiveawayGroup")
   creditCodes       CreditRedemptionCode[] @relation("CreditRedemptionGroup")
+  warnings          UserWarning[]
 
   @@index([ownerId])
 }
