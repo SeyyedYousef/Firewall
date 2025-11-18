@@ -456,7 +456,7 @@ export function GroupGeneralSettingsPage() {
           </div>
           {settings.autoDeleteEnabled && (
             <div className={styles.fieldRow}>
-              <label className={styles.fieldLabel}>Deletion time (minutes)</label>
+              <label className={styles.fieldLabel}>Deletion time (seconds)</label>
               <Input
                 type="number"
                 min={1}

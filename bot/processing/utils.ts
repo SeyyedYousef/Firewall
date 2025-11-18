@@ -62,12 +62,38 @@ async function deleteMessage(ctx: GroupChatContext, action: Extract<ProcessingAc
     return;
   }
 
+  const message = ctx.message as any;
+  const forwardFromChat = message?.forward_from_chat;
+  const hasForward = Boolean(message?.forward_date);
+  const hasForwardChannel = Boolean(hasForward && forwardFromChat && forwardFromChat.type === "channel");
+  const isAutomaticForward = Boolean(message?.is_automatic_forward);
+  if (isAutomaticForward && hasForwardChannel) {
+    logger.debug("skipping delete for linked channel auto-forward", {
+      chatId: ctx.chat.id,
+      messageId: action.messageId,
+    });
+    return;
+  }
+
   if (!(await ensureBotCapability(ctx, "can_delete_messages"))) {
     return;
   }
 
   try {
     await ctx.telegram.deleteMessage(ctx.chat.id, action.messageId);
+
+    const reason = action.reason?.trim();
+    if (reason) {
+      const explanationText = `🚫 This message was removed for the following reason:\n${escapeHtml(reason)}`;
+
+      await sendMessage(ctx, {
+        type: "send_message",
+        text: explanationText,
+        replyToMessageId: ctx.message?.message_id,
+        parseMode: "HTML",
+        autoDeleteSeconds: 60,
+      });
+    }
   } catch (error) {
     handleActionError(ctx, "delete_message", "can_delete_messages", error, {
       messageId: action.messageId,
@@ -128,11 +154,13 @@ async function warnMember(ctx: GroupChatContext, action: Extract<ProcessingActio
   const warningText = renderTemplate(warningTemplate, replacements);
 
   try {
-    await ctx.telegram.sendMessage(ctx.chat.id, warningText, {
-      parse_mode: "HTML",
-      reply_to_message_id: ctx.message?.message_id,
-      disable_web_page_preview: true,
-    } as any);
+    await sendMessage(ctx, {
+      type: "send_message",
+      text: warningText,
+      replyToMessageId: ctx.message?.message_id,
+      parseMode: "HTML",
+      autoDeleteSeconds: 60,
+    });
   } catch (error) {
     handleActionError(ctx, "warn_member", "can_send_messages", error);
   }
@@ -240,7 +268,7 @@ function resolveMessageThreadId(
 
 async function sendMessage(ctx: GroupChatContext, action: Extract<ProcessingAction, { type: "send_message" }>) {
   // Load general settings to check for auto-delete configuration and silent mode
-  let autoDeleteDelayMinutes = 0;
+  let autoDeleteDelaySeconds = 0;
   let silentModeEnabled = false;
   
   const databaseAvailable = Boolean(process.env?.DATABASE_URL);
@@ -249,7 +277,8 @@ async function sendMessage(ctx: GroupChatContext, action: Extract<ProcessingActi
       const { loadGeneralSettingsByChatId } = await import("../../server/db/groupSettingsRepository.js");
       const generalSettings = await loadGeneralSettingsByChatId(ctx.chat.id.toString());
       if (generalSettings.autoDeleteEnabled && generalSettings.autoDeleteDelayMinutes > 0) {
-        autoDeleteDelayMinutes = generalSettings.autoDeleteDelayMinutes;
+        // The value from settings is now interpreted as seconds
+        autoDeleteDelaySeconds = generalSettings.autoDeleteDelayMinutes;
       }
       silentModeEnabled = generalSettings.silentModeEnabled || false;
       
@@ -280,8 +309,8 @@ async function sendMessage(ctx: GroupChatContext, action: Extract<ProcessingActi
 
     // Schedule auto-delete based on action-specific setting or general setting
     let autoDeleteSeconds = action.autoDeleteSeconds || 0;
-    if (autoDeleteSeconds === 0 && autoDeleteDelayMinutes > 0) {
-      autoDeleteSeconds = autoDeleteDelayMinutes * 60;
+    if (autoDeleteSeconds === 0 && autoDeleteDelaySeconds > 0) {
+      autoDeleteSeconds = autoDeleteDelaySeconds;
     }
 
     if (autoDeleteSeconds > 0) {

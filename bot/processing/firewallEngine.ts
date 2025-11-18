@@ -62,7 +62,14 @@ export async function runFirewall(ctx: GroupChatContext): Promise<ProcessingActi
     return [];
   }
 
-  const event = extractEvent(ctx.message);
+  const message = ctx.message as Message.CommonMessage;
+
+  if (isLinkedChannelPost(message)) {
+    logger.debug("skipping firewall for linked channel auto-forward", { chatId: ctx.chat.id });
+    return [];
+  }
+
+  const event = extractEvent(message);
   if (!event) {
     return [];
   }
@@ -231,6 +238,14 @@ function detectMediaTypes(message: Message.CommonMessage): string[] {
   if ("video_note" in message && message.video_note) types.push("video_note");
   if ("sticker" in message && message.sticker) types.push("sticker");
   return types;
+}
+
+function isLinkedChannelPost(message: Message.CommonMessage): boolean {
+  const forwardFromChat = (message as { forward_from_chat?: { type?: string } }).forward_from_chat;
+  const hasForward = Boolean((message as { forward_date?: unknown }).forward_date);
+  const hasForwardChannel = Boolean(hasForward && forwardFromChat && forwardFromChat.type === "channel");
+  const isAutomaticForward = Boolean((message as { is_automatic_forward?: boolean }).is_automatic_forward);
+  return Boolean(isAutomaticForward && hasForwardChannel);
 }
 
 async function resolveMemberRole(ctx: GroupChatContext, userId: number): Promise<MemberRole> {

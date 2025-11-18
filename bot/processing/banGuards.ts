@@ -77,6 +77,8 @@ type MessageFacts = {
   viaBot: boolean;
   isReply: boolean;
   isCrossReply: boolean;
+  isAutomaticForward: boolean;
+  isLinkedChannelPost: boolean;
 };
 
 export async function primeBanSettings(ctx: GroupChatContext): Promise<void> {
@@ -130,6 +132,11 @@ export async function evaluateBanGuards(ctx: GroupChatContext): Promise<Processi
   const message = ctx.message as Message;
   const facts = collectFacts(message);
   const timestampSeconds = message.date ?? Math.floor(Date.now() / 1000);
+
+  if (facts.isLinkedChannelPost) {
+    logger.debug("skipping moderation for linked channel auto-forward", { chatId });
+    return [];
+  }
 
   const triggered: string[] = [];
   const blockedLinks = getBlockedLinks(settings, facts);
@@ -651,6 +658,8 @@ function collectFacts(message: Message): MessageFacts {
   const forwardFromChat = (message as { forward_from_chat?: { type?: string } }).forward_from_chat;
   const hasForward = Boolean((message as { forward_date?: unknown }).forward_date);
   const hasForwardChannel = Boolean(hasForward && forwardFromChat && forwardFromChat.type === "channel");
+  const isAutomaticForward = Boolean((message as { is_automatic_forward?: boolean }).is_automatic_forward);
+  const isLinkedChannelPost = Boolean(isAutomaticForward && hasForwardChannel);
   const hasSticker = "sticker" in message && Boolean(message.sticker);
   const hasPhoto = "photo" in message && Array.isArray(message.photo) && message.photo.length > 0;
   const hasVideo = "video" in message && Boolean(message.video);
@@ -717,6 +726,8 @@ function collectFacts(message: Message): MessageFacts {
     viaBot,
     isReply,
     isCrossReply,
+    isAutomaticForward,
+    isLinkedChannelPost,
   };
 }
 

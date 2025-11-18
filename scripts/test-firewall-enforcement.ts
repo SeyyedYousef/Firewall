@@ -71,7 +71,7 @@ class FirewallEnforcementTester {
       this.addResult(
         "Auto-delete Setting",
         settings.autoDeleteEnabled !== undefined && settings.autoDeleteDelayMinutes !== undefined,
-        `Auto-delete: ${settings.autoDeleteEnabled}, Delay: ${settings.autoDeleteDelayMinutes}min`
+        `Auto-delete: ${settings.autoDeleteEnabled}, Delay: ${settings.autoDeleteDelayMinutes}s`
       );
 
       // Test 5: User Verification Setting

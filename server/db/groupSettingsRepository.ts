@@ -406,7 +406,7 @@ function normalizeGeneralSettings(input: unknown): GroupGeneralSettingsRecord {
 
   result.autoDeleteDelayMinutes = sanitizeNumber(candidate.autoDeleteDelayMinutes, base.autoDeleteDelayMinutes, {
     min: 0,
-    max: 10080,
+    max: 604800,
     round: "floor",
   });
 
