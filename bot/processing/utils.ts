@@ -112,6 +112,7 @@ async function warnMember(ctx: GroupChatContext, action: Extract<ProcessingActio
   let userWarningsCount: number | null = null;
   let warningsLimitTotal: number | null = null;
   let warningsRetentionDays: number | null = null;
+  let usedPersistentWarnings = false;
 
   // Check if warnings are enabled in group settings and try to load auto-warning config
   if (databaseAvailable) {
@@ -138,18 +139,49 @@ async function warnMember(ctx: GroupChatContext, action: Extract<ProcessingActio
     }
   }
   
-  // Register warning in in-memory registry to get per-user count for this session
-  try {
-    if (ctx.chat?.id && action.userId) {
-      const { registerWarning } = await import("./warnings.js");
-      userWarningsCount = registerWarning(Number(ctx.chat.id), Number(action.userId));
+  // Try to persist warning in database and get aggregated count
+  if (databaseAvailable) {
+    try {
+      if (ctx.chat?.id && action.userId) {
+        const { recordUserWarningAndGetCount } = await import("../../server/db/mutateRepository.js");
+        const retentionDaysValue =
+          typeof warningsRetentionDays === "number" && Number.isFinite(warningsRetentionDays) && warningsRetentionDays > 0
+            ? warningsRetentionDays
+            : null;
+
+        const result = await recordUserWarningAndGetCount({
+          chatId: ctx.chat.id.toString(),
+          telegramUserId: action.userId.toString(),
+          retentionDays: retentionDaysValue,
+          groupTitle: ctx.chat?.title ?? null,
+        });
+
+        userWarningsCount = result.count;
+        usedPersistentWarnings = true;
+      }
+    } catch (error) {
+      logger.debug("failed to persist user warning in database, falling back to in-memory warnings", {
+        chatId: ctx.chat?.id,
+        userId: action.userId,
+        error,
+      });
     }
-  } catch (error) {
-    logger.debug("failed to register warning in memory, continuing without per-user count", {
-      chatId: ctx.chat?.id,
-      userId: action.userId,
-      error,
-    });
+  }
+
+  // Fallback: register warning in in-memory registry to get per-user count for this session
+  if (!usedPersistentWarnings) {
+    try {
+      if (ctx.chat?.id && action.userId) {
+        const { registerWarning } = await import("./warnings.js");
+        userWarningsCount = registerWarning(Number(ctx.chat.id), Number(action.userId));
+      }
+    } catch (error) {
+      logger.debug("failed to register warning in memory, continuing without per-user count", {
+        chatId: ctx.chat?.id,
+        userId: action.userId,
+        error,
+      });
+    }
   }
 
   // Try to load custom warning message template

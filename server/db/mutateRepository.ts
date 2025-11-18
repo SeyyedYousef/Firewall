@@ -598,6 +598,75 @@ export async function recordMembershipEvent(input: MembershipEventDbInput): Prom
   }, "recordMembershipEvent");
 }
 
+export type UserWarningDbInput = {
+  chatId: string;
+  telegramUserId: string;
+  retentionDays?: number | null;
+  groupTitle?: string | null;
+};
+
+export async function recordUserWarningAndGetCount(input: UserWarningDbInput): Promise<{ count: number }> {
+  return withPrismaRetry(async () => {
+    const groupId = await ensureGroupRecord(input.chatId, input.groupTitle ?? undefined);
+    const now = new Date();
+    const retentionDays =
+      typeof input.retentionDays === "number" && Number.isFinite(input.retentionDays) && input.retentionDays > 0
+        ? input.retentionDays
+        : null;
+
+    const expiresAt = retentionDays ? new Date(now.getTime() + retentionDays * 24 * 60 * 60 * 1000) : null;
+
+    const existing = await prisma.userWarning.findFirst({
+      where: {
+        groupId,
+        telegramUserId: input.telegramUserId,
+      },
+    });
+
+    if (!existing) {
+      const created = await prisma.userWarning.create({
+        data: {
+          groupId,
+          telegramUserId: input.telegramUserId,
+          count: 1,
+          lastWarningAt: now,
+          expiresAt,
+        },
+        select: { count: true },
+      });
+      return { count: created.count };
+    }
+
+    const baseCount = existing.expiresAt && existing.expiresAt < now ? 0 : existing.count;
+    const updated = await prisma.userWarning.update({
+      where: { id: existing.id },
+      data: {
+        count: baseCount + 1,
+        lastWarningAt: now,
+        expiresAt,
+      },
+      select: { count: true },
+    });
+
+    return { count: updated.count };
+  }, "recordUserWarningAndGetCount");
+}
+
+export async function cleanupExpiredUserWarnings(): Promise<void> {
+  await withPrismaRetry(
+    async () => {
+      await prisma.userWarning.deleteMany({
+        where: {
+          expiresAt: {
+            lt: new Date(),
+          },
+        },
+      });
+    },
+    "cleanupExpiredUserWarnings",
+  );
+}
+
 export async function setGroupStatus(chatId: string, status: string, options: { title?: string | null } = {}): Promise<void> {
   await withPrismaRetry(async () => {
     const groupId = await ensureGroupRecord(chatId, options.title ?? undefined);

@@ -131,6 +131,20 @@ model ModerationAction {
   @@index([groupId, createdAt])
 }
 
+model UserWarning {
+  id             String   @id @default(uuid())
+  groupId        String
+  telegramUserId String
+  count          Int      @default(0)
+  lastWarningAt  DateTime @default(now())
+  expiresAt      DateTime?
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, telegramUserId])
+  @@index([groupId, expiresAt])
+}
+
 model MembershipEvent {
   id        String   @id @default(uuid())
   groupId   String
