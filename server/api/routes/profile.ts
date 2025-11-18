@@ -23,17 +23,14 @@ export function createProfileRouter(): Router {
   router.get("/", async (req, res) => {
     const auth = req.telegramAuth!;
     
-    // Parallel execution for better performance
-    const [profile, completions] = await Promise.all([
-      getOrCreateUserProfile(auth.userId, {
-        username: auth.user?.username,
-        firstName: auth.user?.first_name,
-        lastName: auth.user?.last_name,
-        photoUrl: auth.user?.photo_url,
-      }),
-      // Defer mission completions loading if not needed immediately
-      listMissionCompletions(auth.userId).catch(() => [])
-    ]);
+    const profile = await getOrCreateUserProfile(auth.userId, {
+      username: auth.user?.username,
+      firstName: auth.user?.first_name,
+      lastName: auth.user?.last_name,
+      photoUrl: auth.user?.photo_url,
+    });
+
+    const completions = await listMissionCompletions(profile.id).catch(() => []);
 
     const grouped = completions.reduce<Record<MissionCategory, string[]>>((acc, record) => {
       if (!acc[record.category]) {

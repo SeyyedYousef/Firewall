@@ -1177,7 +1177,7 @@ export async function loadGroupDetailByChatId(chatId: string, userId?: string | 
     }
   }
 
-  const cutoffMs = Date.now() - DAY_MS;
+  const cutoffMs = Date.now() - 7 * DAY_MS;
   const warnings = audits
     .map((audit) => mapAuditToWarning(audit))
     .filter((warning) => {

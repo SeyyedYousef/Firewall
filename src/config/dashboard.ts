@@ -28,6 +28,6 @@ export const dashboardConfig = {
     : 0,
   allowMockFallback: parseBooleanEnv(
     import.meta.env.VITE_DASHBOARD_ALLOW_MOCK_FALLBACK as string | undefined,
-    Boolean(import.meta.env.DEV),
+    false,
   ),
 };
