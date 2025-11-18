@@ -106,14 +106,29 @@ async function warnMember(ctx: GroupChatContext, action: Extract<ProcessingActio
   
   const databaseAvailable = Boolean(process.env?.DATABASE_URL);
   
-  // Check if warnings are enabled in group settings
+  // Defaults for template placeholders
+  let warningsEnabled = true;
+  let penaltyLabel = "delete";
+  let userWarningsCount: number | null = null;
+  let warningsLimitTotal: number | null = null;
+  let warningsRetentionDays: number | null = null;
+
+  // Check if warnings are enabled in group settings and try to load auto-warning config
   if (databaseAvailable) {
     try {
       const { loadGeneralSettingsByChatId } = await import("../../server/db/groupSettingsRepository.js");
       const generalSettings = await loadGeneralSettingsByChatId(ctx.chat.id.toString());
-      if (!generalSettings.warningEnabled) {
+      warningsEnabled = generalSettings.warningEnabled;
+      if (!warningsEnabled) {
         logger.debug("warnings disabled for group", { chatId: ctx.chat.id });
         return;
+      }
+
+      if (generalSettings.autoWarningEnabled && generalSettings.autoWarning) {
+        const auto = generalSettings.autoWarning;
+        warningsLimitTotal = typeof auto.threshold === "number" ? auto.threshold : null;
+        warningsRetentionDays = typeof auto.retentionDays === "number" ? auto.retentionDays : null;
+        penaltyLabel = auto.penalty || penaltyLabel;
       }
     } catch (error) {
       logger.debug("failed to load general settings, proceeding with warning", { 
@@ -123,6 +138,20 @@ async function warnMember(ctx: GroupChatContext, action: Extract<ProcessingActio
     }
   }
   
+  // Register warning in in-memory registry to get per-user count for this session
+  try {
+    if (ctx.chat?.id && action.userId) {
+      const { registerWarning } = await import("./warnings.js");
+      userWarningsCount = registerWarning(Number(ctx.chat.id), Number(action.userId));
+    }
+  } catch (error) {
+    logger.debug("failed to register warning in memory, continuing without per-user count", {
+      chatId: ctx.chat?.id,
+      userId: action.userId,
+      error,
+    });
+  }
+
   // Try to load custom warning message template
   let warningTemplate = "{user}, you violated: {reason}. Severity: {severity}";
   
@@ -149,6 +178,10 @@ async function warnMember(ctx: GroupChatContext, action: Extract<ProcessingActio
     user: mention,
     reason: action.reason,
     severity: action.severity.toUpperCase(),
+    penalty: penaltyLabel,
+    user_warnings: userWarningsCount,
+    warnings_count: warningsLimitTotal,
+    warningstime: warningsRetentionDays,
   };
 
   const warningText = renderTemplate(warningTemplate, replacements);

@@ -1,6 +1,7 @@
 import type { UpdateHandler } from "../types.js";
 import { textMessageHandler } from "./textMessage.js";
 import { mediaHandler } from "./media.js";
+import { specialContentHandler } from "./specialContent.js";
 import { membershipHandler } from "./membership.js";
 import { serviceHandler } from "./service.js";
 import { myChatMemberHandler } from "./myChatMember.js";
@@ -15,6 +16,7 @@ export const handlers: UpdateHandler[] = [
   voteMuteHandler, // Add vote mute system
   creditCodeRedemptionHandler, // Add credit code redemption system
   serviceHandler,
+  specialContentHandler,
   mediaHandler,
   textMessageHandler,
 ];

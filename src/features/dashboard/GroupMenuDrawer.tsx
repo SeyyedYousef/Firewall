@@ -37,7 +37,14 @@ export function GroupMenuDrawer({ open, onClose, activeKey = "home", onSelect }:
         onClick={(event) => event.stopPropagation()}
       >
         <div className={styles.header}>
-          <Text weight="2">Group management panel</Text>
+          <Text
+            weight="3"
+            style={{
+              color: "var(--tg-theme-text-color, #000000)",
+            }}
+          >
+            Group management panel
+          </Text>
           <Button
             mode="plain"
             size="s"
