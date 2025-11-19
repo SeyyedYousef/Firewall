@@ -198,8 +198,8 @@ function createDefaultBanSettings(): GroupBanSettingsRecord {
 
   return {
     rules,
-    blacklist: ["spam", "promo", "http", "lottery", "casino"],
-    whitelist: ["support", "docs", "faq", "help"],
+    blacklist: [],
+    whitelist: [],
   };
 }
 

@@ -545,8 +545,8 @@ function createBanSettings(id: string): GroupBanSettings {
     };
   });
 
-  const blacklist = ["spam", "promo", "http", "lottery", "casino"];
-  const whitelist = ["support", "docs", "faq", "help"];
+  const blacklist: string[] = [];
+  const whitelist: string[] = [];
 
   return {
     rules,

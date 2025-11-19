@@ -170,6 +170,16 @@ export async function evaluateBanGuards(ctx: GroupChatContext): Promise<Processi
       triggered.push("banTextPatterns");
     }
   });
+  // Enforce Required keywords (whitelist) on text content:
+  // If whitelist is non-empty and the text does NOT contain any of them, treat as violation.
+  if (settings.whitelist && settings.whitelist.length > 0) {
+    const textLower = facts.textLower;
+    const required = normalizeTokenList(settings.whitelist);
+    const hasRequired = required.some((token) => textLower.includes(token));
+    if (!hasRequired) {
+      triggered.push("requiredKeywordsMissing");
+    }
+  }
 
   checkRule(settings, "banForward", facts, timestampSeconds, () => {
     if (facts.hasForward) {
