@@ -1,5 +1,6 @@
 import type { UpdateHandler } from "../types.js";
 import type { GroupChatContext, ProcessingAction } from "../types.js";
+import { Markup } from "telegraf";
 import { ensureActions, isGroupChat } from "../utils.js";
 import { logger } from "../../../server/utils/logger.js";
 import { loadBotContent } from "../../content.js";
@@ -252,6 +253,76 @@ async function buildBotJoinActions(ctx: GroupChatContext): Promise<ProcessingAct
   return ensureActions(actions);
 }
 
+async function enforceUserVerificationForNewMembers(ctx: GroupChatContext): Promise<void> {
+  if (!databaseAvailable) {
+    return;
+  }
+
+  const message = ctx.message as any;
+  const newMembers = ((message?.new_chat_members ?? []) as any[]).filter((member) => !member?.is_bot);
+  if (newMembers.length === 0) {
+    return;
+  }
+
+  try {
+    const general = await loadGeneralSettingsByChatId(ctx.chat.id.toString());
+    if (!general.userVerificationEnabled) {
+      return;
+    }
+  } catch (error) {
+    logger.debug("user verification settings unavailable for new members", { chatId: ctx.chat.id, error });
+    return;
+  }
+
+  for (const member of newMembers) {
+    const rawId = (member as { id?: number | string }).id;
+    const numericId = typeof rawId === "number" ? rawId : Number.parseInt(String(rawId), 10);
+    if (!Number.isFinite(numericId)) {
+      continue;
+    }
+
+    try {
+      await ctx.telegram.restrictChatMember(
+        ctx.chat.id,
+        numericId,
+        {
+          permissions: {
+            can_send_messages: false,
+            can_send_audios: false,
+            can_send_documents: false,
+            can_send_photos: false,
+            can_send_videos: false,
+            can_send_video_notes: false,
+            can_send_voice_notes: false,
+            can_send_polls: false,
+            can_invite_users: false,
+            can_pin_messages: false,
+            can_manage_topics: false,
+            can_change_info: false,
+            can_add_web_page_previews: false,
+          },
+        } as any,
+      );
+
+      const callbackData = `fw_verify_member:${ctx.chat.id}:${numericId}`;
+      const text =
+        "To send messages in this group, please confirm that you are not a bot.\n\nTap the button below to verify.";
+
+      await ctx.telegram.sendMessage(
+        ctx.chat.id,
+        text,
+        Markup.inlineKeyboard([[Markup.button.callback("I am not a bot", callbackData)]]),
+      );
+    } catch (error) {
+      logger.warn("failed to apply user verification restrictions", {
+        chatId: ctx.chat.id,
+        userId: numericId,
+        error,
+      });
+    }
+  }
+}
+
 export const membershipHandler: UpdateHandler = {
   name: "group-membership-events",
   matches(ctx) {
@@ -271,7 +342,7 @@ export const membershipHandler: UpdateHandler = {
         const hasNewMembers = Boolean(message?.new_chat_members?.length);
         const hasLeft = Boolean(message?.left_chat_member);
         if (hasNewMembers || hasLeft) {
-          actions.push({ type: "delete_message", messageId: message.message_id, reason: "remove join/leave" });
+          actions.push({ type: "delete_message", messageId: message.message_id });
         }
       }
     } catch (error) {
@@ -279,6 +350,8 @@ export const membershipHandler: UpdateHandler = {
     }
     const joinActions = await buildBotJoinActions(ctx);
     actions.push(...joinActions);
+
+    await enforceUserVerificationForNewMembers(ctx);
 
     if (databaseAvailable) {
       await persistMembershipEvents(ctx);

@@ -81,19 +81,6 @@ async function deleteMessage(ctx: GroupChatContext, action: Extract<ProcessingAc
 
   try {
     await ctx.telegram.deleteMessage(ctx.chat.id, action.messageId);
-
-    const reason = action.reason?.trim();
-    if (reason) {
-      const explanationText = `🚫 This message was removed for the following reason:\n${escapeHtml(reason)}`;
-
-      await sendMessage(ctx, {
-        type: "send_message",
-        text: explanationText,
-        replyToMessageId: ctx.message?.message_id,
-        parseMode: "HTML",
-        autoDeleteSeconds: 60,
-      });
-    }
   } catch (error) {
     handleActionError(ctx, "delete_message", "can_delete_messages", error, {
       messageId: action.messageId,
@@ -113,6 +100,7 @@ async function warnMember(ctx: GroupChatContext, action: Extract<ProcessingActio
   let warningsLimitTotal: number | null = null;
   let warningsRetentionDays: number | null = null;
   let usedPersistentWarnings = false;
+  let autoWarningPenalty: "delete" | "mute" | "kick" | null = null;
 
   // Check if warnings are enabled in group settings and try to load auto-warning config
   if (databaseAvailable) {
@@ -130,6 +118,9 @@ async function warnMember(ctx: GroupChatContext, action: Extract<ProcessingActio
         warningsLimitTotal = typeof auto.threshold === "number" ? auto.threshold : null;
         warningsRetentionDays = typeof auto.retentionDays === "number" ? auto.retentionDays : null;
         penaltyLabel = auto.penalty || penaltyLabel;
+        if (auto.penalty === "delete" || auto.penalty === "mute" || auto.penalty === "kick") {
+          autoWarningPenalty = auto.penalty;
+        }
       }
     } catch (error) {
       logger.debug("failed to load general settings, proceeding with warning", { 
@@ -177,6 +168,33 @@ async function warnMember(ctx: GroupChatContext, action: Extract<ProcessingActio
       }
     } catch (error) {
       logger.debug("failed to register warning in memory, continuing without per-user count", {
+        chatId: ctx.chat?.id,
+        userId: action.userId,
+        error,
+      });
+    }
+  }
+
+  // Apply automatic mute when warning threshold is exceeded and auto-warning penalty is set to mute
+  if (
+    autoWarningPenalty === "mute" &&
+    typeof userWarningsCount === "number" &&
+    typeof warningsLimitTotal === "number" &&
+    warningsLimitTotal > 0 &&
+    userWarningsCount > warningsLimitTotal &&
+    typeof warningsRetentionDays === "number" &&
+    warningsRetentionDays > 0
+  ) {
+    const durationSeconds = warningsRetentionDays * 24 * 60 * 60;
+    try {
+      await restrictMember(ctx, {
+        type: "restrict_member",
+        userId: action.userId,
+        reason: "Warning threshold exceeded: user muted automatically.",
+        durationSeconds,
+      });
+    } catch (error) {
+      logger.warn("failed to apply auto-warning mute", {
         chatId: ctx.chat?.id,
         userId: action.userId,
         error,
@@ -332,10 +350,9 @@ function resolveMessageThreadId(
 }
 
 async function sendMessage(ctx: GroupChatContext, action: Extract<ProcessingAction, { type: "send_message" }>) {
-  // Load general settings to check for auto-delete configuration and silent mode
+  // Load general settings to check for auto-delete configuration
   let autoDeleteDelaySeconds = 0;
-  let silentModeEnabled = false;
-  
+
   const databaseAvailable = Boolean(process.env?.DATABASE_URL);
   if (databaseAvailable) {
     try {
@@ -344,13 +361,6 @@ async function sendMessage(ctx: GroupChatContext, action: Extract<ProcessingActi
       if (generalSettings.autoDeleteEnabled && generalSettings.autoDeleteDelayMinutes > 0) {
         // The value from settings is now interpreted as seconds
         autoDeleteDelaySeconds = generalSettings.autoDeleteDelayMinutes;
-      }
-      silentModeEnabled = generalSettings.silentModeEnabled || false;
-      
-      // If silent mode is enabled, block all messages except system messages
-      if (silentModeEnabled && !action.rescheduleOnPromotion) {
-        logger.debug("message blocked due to silent mode", { chatId: ctx.chat.id });
-        return;
       }
     } catch (error) {
       // Continue with defaults if settings can't be loaded
@@ -362,7 +372,7 @@ async function sendMessage(ctx: GroupChatContext, action: Extract<ProcessingActi
     parse_mode: action.parseMode,
     disable_web_page_preview: true,
     allow_sending_without_reply: true,
-    disable_notification: silentModeEnabled, // Apply silent mode if enabled
+    disable_notification: false,
   };
   const threadId = resolveMessageThreadId(ctx, action);
   if (typeof threadId === "number") {

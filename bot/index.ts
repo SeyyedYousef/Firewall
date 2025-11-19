@@ -1139,6 +1139,7 @@ const FIREWALL_VIEW_REGEX = new RegExp(`^${escapeRegExp(actionId("ownerFirewallV
 const FIREWALL_TOGGLE_REGEX = new RegExp(`^${escapeRegExp(actionId("ownerFirewallToggle"))}:(.+)$`);
 const FIREWALL_DELETE_REGEX = new RegExp(`^${escapeRegExp(actionId("ownerFirewallDelete"))}:(.+)$`);
 const FIREWALL_EDIT_REGEX = new RegExp(`^${escapeRegExp(actionId("ownerFirewallEdit"))}:(.+)$`);
+const VERIFY_MEMBER_REGEX = /^fw_verify_member:(-?\d+):(-?\d+)$/;
 
 function formatGroupSnapshot(): string {
   const groups = listGroups();
@@ -1916,6 +1917,86 @@ bot.action(FIREWALL_EDIT_REGEX, async (ctx) => {
 
   const message = `${ownerMessages.firewallPromptEdit}\n\n\`\`\`json\n${JSON.stringify(editablePayload, null, 2)}\n\`\`\``;
   await respondWithOwnerView(ctx, message, buildOwnerNavigationKeyboard());
+});
+
+bot.action(VERIFY_MEMBER_REGEX, async (ctx) => {
+  try {
+    await ctx.answerCbQuery();
+  } catch {
+    // ignore acknowledgement errors
+  }
+
+  const data =
+    typeof ctx.callbackQuery === "object" &&
+    ctx.callbackQuery !== null &&
+    "data" in ctx.callbackQuery &&
+    typeof (ctx.callbackQuery as any).data === "string"
+      ? ((ctx.callbackQuery as any).data as string)
+      : "";
+
+  const match = data.match(VERIFY_MEMBER_REGEX);
+  const chatIdRaw = match?.[1];
+  const userIdRaw = match?.[2];
+  if (!chatIdRaw || !userIdRaw) {
+    return;
+  }
+
+  const clickedUserId = ctx.from?.id;
+  const targetUserId = Number.parseInt(userIdRaw, 10);
+  if (!clickedUserId || !Number.isFinite(targetUserId) || clickedUserId !== targetUserId) {
+    try {
+      await ctx.answerCbQuery("This verification button is not assigned to your account.", { show_alert: true });
+    } catch {
+      // ignore
+    }
+    return;
+  }
+
+  const numericChatId = Number.parseInt(chatIdRaw, 10);
+  const chatId = Number.isFinite(numericChatId) ? numericChatId : chatIdRaw;
+
+  try {
+    await ctx.telegram.restrictChatMember(
+      chatId as any,
+      targetUserId,
+      {
+        permissions: {
+          can_send_messages: true,
+          can_send_audios: true,
+          can_send_documents: true,
+          can_send_photos: true,
+          can_send_videos: true,
+          can_send_video_notes: true,
+          can_send_voice_notes: true,
+          can_send_polls: true,
+          can_invite_users: true,
+          can_pin_messages: true,
+          can_manage_topics: true,
+          can_change_info: true,
+          can_add_web_page_previews: true,
+        },
+      } as any,
+    );
+  } catch (error) {
+    logger.warn("failed to lift user verification restrictions", {
+      chatId,
+      userId: targetUserId,
+      error,
+    });
+    return;
+  }
+
+  try {
+    const message =
+      "✅ You have been verified. You can now send messages in this group.";
+    if ("editMessageText" in ctx) {
+      await (ctx as any).editMessageText(message);
+    } else if (ctx.chat?.id) {
+      await ctx.telegram.sendMessage(ctx.chat.id, message);
+    }
+  } catch {
+    // ignore message edit/send failures
+  }
 });
 
 bot.action(actionId("ownerSettings"), async (ctx) => {

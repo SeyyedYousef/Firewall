@@ -717,7 +717,12 @@ const DEFAULT_CUSTOM_TEXTS: CustomTextSettings = {
     "Quiet hours are now active.\nMessages are paused from {starttime} until {endtime}.\nThanks for keeping the chat tidy.",
   silenceEndMessage: "Quiet hours have finished.\nThe next quiet period starts at {starttime}.",
   warningMessage:
-    "Reason: {reason}\nPenalty: {penalty}\n\nWarning {user_warnings} of {warnings_count}\nEach warning expires after {warningstime} days.",
+    "👤 {user}\n\n" +
+    "🚫 This message was removed for the following reason:\n\n" +
+    "❗️ Reason: {reason}\n" +
+    "🔻 Consequence: Message deleted\n\n" +
+    "⚠️ Warning {user_warnings} of {warnings_count}\n" +
+    "💡 Each warning expires after {warningstime} days.",
   forcedInviteMessage:
     "{user}\nYou need to invite {number} new member(s) before you can send messages.\nYou have invited {added} so far.",
   mandatoryChannelMessage:

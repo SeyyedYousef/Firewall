@@ -342,7 +342,7 @@ export async function evaluateBanGuards(ctx: GroupChatContext): Promise<Processi
     return [];
   }
 
-  const reason = `Ban settings triggered: ${triggered.join(", ")}`;
+  const reason = `Ban settings triggered (${triggered.join(", ")})`;
   const messageId = message.message_id;
   const userId = message.from?.id;
 

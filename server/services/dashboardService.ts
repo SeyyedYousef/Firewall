@@ -353,12 +353,47 @@ export async function loadGroupsSnapshot(
         };
         return mergedRecord;
       });
-      return filterGroupsForUser(merged, trimmedUserId, options);
+      const hydrated = await hydrateMembersCountFromTelegram(merged);
+      return filterGroupsForUser(hydrated, trimmedUserId, options);
     }
   } catch (error) {
     logger.warn("db failed to load groups from database, falling back to file store", { error });
   }
   return fallback;
+}
+
+async function hydrateMembersCountFromTelegram(records: GroupRecord[]): Promise<GroupRecord[]> {
+  const candidates = records.filter((record) => record.membersCount <= 1 && record.managed);
+  if (candidates.length === 0) {
+    return records;
+  }
+
+  try {
+    const { getTelegramChatMemberCount } = await import("../utils/telegramBotApi.js");
+
+    await Promise.all(
+      candidates.map(async (record) => {
+        try {
+          const rawId = record.chatId;
+          const numericId = Number.parseInt(rawId, 10);
+          const chatId = Number.isFinite(numericId) ? numericId : rawId;
+          const count = await getTelegramChatMemberCount(chatId);
+          if (typeof count === "number" && Number.isFinite(count) && count > record.membersCount) {
+            record.membersCount = count;
+          }
+        } catch (error) {
+          logger.debug("failed to refresh members count from Telegram", {
+            chatId: record.chatId,
+            error,
+          });
+        }
+      }),
+    );
+  } catch (error) {
+    logger.warn("unable to load Telegram Bot API for members count", { error });
+  }
+
+  return records;
 }
 
 export async function computeDashboardInsights(records: GroupRecord[]): Promise<DashboardInsights> {

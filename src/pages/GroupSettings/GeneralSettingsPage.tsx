@@ -429,20 +429,6 @@ export function GroupGeneralSettingsPage() {
             />
           )}
         </Card>
-
-        <Card className={styles.card}>
-          <div className={styles.cardHeader}>
-            <div>
-              <Title level="3" className={styles.cardTitle}>Silent mode</Title>
-              <Text weight="2" className={styles.cardHint}>When enabled, bot messages are sent without sound notifications.</Text>
-            </div>
-            <Switch
-              checked={settings.silentModeEnabled}
-              onChange={(event) => updateSettings({ silentModeEnabled: event.target.checked })}
-            />
-          </div>
-        </Card>
-
         <Card className={styles.card}>
           <div className={styles.cardHeader}>
             <div>

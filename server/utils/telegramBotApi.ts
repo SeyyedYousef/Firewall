@@ -91,6 +91,17 @@ export async function refundStarsPayment(options: { userId: number; telegramPaym
   return result;
 }
 
+export async function getTelegramChatMemberCount(chatId: number | string): Promise<number> {
+  const normalizedChatId = typeof chatId === "number" ? chatId : chatId.trim();
+  const result = await callTelegramApi<number>({
+    method: "getChatMemberCount",
+    payload: {
+      chat_id: normalizedChatId,
+    },
+  });
+  return result;
+}
+
 type SendMessageOptions = {
   chatId: number | string;
   text: string;
