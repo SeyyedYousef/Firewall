@@ -38,28 +38,29 @@ type State = {
 };
 
 function normalizeGroups(groups: ManagedGroup[]): ManagedGroup[] {
+
   const now = Date.now();
 
   return groups
     .map((group) => {
-      if (group.status.kind === 'active') {
-        const remaining = Math.max(
-          0,
-          Math.ceil((new Date(group.status.expiresAt).getTime() - now) / DAY_MS),
-        );
-        return {
-          ...group,
-          status: {
-            ...group.status,
-            daysLeft: remaining,
-          },
-        } as ManagedGroup;
-      }
       if (group.status.kind === 'removed') {
         if (new Date(group.status.graceEndsAt).getTime() < now) {
           return null;
         }
+        return group;
       }
+
+      if (group.status.kind === 'active') {
+        const days = typeof group.status.daysLeft === 'number' ? group.status.daysLeft : 0;
+        return {
+          ...group,
+          status: {
+            ...group.status,
+            daysLeft: Math.max(0, days),
+          },
+        } as ManagedGroup;
+      }
+
       return group;
     })
     .filter((group): group is ManagedGroup => Boolean(group));

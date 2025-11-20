@@ -91,13 +91,8 @@ function statusLabel(group: ManagedGroup): string {
 
 function getDaysLeft(group: ManagedGroup): number | null {
   if (group.status.kind === 'active') {
-    if (typeof group.status.daysLeft === 'number') {
-      return group.status.daysLeft;
-    }
-    return Math.max(
-      0,
-      Math.ceil((new Date(group.status.expiresAt).getTime() - Date.now()) / DAY_MS),
-    );
+    const days = typeof group.status.daysLeft === 'number' ? group.status.daysLeft : 0;
+    return Math.max(0, days);
   }
   if (group.status.kind === 'expired') {
     return 0;

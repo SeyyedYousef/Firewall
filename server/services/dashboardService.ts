@@ -363,7 +363,7 @@ export async function loadGroupsSnapshot(
 }
 
 async function hydrateMembersCountFromTelegram(records: GroupRecord[]): Promise<GroupRecord[]> {
-  const candidates = records.filter((record) => record.membersCount <= 1 && record.managed);
+  const candidates = records.filter((record) => record.managed);
   if (candidates.length === 0) {
     return records;
   }
@@ -378,7 +378,7 @@ async function hydrateMembersCountFromTelegram(records: GroupRecord[]): Promise<
           const numericId = Number.parseInt(rawId, 10);
           const chatId = Number.isFinite(numericId) ? numericId : rawId;
           const count = await getTelegramChatMemberCount(chatId);
-          if (typeof count === "number" && Number.isFinite(count) && count > record.membersCount) {
+          if (typeof count === "number" && Number.isFinite(count) && count > 0) {
             record.membersCount = count;
           }
         } catch (error) {
