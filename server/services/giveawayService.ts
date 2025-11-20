@@ -3,9 +3,12 @@ import { Prisma } from "@prisma/client";
 
 import { getStarsState } from "../../bot/state.js";
 import { prisma } from "../db/client.js";
-import { fetchOwnerWalletBalance } from "../db/stateRepository.js";
+import { countUserInvitesSince, fetchOwnerWalletBalance } from "../db/stateRepository.js";
+import { sendTelegramMessage } from "../utils/telegramBotApi.js";
 import { logger } from "../utils/logger.js";
 import { recordGiveawayCreation } from "./missionVerificationService.js";
+import { verifyTelegramChannelMembership } from "./telegramMembershipService.js";
+import { issueCreditCode, notifyUserOfCreditCode } from "./creditCodeService.js";
 
 export type ParticipantValidation = {
   oneJoinPerUser: boolean;
@@ -40,6 +43,12 @@ export type GiveawayRequirement = {
   premiumOnly: boolean;
   targetChannel: string;
   extraChannel?: string | null;
+  includedChannels?: string[];
+  externalLinks?: string[];
+  chatBoosterOnly?: boolean;
+  inviteUniqueFriend?: boolean;
+  notifyStart?: boolean;
+  notifyEnd?: boolean;
 };
 
 export type GiveawayWinnerCode = {
@@ -117,6 +126,10 @@ export type GiveawayCreationInput = {
   winners: number;
   durationHours: number;
   premiumOnly?: boolean;
+  chatBoosterOnly?: boolean;
+  inviteUniqueFriend?: boolean;
+  includedChannels?: string[];
+  externalLinks?: string[];
   extraChannel?: string | null;
   title?: string | null;
   notifyStart?: boolean;
@@ -302,6 +315,65 @@ function computeAnalytics({
   };
 }
 
+function normalizeRequirements(value: Prisma.JsonValue | null | undefined): GiveawayRequirement & {
+  includedChannels: string[];
+  externalLinks: string[];
+  chatBoosterOnly: boolean;
+  inviteUniqueFriend: boolean;
+  notifyStart: boolean;
+  notifyEnd: boolean;
+} {
+  const base: GiveawayRequirement & {
+    includedChannels: string[];
+    externalLinks: string[];
+    chatBoosterOnly: boolean;
+    inviteUniqueFriend: boolean;
+    notifyStart: boolean;
+    notifyEnd: boolean;
+  } = {
+    premiumOnly: false,
+    targetChannel: "",
+    extraChannel: null,
+    includedChannels: [],
+    externalLinks: [],
+    chatBoosterOnly: false,
+    inviteUniqueFriend: false,
+    notifyStart: false,
+    notifyEnd: false,
+  };
+
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return base;
+  }
+
+  const raw = value as Record<string, unknown>;
+  const includedChannels = Array.isArray(raw.includedChannels)
+    ? raw.includedChannels
+        .map((item) => (typeof item === "string" ? item.trim() : ""))
+        .filter((item) => item.length > 0)
+    : [];
+  const externalLinks = Array.isArray(raw.externalLinks)
+    ? raw.externalLinks
+        .map((item) => (typeof item === "string" ? item.trim() : ""))
+        .filter((item) => item.length > 0)
+    : [];
+
+  return {
+    premiumOnly: raw.premiumOnly === true,
+    targetChannel: typeof raw.targetChannel === "string" ? raw.targetChannel : "",
+    extraChannel:
+      typeof raw.extraChannel === "string" && raw.extraChannel.trim().length > 0
+        ? raw.extraChannel
+        : null,
+    includedChannels,
+    externalLinks,
+    chatBoosterOnly: raw.chatBoosterOnly === true,
+    inviteUniqueFriend: raw.inviteUniqueFriend === true,
+    notifyStart: raw.notifyStart === true,
+    notifyEnd: raw.notifyEnd === true,
+  };
+}
+
 function deriveStatus(giveaway: { status: string; startsAt: Date; endsAt: Date }): GiveawaySummary["status"] {
   const now = Date.now();
   if (giveaway.status === "cancelled") {
@@ -448,6 +520,12 @@ async function finalizeGiveawayIfNeeded(tx: Prisma.TransactionClient, giveawayId
   const giveaway = await tx.giveaway.findUnique({
     where: { id: giveawayId },
     include: {
+      group: {
+        select: {
+          telegramChatId: true,
+          title: true,
+        },
+      },
       winners: true,
     },
   });
@@ -466,6 +544,7 @@ async function finalizeGiveawayIfNeeded(tx: Prisma.TransactionClient, giveawayId
 
   const validation = normalizeValidation(giveaway.validation);
   const refundPolicy = normalizeRefundPolicy(giveaway.refundPolicy);
+  const requirements = normalizeRequirements(giveaway.requirements);
 
   const participants = await tx.giveawayParticipant.findMany({
     where: {
@@ -513,7 +592,7 @@ async function finalizeGiveawayIfNeeded(tx: Prisma.TransactionClient, giveawayId
     return;
   }
 
-  await Promise.all(
+  const createdWinners = await Promise.all(
     winners.map((winner) =>
       tx.giveawayWinner.create({
         data: {
@@ -530,7 +609,7 @@ async function finalizeGiveawayIfNeeded(tx: Prisma.TransactionClient, giveawayId
   );
 
   await tx.giveaway.update({
-    where: { id: giveawayId },
+    where: { id: giveaway.id },
     data: {
       status: "completed",
     },
@@ -542,6 +621,111 @@ async function finalizeGiveawayIfNeeded(tx: Prisma.TransactionClient, giveawayId
     winners: winners.map((winner) => winner.telegramId),
     validation,
   });
+
+  // Notify winners privately with their credit codes & optionally send a safe summary in the host group.
+  try {
+    if (giveaway.ownerId) {
+      const owner = await tx.user.findUnique({
+        where: { id: giveaway.ownerId },
+        select: {
+          telegramId: true,
+        },
+      });
+
+      if (owner?.telegramId) {
+        const winnerTelegramIds = createdWinners.map((entry) => entry.telegramId);
+
+        // Commit-time side effects must not block the transaction; we only prepare context here.
+        queueGiveawayWinnerNotifications({
+          giveawayId: giveaway.id,
+          ownerTelegramId: owner.telegramId,
+          winnerTelegramIds,
+          prizeDays: giveaway.prizeDays,
+          requirements,
+          groupChatId: giveaway.group?.telegramChatId ?? null,
+          groupTitle: giveaway.group?.title ?? "",
+        });
+      }
+    }
+  } catch (error) {
+    logger.warn("failed to schedule giveaway winner notifications", {
+      giveawayId: giveaway.id,
+      error,
+    });
+  }
+}
+
+type WinnerNotificationContext = {
+  giveawayId: string;
+  ownerTelegramId: string;
+  winnerTelegramIds: string[];
+  prizeDays: number;
+  requirements: ReturnType<typeof normalizeRequirements>;
+  groupChatId: string | null;
+  groupTitle: string;
+};
+
+// In-process queue placeholder; current implementation runs notifications synchronously.
+async function queueGiveawayWinnerNotifications(context: WinnerNotificationContext): Promise<void> {
+  const uniqueWinners = Array.from(new Set(context.winnerTelegramIds));
+
+  for (const telegramId of uniqueWinners) {
+    try {
+      const profile = await prisma.userProfile.findUnique({
+        where: { telegramUserId: telegramId },
+        select: { id: true },
+      });
+      if (!profile) {
+        // Winners must have opened the Mini App at least once to receive codes.
+        continue;
+      }
+
+      const codeResult = await issueCreditCode({
+        profileId: profile.id,
+        telegramUserId: telegramId,
+        valueDays: context.prizeDays,
+        metadata: {
+          giveawayId: context.giveawayId,
+          source: "giveaway-winner",
+        },
+      });
+
+      await notifyUserOfCreditCode({
+        telegramUserId: telegramId,
+        code: codeResult.code,
+        valueDays: context.prizeDays,
+      });
+    } catch (error) {
+      logger.warn("failed to issue or deliver giveaway winner credit code", {
+        giveawayId: context.giveawayId,
+        winnerTelegramId: telegramId,
+        error,
+      });
+    }
+  }
+
+  if (context.requirements.notifyEnd && context.groupChatId) {
+    try {
+      const winnerCount = uniqueWinners.length;
+      const title = context.groupTitle || context.groupChatId;
+      const summary =
+        `🎉 Giveaway finished in ${title}!
+Winners: ${winnerCount}
+
+Each winner has received a private DM with their redemption code. Codes are never posted in the group.`;
+
+      await sendTelegramMessage({
+        chatId: context.groupChatId,
+        text: summary,
+      });
+    } catch (error) {
+      logger.warn("failed to send giveaway end notification", {
+        giveawayId: context.giveawayId,
+        chatId: context.groupChatId,
+        error,
+      });
+    }
+  }
 }
 
 async function refundGiveaway(
@@ -679,11 +863,7 @@ async function buildGiveawaySummaryById(id: string, viewerTelegramId?: string | 
 
   const remainingSeconds = Math.max(0, Math.floor((giveaway.endsAt.getTime() - Date.now()) / 1000));
 
-  const requirements = (giveaway.requirements as GiveawayRequirement | null) ?? {
-    premiumOnly: false,
-    targetChannel: "",
-    extraChannel: null,
-  };
+  const requirements = normalizeRequirements(giveaway.requirements);
 
   return {
     id: giveaway.id,
@@ -765,12 +945,7 @@ export async function getGiveawayDashboard(ownerTelegramId: string | null): Prom
     const analytics = normalizeAnalytics(giveaway.analytics);
     const participants = giveaway.participants.length;
     const status = deriveStatus(giveaway);
-
-    const requirements = (giveaway.requirements as GiveawayRequirement | null) ?? {
-      premiumOnly: false,
-      targetChannel: "",
-      extraChannel: null,
-    };
+    const requirements = normalizeRequirements(giveaway.requirements);
 
     const groupSummary = giveaway.group
       ? mapGroupToManagedSummary(giveaway.group)
@@ -913,9 +1088,24 @@ export async function createGiveaway(input: GiveawayCreationInput): Promise<Give
           premiumOnly: Boolean(input.premiumOnly),
           targetChannel: group.inviteLink ?? input.groupChatId,
           extraChannel: input.extraChannel ?? null,
+          includedChannels: Array.isArray(input.includedChannels)
+            ? input.includedChannels
+            : [],
+          externalLinks: Array.isArray(input.externalLinks)
+            ? input.externalLinks
+            : [],
+          chatBoosterOnly: Boolean(input.chatBoosterOnly),
+          inviteUniqueFriend: Boolean(input.inviteUniqueFriend),
           notifyStart: Boolean(input.notifyStart),
           notifyEnd: Boolean(input.notifyEnd),
-        } satisfies GiveawayRequirement & { notifyStart: boolean; notifyEnd: boolean },
+        } satisfies GiveawayRequirement & {
+          includedChannels: string[];
+          externalLinks: string[];
+          chatBoosterOnly: boolean;
+          inviteUniqueFriend: boolean;
+          notifyStart: boolean;
+          notifyEnd: boolean;
+        },
         analytics: defaultAnalytics(),
         minParticipants: refundPolicy.minParticipants,
       },
@@ -955,13 +1145,31 @@ export async function createGiveaway(input: GiveawayCreationInput): Promise<Give
     });
   }
 
-  return {
+  const summary: GiveawayCreationResult = {
     id: result.giveaway.id,
     totalCost,
     status: deriveStatus(result.giveaway),
     createdAt: result.giveaway.createdAt.toISOString(),
     balance: result.balance,
   };
+
+  try {
+    const requirements = normalizeRequirements(result.giveaway.requirements as Prisma.JsonValue | null | undefined);
+    if (requirements.notifyStart) {
+      await sendTelegramMessage({
+        chatId: input.groupChatId,
+        text: `A new giveaway has started: ${result.giveaway.title}`,
+      });
+    }
+  } catch (error) {
+    logger.warn("failed to send giveaway start notification", {
+      giveawayId: result.giveaway.id,
+      chatId: input.groupChatId,
+      error,
+    });
+  }
+
+  return summary;
 }
 
 export async function getGiveawayDetail(giveawayId: string, viewerTelegramId?: string | null): Promise<GiveawayDetail> {
@@ -981,6 +1189,11 @@ export async function joinGiveaway(
     const giveaway = await tx.giveaway.findUnique({
       where: { id: giveawayId },
       include: {
+        group: {
+          select: {
+            telegramChatId: true,
+          },
+        },
         participants: true,
       },
     });
@@ -1001,6 +1214,7 @@ export async function joinGiveaway(
     }
 
     const validation = normalizeValidation(giveaway.validation);
+    const requirements = normalizeRequirements(giveaway.requirements);
 
     if (validation.blockBots && context.isBot) {
       throw Object.assign(new Error("Bot accounts are not eligible for this giveaway"), { statusCode: 403 });
@@ -1057,6 +1271,44 @@ export async function joinGiveaway(
       });
       if (joinsFromIp >= MAX_JOINS_PER_IP) {
         throw Object.assign(new Error("Too many join attempts from this network"), { statusCode: 429 });
+      }
+    }
+
+    if (requirements.premiumOnly && !context.isPremium) {
+      throw Object.assign(new Error("Telegram Premium is required to join this giveaway"), {
+        statusCode: 403,
+      });
+    }
+
+    if (requirements.includedChannels.length > 0) {
+      for (const rawChannel of requirements.includedChannels) {
+        const trimmed = typeof rawChannel === "string" ? rawChannel.trim() : "";
+        if (!trimmed) {
+          continue;
+        }
+        const normalizedChannel = trimmed.replace(/^@+/, "").trim();
+        if (!normalizedChannel) {
+          continue;
+        }
+        const ok = await verifyTelegramChannelMembership(context.telegramId, normalizedChannel);
+        if (!ok) {
+          throw Object.assign(new Error("You must join all required channels to enter this giveaway"), {
+            statusCode: 403,
+          });
+        }
+      }
+    }
+
+    if (requirements.inviteUniqueFriend) {
+      const hostChatId = giveaway.group?.telegramChatId;
+      if (!hostChatId) {
+        throw Object.assign(new Error("Giveaway host group is not available"), { statusCode: 500 });
+      }
+      const inviteCount = await countUserInvitesSince(hostChatId, context.telegramId, null);
+      if (inviteCount <= 0) {
+        throw Object.assign(new Error("You must invite at least one friend to join this giveaway"), {
+          statusCode: 403,
+        });
       }
     }
 

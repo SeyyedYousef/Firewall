@@ -371,6 +371,10 @@ async function persistMembershipEvents(ctx: GroupChatContext): Promise<void> {
     const chatId = ctx.chat.id.toString();
 
     const newMembers = ((ctx.message as any)?.new_chat_members ?? []) as any[];
+    const inviterUserId = (ctx.message as any)?.from?.id;
+    const inviterIsBot = (ctx.message as any)?.from?.is_bot;
+    const inviterIsBotSelf = ctx.botInfo && inviterUserId === ctx.botInfo.id;
+    const inviterValid = inviterUserId && !inviterIsBot && !inviterIsBotSelf;
     for (const member of newMembers) {
       await recordMembershipEvent({
         chatId,
@@ -382,6 +386,10 @@ async function persistMembershipEvents(ctx: GroupChatContext): Promise<void> {
           firstName: member.first_name ?? null,
           lastName: member.last_name ?? null,
           isBot: member.is_bot ?? false,
+          invitedBy:
+            inviterValid && !member.is_bot
+              ? (typeof inviterUserId === "number" ? inviterUserId.toString() : String(inviterUserId))
+              : null,
         },
       });
     }

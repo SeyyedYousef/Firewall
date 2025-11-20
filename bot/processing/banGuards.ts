@@ -4,6 +4,7 @@ import {
   loadGeneralSettingsByChatId,
   loadSilenceSettingsByChatId,
   loadLimitSettingsByChatId,
+  loadCustomTextSettingsByChatId,
   type GroupBanSettingsRecord,
   type BanRuleSetting,
   type GroupGeneralSettingsRecord,
@@ -14,6 +15,7 @@ import type { GroupChatContext, ProcessingAction } from "./types.js";
 import { ensureActions } from "./utils.js";
 import { logger } from "../../server/utils/logger.js";
 import { getState } from "../state.js";
+import { renderTemplate } from "../templating.js";
 
 const databaseAvailable = Boolean(process.env.DATABASE_URL);
 const BAN_CACHE_TTL_MS = Number.parseInt(process.env.BAN_SETTINGS_CACHE_MS ?? "45000", 10);
@@ -35,6 +37,9 @@ type CachedLimits = { expiresAt: number; settings: GroupCountLimitSettingsRecord
 const generalCache = new Map<string, CachedGeneral>();
 const silenceCache = new Map<string, CachedSilence>();
 const limitsCache = new Map<string, CachedLimits>();
+
+// Per-chat cache for current silence status to detect start/end transitions
+const silenceStatus = new Map<string, boolean>();
 
 // Per-user, per-chat counters for rate and duplicates
 const rateHistory = new Map<string, number[]>();
@@ -118,11 +123,19 @@ export async function evaluateBanGuards(ctx: GroupChatContext): Promise<Processi
   const silence = await getSilenceSettings(chatId);
   const limits = await getLimitSettings(chatId);
 
+  // Track silence state transitions for this chat
+  const wasSilent = silenceStatus.get(chatId) ?? false;
+  const isSilent = shouldSilenceChat(silence, general?.timezone);
+  silenceStatus.set(chatId, isSilent);
+
+  const transitionActions = await buildSilenceTransitionActions(ctx, silence, general, wasSilent, isSilent);
+
   // Silence windows enforcement (admins exempt)
-  if (shouldSilenceChat(silence)) {
+  if (isSilent) {
     const isAdmin = await isAdminOrOwner(ctx);
     if (!isAdmin) {
       const actions: ProcessingAction[] = [
+        ...transitionActions,
         { type: "delete_message", messageId: ctx.message!.message_id, reason: "silence window" },
       ];
       return ensureActions(actions);
@@ -347,9 +360,9 @@ export async function evaluateBanGuards(ctx: GroupChatContext): Promise<Processi
     // Apply limit settings if ban rules not triggered
     const limitActions = applyLimitSettings(limits, ctx, facts);
     if (limitActions.length) {
-      return ensureActions(limitActions);
+      return ensureActions([...transitionActions, ...limitActions]);
     }
-    return [];
+    return ensureActions(transitionActions);
   }
 
   const reason = `Ban settings triggered (${triggered.join(", ")})`;
@@ -366,6 +379,7 @@ export async function evaluateBanGuards(ctx: GroupChatContext): Promise<Processi
   }
 
   const actions: ProcessingAction[] = [
+    ...transitionActions,
     {
       type: "delete_message",
       messageId,
@@ -468,20 +482,166 @@ async function getLimitSettings(chatId: string): Promise<GroupCountLimitSettings
   }
 }
 
-function shouldSilenceChat(silence: SilenceSettingsRecord | null): boolean {
-  if (!silence) return false;
+function getCurrentMinutesInTimezone(timezone?: string): number {
   const now = new Date();
-  const minutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+  const tz = typeof timezone === "string" && timezone.trim().length > 0 ? timezone.trim() : "UTC";
+  try {
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      hour12: false,
+      hour: "numeric",
+      minute: "numeric",
+    });
+    const parts = formatter.formatToParts(now);
+    const hourPart = parts.find((part) => part.type === "hour");
+    const minutePart = parts.find((part) => part.type === "minute");
+    const hours = Number(hourPart?.value ?? "0");
+    const minutes = Number(minutePart?.value ?? "0");
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+      const h = now.getUTCHours();
+      const m = now.getUTCMinutes();
+      return h * 60 + m;
+    }
+    return hours * 60 + minutes;
+  } catch {
+    const h = now.getUTCHours();
+    const m = now.getUTCMinutes();
+    return h * 60 + m;
+  }
+}
+
+type ActiveSilenceWindow =
+  | { kind: "emergency" }
+  | { kind: "window"; windowKey: "window1" | "window2" | "window3"; start: string; end: string };
+
+function getActiveSilenceWindow(
+  silence: SilenceSettingsRecord | null,
+  timezone?: string,
+): ActiveSilenceWindow | null {
+  if (!silence) return null;
+
+  if (silence.emergencyLock?.enabled) {
+    return { kind: "emergency" };
+  }
+
+  const minutes = getCurrentMinutesInTimezone(timezone);
   const inWindow = (w: { enabled: boolean; start: string; end: string }) => {
     if (!w?.enabled) return false;
     const s = parseTimeToMinutes(w.start);
     const e = parseTimeToMinutes(w.end);
     if (s === null || e === null) return false;
-    if (s <= e) return minutes >= s && minutes <= e;
+    if (s === e) return false;
+    if (s < e) return minutes >= s && minutes <= e;
     return minutes >= s || minutes <= e;
   };
-  if (silence.emergencyLock?.enabled) return true;
-  return inWindow(silence.window1) || inWindow(silence.window2) || inWindow(silence.window3);
+
+  if (inWindow(silence.window1)) {
+    return { kind: "window", windowKey: "window1", start: silence.window1.start, end: silence.window1.end };
+  }
+  if (inWindow(silence.window2)) {
+    return { kind: "window", windowKey: "window2", start: silence.window2.start, end: silence.window2.end };
+  }
+  if (inWindow(silence.window3)) {
+    return { kind: "window", windowKey: "window3", start: silence.window3.start, end: silence.window3.end };
+  }
+
+  return null;
+}
+
+function shouldSilenceChat(silence: SilenceSettingsRecord | null, timezone?: string): boolean {
+  return getActiveSilenceWindow(silence, timezone) !== null;
+}
+
+function getNextSilenceStart(silence: SilenceSettingsRecord | null): string | null {
+  if (!silence) return null;
+  const candidates = [silence.window1, silence.window2, silence.window3].filter((w) => w?.enabled);
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  let bestMinutes: number | null = null;
+  let bestStart: string | null = null;
+
+  for (const w of candidates) {
+    const minutes = parseTimeToMinutes(w.start);
+    if (minutes === null) {
+      continue;
+    }
+    if (bestMinutes === null || minutes < bestMinutes) {
+      bestMinutes = minutes;
+      bestStart = w.start;
+    }
+  }
+
+  return bestStart;
+}
+
+async function buildSilenceTransitionActions(
+  ctx: GroupChatContext,
+  silence: SilenceSettingsRecord | null,
+  general: GroupGeneralSettingsRecord | null,
+  wasSilent: boolean,
+  isSilent: boolean,
+): Promise<ProcessingAction[]> {
+  const actions: ProcessingAction[] = [];
+
+  if (!silence || wasSilent === isSilent) {
+    return actions;
+  }
+
+  const chatId = ctx.chat.id.toString();
+  let customTexts: Awaited<ReturnType<typeof loadCustomTextSettingsByChatId>> | null = null;
+  try {
+    customTexts = await loadCustomTextSettingsByChatId(chatId);
+  } catch (error) {
+    logger.debug("failed to load custom text settings for silence messages", { chatId, error });
+    return actions;
+  }
+
+  const threadId = (ctx.message as any)?.message_thread_id as number | undefined;
+
+  if (isSilent && !wasSilent) {
+    // Quiet hours just started
+    const active = getActiveSilenceWindow(silence, general?.timezone);
+    let starttime = "";
+    let endtime = "";
+    if (active && active.kind === "window") {
+      starttime = active.start ?? "";
+      endtime = active.end ?? "";
+    }
+
+    const template = (customTexts.silenceStartMessage ?? "").trim();
+    if (template) {
+      const text = renderTemplate(template, { starttime, endtime });
+      if (text.trim().length > 0) {
+        actions.push({
+          type: "send_message",
+          text,
+          parseMode: "HTML",
+          threadId,
+          attachPromoButton: true,
+        });
+      }
+    }
+  } else if (!isSilent && wasSilent) {
+    // Quiet hours just ended
+    const nextStart = getNextSilenceStart(silence) ?? "";
+    const template = (customTexts.silenceEndMessage ?? "").trim();
+    if (template) {
+      const text = renderTemplate(template, { starttime: nextStart });
+      if (text.trim().length > 0) {
+        actions.push({
+          type: "send_message",
+          text,
+          parseMode: "HTML",
+          threadId,
+          attachPromoButton: true,
+        });
+      }
+    }
+  }
+
+  return actions;
 }
 
 async function isAdminOrOwner(ctx: GroupChatContext): Promise<boolean> {

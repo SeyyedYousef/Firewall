@@ -91,7 +91,7 @@ function isWindowInvalid(window: SilenceWindowSetting): boolean {
   if (startMinutes === null || endMinutes === null) {
     return true;
   }
-  return endMinutes <= startMinutes;
+  return endMinutes === startMinutes;
 }
 
 const CARD_DEFINITIONS: Array<{

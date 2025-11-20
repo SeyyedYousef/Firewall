@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   Avatar,
@@ -44,18 +44,26 @@ const TIMEZONE_OPTIONS = [
   { value: "Europe/Lisbon", label: "Europe/Lisbon (GMT+00:00 - Lisbon)" },
   { value: "Europe/Berlin", label: "Europe/Berlin (GMT+01:00 - Central Europe)" },
   { value: "Europe/Paris", label: "Europe/Paris (GMT+01:00 - Paris)" },
+  { value: "Europe/Madrid", label: "Europe/Madrid (GMT+01:00 - Madrid)" },
+  { value: "Europe/Rome", label: "Europe/Rome (GMT+01:00 - Rome)" },
   { value: "Africa/Cairo", label: "Africa/Cairo (GMT+02:00 - Cairo)" },
+  { value: "Africa/Johannesburg", label: "Africa/Johannesburg (GMT+02:00 - Johannesburg)" },
+  { value: "Africa/Nairobi", label: "Africa/Nairobi (GMT+03:00 - Nairobi)" },
   { value: "Europe/Kaliningrad", label: "Europe/Kaliningrad (GMT+02:00 - Kaliningrad)" },
   { value: "Europe/Istanbul", label: "Europe/Istanbul (GMT+03:00 - Istanbul)" },
   { value: "Europe/Moscow", label: "Europe/Moscow (GMT+03:00 - Moscow)" },
   { value: "Asia/Riyadh", label: "Asia/Riyadh (GMT+03:00 - Riyadh)" },
+  { value: "Asia/Baghdad", label: "Asia/Baghdad (GMT+03:00 - Baghdad)" },
+  { value: "Asia/Kuwait", label: "Asia/Kuwait (GMT+03:00 - Kuwait City)" },
   { value: "Asia/Tehran", label: "Asia/Tehran (GMT+03:30 - Tehran)" },
   { value: "Asia/Dubai", label: "Asia/Dubai (GMT+04:00 - Dubai)" },
+  { value: "Asia/Kabul", label: "Asia/Kabul (GMT+04:30 - Kabul)" },
   { value: "Asia/Tbilisi", label: "Asia/Tbilisi (GMT+04:00 - Tbilisi)" },
   { value: "Asia/Yekaterinburg", label: "Asia/Yekaterinburg (GMT+05:00 - Yekaterinburg)" },
   { value: "Asia/Karachi", label: "Asia/Karachi (GMT+05:00 - Karachi)" },
   { value: "Asia/Colombo", label: "Asia/Colombo (GMT+05:30 - Colombo)" },
   { value: "Asia/Kolkata", label: "Asia/Kolkata (GMT+05:30 - New Delhi)" },
+  { value: "Asia/Kathmandu", label: "Asia/Kathmandu (GMT+05:45 - Kathmandu)" },
   { value: "Asia/Dhaka", label: "Asia/Dhaka (GMT+06:00 - Dhaka)" },
   { value: "Asia/Urumqi", label: "Asia/Urumqi (GMT+06:00 - Urumqi)" },
   { value: "Asia/Novosibirsk", label: "Asia/Novosibirsk (GMT+07:00 - Novosibirsk)" },
@@ -64,13 +72,18 @@ const TIMEZONE_OPTIONS = [
   { value: "Asia/Shanghai", label: "Asia/Shanghai (GMT+08:00 - Beijing)" },
   { value: "Asia/Singapore", label: "Asia/Singapore (GMT+08:00 - Singapore)" },
   { value: "Asia/Hong_Kong", label: "Asia/Hong_Kong (GMT+08:00 - Hong Kong)" },
+  { value: "Asia/Manila", label: "Asia/Manila (GMT+08:00 - Manila)" },
   { value: "Asia/Tokyo", label: "Asia/Tokyo (GMT+09:00 - Tokyo)" },
   { value: "Asia/Seoul", label: "Asia/Seoul (GMT+09:00 - Seoul)" },
   { value: "Asia/Vladivostok", label: "Asia/Vladivostok (GMT+10:00 - Vladivostok)" },
   { value: "Australia/Sydney", label: "Australia/Sydney (GMT+10:00 - Sydney)" },
   { value: "Pacific/Auckland", label: "Pacific/Auckland (GMT+12:00 - Auckland)" },
+  { value: "America/Santiago", label: "America/Santiago (GMT-04:00 - Santiago)" },
   { value: "America/Sao_Paulo", label: "America/Sao_Paulo (GMT-03:00 - Sao Paulo)" },
   { value: "America/Buenos_Aires", label: "America/Buenos_Aires (GMT-03:00 - Buenos Aires)" },
+  { value: "America/Lima", label: "America/Lima (GMT-05:00 - Lima)" },
+  { value: "America/Bogota", label: "America/Bogota (GMT-05:00 - Bogota)" },
+  { value: "America/Kingston", label: "America/Kingston (GMT-05:00 - Kingston)" },
   { value: "America/New_York", label: "America/New_York (GMT-05:00 - New York)" },
   { value: "America/Toronto", label: "America/Toronto (GMT-05:00 - Toronto)" },
   { value: "America/Chicago", label: "America/Chicago (GMT-06:00 - Chicago)" },
@@ -139,6 +152,38 @@ export function GroupGeneralSettingsPage() {
   const [toastMessage, setToastMessage] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [dirty, setDirty] = useState(false);
+
+  const timezoneOptions = useMemo<{ value: string; label: string }[]>(() => {
+    const current = settings?.timezone;
+    let browserTz: string | undefined;
+    try {
+      browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {
+      browserTz = undefined;
+    }
+
+    const map = new Map<string, { value: string; label: string }>();
+    for (const option of TIMEZONE_OPTIONS) {
+      if (!map.has(option.value)) {
+        map.set(option.value, option);
+      }
+    }
+
+    const ordered: { value: string; label: string }[] = [];
+
+    if (current && map.has(current)) {
+      ordered.push(map.get(current)!);
+      map.delete(current);
+    }
+
+    if (browserTz && map.has(browserTz)) {
+      ordered.push(map.get(browserTz)!);
+      map.delete(browserTz);
+    }
+
+    ordered.push(...map.values());
+    return ordered;
+  }, [settings?.timezone]);
 
   useEffect(() => {
     if (!groupId) {
@@ -364,7 +409,7 @@ export function GroupGeneralSettingsPage() {
               value={settings.timezone}
               onChange={(event) => updateSettings({ timezone: event.target.value })}
             >
-              {TIMEZONE_OPTIONS.map((option) => (
+              {timezoneOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>

@@ -216,7 +216,6 @@ export interface BanRuleSetting {
 
 export interface CustomTextSettings {
   welcomeMessage: string;
-  rulesMessage: string;
   silenceStartMessage: string;
   silenceEndMessage: string;
   warningMessage: string;

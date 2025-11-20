@@ -712,7 +712,6 @@ function createAnalyticsSnapshot(id: string): GroupAnalyticsSnapshot {
 
 const DEFAULT_CUSTOM_TEXTS: CustomTextSettings = {
   welcomeMessage: "Hello {user}!\nWelcome to {group}.\nPlease read the next message to learn the rules.",
-  rulesMessage: "{user}, these guidelines keep {group} safe. Read them carefully before you start chatting.",
   silenceStartMessage:
     "Quiet hours are now active.\nMessages are paused from {starttime} until {endtime}.\nThanks for keeping the chat tidy.",
   silenceEndMessage: "Quiet hours have finished.\nThe next quiet period starts at {starttime}.",

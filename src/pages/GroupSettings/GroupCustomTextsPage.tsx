@@ -31,7 +31,6 @@ type LocationState = {
 type TemplateKey = keyof Pick<
   CustomTextSettings,
   | "welcomeMessage"
-  | "rulesMessage"
   | "silenceStartMessage"
   | "silenceEndMessage"
   | "warningMessage"
@@ -49,22 +48,21 @@ type TemplateDefinition = {
   example?: string;
 };
 
-
-
 const DEFAULT_TEXTS: CustomTextSettings = {
   welcomeMessage: "Hello {user}!\nWelcome to {group}.\nPlease read the next message to learn the rules.",
-  rulesMessage: "{user}, these guidelines keep {group} safe. Read them carefully before you start chatting.",
-  silenceStartMessage: "Quiet hours are now active.\nMessages are paused from {starttime} until {endtime}.\nThanks for keeping the chat tidy.",
+  silenceStartMessage:
+    "Quiet hours are now active.\nMessages are paused from {starttime} until {endtime}.\nThanks for keeping the chat tidy.",
   silenceEndMessage: "Quiet hours have finished.\nThe next quiet period starts at {starttime}.",
-  warningMessage: "Reason: {reason}\nPenalty: {penalty}\n\nWarning {user_warnings} of {warnings_count}\nEach warning expires after {warningstime} days.",
-  forcedInviteMessage: "{user}\nYou need to invite {number} new member(s) before you can send messages.\nYou have invited {added} so far.",
-  mandatoryChannelMessage: "Please join the required channel(s) below before sending messages:\n{channel_names}",
+  warningMessage:
+    "Reason: {reason}\nPenalty: {penalty}\n\nWarning {user_warnings} of {warnings_count}\nEach warning expires after {warningstime} days.",
+  forcedInviteMessage:
+    "{user}\nYou need to invite {number} new member(s) before you can send messages.\nYou have invited {added} so far.",
+  mandatoryChannelMessage:
+    "Please join the required channel(s) below before sending messages:\n{channel_names}",
   promoButtonEnabled: false,
   promoButtonText: "Read more",
   promoButtonUrl: "https://t.me/tgfirewall",
 };
-
-
 
 const TEMPLATE_DEFINITIONS: TemplateDefinition[] = [
   {
@@ -73,13 +71,6 @@ const TEMPLATE_DEFINITIONS: TemplateDefinition[] = [
     description: "Sent automatically to new members. Use {user} and {group} placeholders.",
     placeholders: ["{user}", "{group}"],
     requiredAny: [["{user}", "{group}"]],
-  },
-  {
-    key: "rulesMessage",
-    title: "Rules reminder",
-    description: "Shown after the welcome message. Reference {user} or {group} as needed.",
-    placeholders: ["{user}", "{group}"],
-    requiredAny: [["{group}"]],
   },
   {
     key: "silenceStartMessage",

@@ -53,6 +53,7 @@ export type ProcessingAction =
       autoDeleteSeconds?: number; // when set, dispatcher will attempt to delete the sent message after this many seconds
       threadId?: number;
       rescheduleOnPromotion?: boolean;
+      attachPromoButton?: boolean;
     }
   | {
       type: "record_moderation";

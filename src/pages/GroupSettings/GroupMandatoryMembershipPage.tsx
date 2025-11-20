@@ -45,7 +45,8 @@ const TEXT = {
   resetLabel: "Reset after (days)",
   channelsTitle: "Required channels",
   channelsHint: "Members must join every channel in the list before they can chat.",
-  channelsTooltip: "Add one public @username per line. For private channels the bot must be an administrator.",
+  channelsTooltip:
+    "Add one @username per line. The bot must be an administrator in each required channel (public or private).",
   channelsPlaceholder: `@channel_one
 @channel_two`,
   channelsSummary: (channels: string[]) =>
@@ -95,6 +96,8 @@ export function GroupMandatoryMembershipPage() {
   const [dirty, setDirty] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [forcedInviteCountText, setForcedInviteCountText] = useState("");
+  const [forcedInviteResetDaysText, setForcedInviteResetDaysText] = useState("");
 
   useEffect(() => {
     if (!groupId) {
@@ -114,6 +117,8 @@ export function GroupMandatoryMembershipPage() {
         }
         setSettings(mandatory);
         setChannelsInput(mandatory.mandatoryChannels.join("\n"));
+        setForcedInviteCountText(String(mandatory.forcedInviteCount ?? 0));
+        setForcedInviteResetDaysText(String(mandatory.forcedInviteResetDays ?? 0));
         setGroup(detail.group);
         setDirty(false);
         setError(null);
@@ -147,8 +152,14 @@ export function GroupMandatoryMembershipPage() {
 
   const handleForcedChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
-      const raw = event.target.value.trim();
-      const parsed = raw === "" ? 0 : Number(raw);
+      const raw = event.target.value;
+      setForcedInviteCountText(raw);
+      const trimmed = raw.trim();
+      if (trimmed.length === 0) {
+        updateSettings({ forcedInviteCount: 0 });
+        return;
+      }
+      const parsed = Number(trimmed);
       const value = Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : 0;
       updateSettings({ forcedInviteCount: value });
     },
@@ -157,8 +168,14 @@ export function GroupMandatoryMembershipPage() {
 
   const handleResetChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
-      const raw = event.target.value.trim();
-      const parsed = raw === "" ? 0 : Number(raw);
+      const raw = event.target.value;
+      setForcedInviteResetDaysText(raw);
+      const trimmed = raw.trim();
+      if (trimmed.length === 0) {
+        updateSettings({ forcedInviteResetDays: 0 });
+        return;
+      }
+      const parsed = Number(trimmed);
       const value = Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : 0;
       updateSettings({ forcedInviteResetDays: value });
     },
@@ -233,6 +250,8 @@ export function GroupMandatoryMembershipPage() {
       const next = await updateGroupMandatoryMembershipSettings(groupId, settings);
       setSettings(next);
       setChannelsInput(next.mandatoryChannels.join("\n"));
+      setForcedInviteCountText(String(next.forcedInviteCount ?? 0));
+      setForcedInviteResetDaysText(String(next.forcedInviteResetDays ?? 0));
       setDirty(false);
       setToastMessage(TEXT.saveSuccess);
     } catch (err) {
@@ -360,7 +379,7 @@ export function GroupMandatoryMembershipPage() {
                   min={0}
                   step={1}
                   placeholder="0"
-                  value={forcedInviteCount}
+                  value={forcedInviteCountText}
                   onChange={handleForcedChange}
                 />
               </div>
@@ -396,9 +415,8 @@ export function GroupMandatoryMembershipPage() {
                   min={0}
                   step={1}
                   placeholder="0"
-                  value={forcedInviteResetDays}
+                  value={forcedInviteResetDaysText}
                   onChange={handleResetChange}
-                  disabled={forcedInviteCount <= 0}
                 />
               </div>
               <Text weight="2" className={classNames(styles.summaryText, forcedInviteCount <= 0 && styles.summaryMuted)}>

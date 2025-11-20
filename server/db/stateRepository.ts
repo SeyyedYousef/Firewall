@@ -56,6 +56,50 @@ async function findGroupIdByChatId(chatId: string): Promise<string | null> {
   return group?.id ?? null;
 }
 
+export async function countUserInvitesSince(
+  chatId: string,
+  inviterUserId: string,
+  since?: Date | null,
+): Promise<number> {
+  const groupId = await findGroupIdByChatId(chatId);
+  if (!groupId) {
+    return 0;
+  }
+
+  const where: any = {
+    groupId,
+    event: "join",
+    AND: [
+      {
+        payload: {
+          path: ["invitedBy"],
+          equals: inviterUserId,
+        },
+      },
+      {
+        payload: {
+          path: ["isBot"],
+          equals: false,
+        },
+      },
+    ],
+  };
+
+  if (since instanceof Date && !Number.isNaN(since.getTime())) {
+    where.createdAt = { gte: since };
+  }
+
+  const count = await withPrismaRetry(
+    () =>
+      prisma.membershipEvent.count({
+        where,
+      }),
+    "countUserInvitesSince",
+  );
+
+  return count;
+}
+
 export async function fetchGroupsFromDb() {
   const groups = await withPrismaRetry(
     () =>

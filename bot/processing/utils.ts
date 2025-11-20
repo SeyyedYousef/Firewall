@@ -379,6 +379,30 @@ async function sendMessage(ctx: GroupChatContext, action: Extract<ProcessingActi
     baseOptions.message_thread_id = threadId;
   }
 
+  // Optionally attach promo button as inline keyboard when enabled in settings.
+  // By default, all send_message actions get the promo button unless explicitly opted out
+  // with attachPromoButton === false.
+  const shouldAttachPromo = action.attachPromoButton !== false;
+  if (databaseAvailable && shouldAttachPromo) {
+    try {
+      const { loadCustomTextSettingsByChatId } = await import("../../server/db/groupSettingsRepository.js");
+      const customTexts = await loadCustomTextSettingsByChatId(ctx.chat.id.toString());
+      const enabled = customTexts.promoButtonEnabled;
+      const text = (customTexts.promoButtonText ?? "").trim();
+      const url = (customTexts.promoButtonUrl ?? "").trim();
+      if (enabled && text && url) {
+        (baseOptions as any).reply_markup = {
+          inline_keyboard: [[{ text, url }]],
+        };
+      }
+    } catch (error) {
+      logger.debug("failed to attach promo button to message", {
+        chatId: ctx.chat?.id,
+        error,
+      });
+    }
+  }
+
   try {
     const sent = await ctx.telegram.sendMessage(ctx.chat.id, action.text, baseOptions as any);
 

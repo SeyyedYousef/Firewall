@@ -111,7 +111,6 @@ export type MandatoryMembershipSettingsRecord = {
 
 export type CustomTextSettingsRecord = {
   welcomeMessage: string;
-  rulesMessage: string;
   silenceStartMessage: string;
   silenceEndMessage: string;
   warningMessage: string;
@@ -628,7 +627,6 @@ export async function saveMandatoryMembershipSettings(
 
 const DEFAULT_CUSTOM_TEXTS: CustomTextSettingsRecord = {
   welcomeMessage: "Hello {user}!\nWelcome to {group}.\nPlease read the next message to learn the rules.",
-  rulesMessage: "{user}, these guidelines keep {group} safe. Read them carefully before you start chatting.",
   silenceStartMessage:
     "Quiet hours are now active.\nMessages are paused from {starttime} until {endtime}.\nThanks for keeping the chat tidy.",
   silenceEndMessage: "Quiet hours have finished.\nThe next quiet period starts at {starttime}.",
@@ -667,7 +665,6 @@ function normalizeCustomTextSettings(input: unknown): CustomTextSettingsRecord {
   const candidate = input as Partial<CustomTextSettingsRecord>;
   return {
     welcomeMessage: sanitizeText(candidate.welcomeMessage, base.welcomeMessage),
-    rulesMessage: sanitizeText(candidate.rulesMessage, base.rulesMessage),
     silenceStartMessage: sanitizeText(candidate.silenceStartMessage, base.silenceStartMessage),
     silenceEndMessage: sanitizeText(candidate.silenceEndMessage, base.silenceEndMessage),
     warningMessage: sanitizeText(candidate.warningMessage, base.warningMessage),
@@ -843,31 +840,31 @@ function normalizeLimitSettings(input: unknown): GroupCountLimitSettingsRecord {
     round: "floor",
   });
   let maxWords = sanitizeNumber(candidate.maxWordsPerMessage, base.maxWordsPerMessage, {
-    min: minWords > 0 ? minWords : 1,
+    min: 0,
     max: 5000,
     round: "floor",
   });
-  if (maxWords < minWords && minWords > 0) {
+  if (maxWords > 0 && minWords > 0 && maxWords < minWords) {
     maxWords = minWords;
   }
 
   const messagesPerWindow = sanitizeNumber(candidate.messagesPerWindow, base.messagesPerWindow, {
-    min: 1,
+    min: 0,
     max: 1000,
     round: "floor",
   });
   const windowMinutes = sanitizeNumber(candidate.windowMinutes, base.windowMinutes, {
-    min: 1,
+    min: 0,
     max: 1440,
     round: "floor",
   });
   const duplicateMessages = sanitizeNumber(candidate.duplicateMessages, base.duplicateMessages, {
-    min: 1,
+    min: 0,
     max: 100,
     round: "floor",
   });
   const duplicateWindowMinutes = sanitizeNumber(candidate.duplicateWindowMinutes, base.duplicateWindowMinutes, {
-    min: 1,
+    min: 0,
     max: 1440,
     round: "floor",
   });

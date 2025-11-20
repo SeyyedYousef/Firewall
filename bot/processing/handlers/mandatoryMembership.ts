@@ -14,6 +14,17 @@ const channelMembershipCache = new Map<string, { isVerified: boolean; lastCheck:
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache for channel membership
 
+async function isAdminOrOwner(ctx: GroupChatContext): Promise<boolean> {
+  try {
+    const userId = (ctx.message as any)?.from?.id;
+    if (!userId) return false;
+    const member = await ctx.telegram.getChatMember(ctx.chat.id, userId);
+    return member.status === "administrator" || member.status === "creator";
+  } catch {
+    return false;
+  }
+}
+
 function makeInviteKey(chatId: number | string, userId: number | string): string {
   return `${chatId}:${userId}`;
 }
@@ -58,26 +69,47 @@ async function checkChannelMembership(
   return isVerified;
 }
 
-function checkInviteRequirements(
+async function checkInviteRequirements(
   chatId: number,
   userId: number,
   requiredCount: number,
-  resetDays: number
-): { hasMetRequirement: boolean; currentCount: number } {
+  resetDays: number,
+): Promise<{ hasMetRequirement: boolean; currentCount: number }> {
   if (requiredCount <= 0) {
     return { hasMetRequirement: true, currentCount: 0 };
   }
 
+  const chatIdStr = chatId.toString();
+  const userIdStr = userId.toString();
+
+  if (databaseAvailable) {
+    try {
+      const { countUserInvitesSince } = await import("../../../server/db/stateRepository.js");
+      let since: Date | null = null;
+      if (resetDays > 0) {
+        const now = Date.now();
+        since = new Date(now - resetDays * 24 * 60 * 60 * 1000);
+      }
+      const count = await countUserInvitesSince(chatIdStr, userIdStr, since);
+      return { hasMetRequirement: count >= requiredCount, currentCount: count };
+    } catch (error) {
+      logger.warn("failed to count user invites from db, falling back to in-memory counters", {
+        chatId,
+        userId,
+        error,
+      });
+    }
+  }
+
+  // Fallback: use in-memory counters
   const inviteKey = makeInviteKey(chatId, userId);
   const currentCount = inviteCounts.get(inviteKey) ?? 0;
   const lastReset = lastInviteReset.get(inviteKey) ?? 0;
   const now = Date.now();
 
-  // Check if reset period has passed
   if (resetDays > 0 && lastReset > 0) {
     const resetInterval = resetDays * 24 * 60 * 60 * 1000;
     if (now - lastReset > resetInterval) {
-      // Reset the counter
       inviteCounts.set(inviteKey, 0);
       lastInviteReset.set(inviteKey, now);
       return { hasMetRequirement: false, currentCount: 0 };
@@ -208,6 +240,11 @@ export const mandatoryMembershipHandler: UpdateHandler = {
       return { actions: ensureActions([]) };
     }
 
+    // Do not enforce mandatory membership rules on administrators/owners
+    if (await isAdminOrOwner(ctx)) {
+      return { actions: ensureActions([]) };
+    }
+
     const chatId = ctx.chat.id.toString();
 
     try {
@@ -221,11 +258,11 @@ export const mandatoryMembershipHandler: UpdateHandler = {
 
       // Check invite requirements
       if (mandatorySettings.forcedInviteCount > 0) {
-        const { hasMetRequirement, currentCount } = checkInviteRequirements(
+        const { hasMetRequirement, currentCount } = await checkInviteRequirements(
           ctx.chat.id,
           userId,
           mandatorySettings.forcedInviteCount,
-          mandatorySettings.forcedInviteResetDays
+          mandatorySettings.forcedInviteResetDays,
         );
 
         if (!hasMetRequirement) {
