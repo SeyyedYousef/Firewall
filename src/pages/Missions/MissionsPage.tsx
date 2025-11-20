@@ -900,24 +900,8 @@ ${dailyTaskChannel.channelLink}`,
           return;
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Failed to complete mission. Please try again.";
-        setSnackbar(message);
-        console.error("[missions] complete mission failed", error);
-      } finally {
-        setCompletingMissionId((current: string | null) => (current === mission.id ? null : current));
-        setVerifyingMissionId((current: string | null) => (current === mission.id ? null : current));
-      }
-    },
-    [completedMissions, levelInfo.level, refresh, setSnackbar, xp],
-  );
-
-  return (
-    <div className={styles.page} dir="ltr">
-      <section className={styles.hero}>
-        <div className={styles.heroHeader}>
-          <div className={styles.heroProfile}>
-            <Avatar size={96} src={heroAvatarSrc} acronym={heroAcronym} alt={heroDisplayName} />
-            <div className={styles.heroMeta}>
+        let message =
+          error instanceof Error ? error.message : "Failed to complete mission. Please try again.";
               <span className={styles.heroLabel}>{heroDisplayName}</span>
               <Title level="2" className={styles.heroTitle}>
                 Level {levelInfo.level}

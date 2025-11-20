@@ -13,7 +13,7 @@ export function formatNumber(value: number): string {
 }
 
 export function formatMembersCount(count: number): string {
-  return `?? ${formatNumber(count)} members`;
+  return `${formatNumber(count)} members`;
 }
 
 export function formatDaysLeft(days: number): string {
