@@ -324,7 +324,13 @@ export async function loadGroupsSnapshot(
   const fallback = filterGroupsForUser(localGroups, trimmedUserId, options);
   if (!databaseAvailable) {
     logger.debug("database not available, using local groups only", { count: fallback.length });
-    return fallback;
+    try {
+      const hydrated = await hydrateMembersCountFromTelegram(fallback);
+      return hydrated;
+    } catch (error) {
+      logger.warn("unable to refresh members count from Telegram without database", { error });
+      return fallback;
+    }
   }
   const localMap = new Map(localGroups.map((group) => [group.chatId, group]));
   try {
@@ -359,7 +365,13 @@ export async function loadGroupsSnapshot(
   } catch (error) {
     logger.warn("db failed to load groups from database, falling back to file store", { error });
   }
-  return fallback;
+  try {
+    const hydratedFallback = await hydrateMembersCountFromTelegram(fallback);
+    return hydratedFallback;
+  } catch (error) {
+    logger.warn("unable to refresh members count from Telegram after db fallback", { error });
+    return fallback;
+  }
 }
 
 async function hydrateMembersCountFromTelegram(records: GroupRecord[]): Promise<GroupRecord[]> {
