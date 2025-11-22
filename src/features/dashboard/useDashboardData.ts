@@ -8,7 +8,6 @@ import type {
   GroupStatusActive,
 } from './types.ts';
 
-const DAY_MS = 86_400_000;
 
 function isActiveGroup(group: ManagedGroup): group is ManagedGroup & { status: GroupStatusActive } {
   return group.status.kind === 'active';

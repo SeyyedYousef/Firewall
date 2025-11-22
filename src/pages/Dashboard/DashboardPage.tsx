@@ -59,7 +59,6 @@ const SORT_OPTIONS = [
 type FilterId = typeof FILTERS[number]['id'];
 type SortId = typeof SORT_OPTIONS[number]['id'];
 
-const DAY_MS = 86_400_000;
 const EXPIRING_THRESHOLD_DAYS = 5;
 const FAR_FUTURE_ORDER = 1_000_000;
 const titleCollator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
