@@ -1211,7 +1211,7 @@ function createStarsPurchaseResult(
   const completed = status === "completed";
   const refunded = status === "refunded";
   const expiresAt = completed ? new Date(Date.now() + plan.days * DAY_MS).toISOString() : null;
-  const balanceDelta = completed ? -plan.price : refunded ? plan.price : 0;
+  const balanceDelta = completed ? plan.price : refunded ? -plan.price : 0;
   return {
     transactionId: `mock-${Date.now()}`,
     status,
@@ -1247,8 +1247,8 @@ async function mockFetchStarsWalletSummary(): Promise<StarsWalletSummary> {
     {
       id: `txn-${now - 1}`,
       status: "completed",
-      direction: "debit",
-      amount: -60,
+      direction: "credit",
+      amount: 60,
       planId: "stars-30",
       planLabel: "30 days - 60 Stars",
       planDays: 30,
@@ -1264,8 +1264,8 @@ async function mockFetchStarsWalletSummary(): Promise<StarsWalletSummary> {
     {
       id: `txn-${now - 2}`,
       status: "refunded",
-      direction: "credit",
-      amount: 60,
+      direction: "debit",
+      amount: -60,
       planId: "stars-30",
       planLabel: "30 days - 60 Stars",
       planDays: 30,
@@ -1281,8 +1281,8 @@ async function mockFetchStarsWalletSummary(): Promise<StarsWalletSummary> {
     {
       id: `txn-${now}`,
       status: "pending",
-      direction: "debit",
-      amount: -120,
+      direction: "credit",
+      amount: 0,
       planId: "stars-60",
       planLabel: "60 days - 120 Stars",
       planDays: 60,

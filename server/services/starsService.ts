@@ -317,9 +317,8 @@ export async function finalizeStarsPurchase(
   });
 
   const plan = resolvePlanById(planId);
-  if (getStarsState().balance < plan.price) {
-    adjustStarsBalance(plan.price);
-  }
+  // No need to check balance - payment was already confirmed by Telegram
+  // The applyStarsPurchase function will handle adding the received stars to our balance
 
   const outcome = applyStarsPurchase({
     transactionId,
@@ -331,7 +330,7 @@ export async function finalizeStarsPurchase(
 
   await completeStarTransaction({
     transactionId,
-    amountDelta: -outcome.plan.price,
+    amountDelta: outcome.plan.price, // Positive value - we received stars from the payment
     planId: outcome.plan.id,
     planDays: outcome.plan.days,
     expiresAt: outcome.expiresAt,
@@ -454,7 +453,7 @@ export async function finalizeStarsPurchase(
     planId: outcome.plan.id,
     daysAdded: outcome.daysAdded,
     expiresAt: outcome.expiresAt,
-    balanceDelta: -outcome.plan.price,
+    balanceDelta: outcome.plan.price,
     gifted,
     paymentUrl: null,
   };

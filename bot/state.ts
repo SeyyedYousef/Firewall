@@ -1875,9 +1875,10 @@ export function applyStarsPurchase(input: StarsPurchaseInput): StarsPurchaseInte
   let outcome: StarsPurchaseInternalResult | null = null;
   state = withState((draft) => {
     const plan = resolveStarsPlan(draft, input.planId);
-    if (draft.stars.balance < plan.price) {
-      throw new Error("Insufficient Stars balance");
-    }
+    
+    // For paid purchases, we receive stars (increase balance)
+    // For gifted purchases, we also receive stars from the gifter
+    // No need to check existing balance - payment was already confirmed by Telegram
 
     const metadata = input.metadata ?? {};
     const managedFlag =
@@ -1905,7 +1906,8 @@ export function applyStarsPurchase(input: StarsPurchaseInput): StarsPurchaseInte
       trialExpiredAt: null,
       disabled: false,
     };
-    draft.stars.balance = Math.max(0, draft.stars.balance - plan.price);
+    // Increase bot's balance when receiving payment
+    draft.stars.balance = Math.max(0, draft.stars.balance + plan.price);
 
     outcome = {
       group,
@@ -1927,7 +1929,7 @@ export function applyStarsPurchase(input: StarsPurchaseInput): StarsPurchaseInte
     groupId: applied.group.chatId,
     planId: applied.plan.id,
     planDays: applied.plan.days,
-    amountDelta: -applied.plan.price,
+    amountDelta: applied.plan.price, // Positive - we received stars from the payment
     expiresAt: applied.expiresAt,
     gifted: input.gifted,
   });
