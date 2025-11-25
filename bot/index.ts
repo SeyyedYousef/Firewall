@@ -3078,7 +3078,8 @@ export async function startBotWebhookServer(options: WebhookOptions): Promise<We
   const trimmedDomain = trimTrailingSlash(options.domain.trim());
   const webhookUrl = `${trimmedDomain}${webhookPath}`;
 
-  // Must include pre_checkout_query and successful_payment for Stars payments
+  // Must include pre_checkout_query for Stars payments
+  // Note: successful_payment comes through as a message update, not a separate type
   const allowedUpdates = [
     "message",
     "edited_message",
@@ -3090,7 +3091,6 @@ export async function startBotWebhookServer(options: WebhookOptions): Promise<We
     "poll",
     "poll_answer",
     "pre_checkout_query",
-    "successful_payment",
   ] as const;
 
   try {

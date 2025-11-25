@@ -1895,8 +1895,26 @@ export function applyStarsPurchase(input: StarsPurchaseInput): StarsPurchaseInte
 
     const nowMs = Date.now();
     const existing = draft.stars.groups[input.groupId];
+    
+    // Debug logging for renewal stacking
+    console.log("[applyStarsPurchase] Renewal debug:", {
+      inputGroupId: input.groupId,
+      existingFound: Boolean(existing),
+      existingExpiresAt: existing?.expiresAt ?? null,
+      existingKeys: Object.keys(draft.stars.groups).slice(0, 5), // First 5 keys for reference
+      planDays: plan.days,
+    });
+    
     const baseMs = existing ? Math.max(new Date(existing.expiresAt).getTime(), nowMs) : nowMs;
     const expiresAt = new Date(baseMs + plan.days * DAY_MS).toISOString();
+    
+    // Log the calculated expiration
+    console.log("[applyStarsPurchase] Calculated expiration:", {
+      baseMsUsed: existing ? "existing.expiresAt or now" : "now",
+      baseMs,
+      planDaysMs: plan.days * DAY_MS,
+      newExpiresAt: expiresAt,
+    });
 
     draft.stars.groups[input.groupId] = {
       groupId: input.groupId,
@@ -2040,6 +2058,83 @@ export function markTrialExpired(groupId: string, date: Date): GroupRecord | nul
     return draft;
   });
   return managed;
+}
+
+/**
+ * Check if a group has an active subscription (not expired)
+ */
+export function isGroupSubscriptionActive(groupId: string): boolean {
+  const entry = state.stars.groups[groupId];
+  if (!entry) {
+    return false;
+  }
+  if (entry.disabled) {
+    return false;
+  }
+  const expiresAtMs = Date.parse(entry.expiresAt);
+  if (!Number.isFinite(expiresAtMs)) {
+    return false;
+  }
+  return expiresAtMs > Date.now();
+}
+
+/**
+ * Get expiration info for a group
+ */
+export function getGroupExpirationInfo(groupId: string): {
+  isActive: boolean;
+  expiresAt: string | null;
+  daysLeft: number;
+  isInGracePeriod: boolean;
+  graceDaysLeft: number;
+} | null {
+  const entry = state.stars.groups[groupId];
+  if (!entry) {
+    return null;
+  }
+  
+  const nowMs = Date.now();
+  const expiresAtMs = Date.parse(entry.expiresAt);
+  if (!Number.isFinite(expiresAtMs)) {
+    return null;
+  }
+  
+  const GRACE_PERIOD_DAYS = 3;
+  const graceEndMs = expiresAtMs + GRACE_PERIOD_DAYS * DAY_MS;
+  
+  const isActive = expiresAtMs > nowMs && !entry.disabled;
+  const daysLeft = isActive ? Math.ceil((expiresAtMs - nowMs) / DAY_MS) : 0;
+  const isInGracePeriod = !isActive && nowMs <= graceEndMs;
+  const graceDaysLeft = isInGracePeriod ? Math.ceil((graceEndMs - nowMs) / DAY_MS) : 0;
+  
+  return {
+    isActive,
+    expiresAt: entry.expiresAt,
+    daysLeft,
+    isInGracePeriod,
+    graceDaysLeft,
+  };
+}
+
+/**
+ * Remove a group from stars tracking (after leaving)
+ */
+export function removeGroupFromStars(groupId: string): void {
+  withState((draft) => {
+    delete draft.stars.groups[groupId];
+    return draft;
+  });
+}
+
+/**
+ * Remove a group completely from state
+ */
+export function removeGroupCompletely(groupId: string): void {
+  withState((draft) => {
+    delete draft.groups[groupId];
+    delete draft.stars.groups[groupId];
+    return draft;
+  });
 }
 
 export function setStarsBalance(balance: number): StarsState {

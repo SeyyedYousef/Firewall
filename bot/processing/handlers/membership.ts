@@ -42,6 +42,38 @@ async function buildWelcomeActions(ctx: GroupChatContext): Promise<ProcessingAct
     return [];
   }
 
+  // Record membership events to database for statistics
+  if (databaseAvailable) {
+    try {
+      const { recordMembershipEvent } = await import("../../../server/db/mutateRepository.js");
+      const groupTitle = ctx.chat && "title" in ctx.chat ? ctx.chat.title : undefined;
+      
+      for (const member of members) {
+        await recordMembershipEvent({
+          chatId: ctx.chat.id.toString(),
+          userId: member.id.toString(),
+          event: "join",
+          payload: {
+            username: member.username ?? null,
+            firstName: member.first_name ?? null,
+            lastName: member.last_name ?? null,
+            isBot: member.is_bot ?? false,
+          },
+          groupTitle,
+        });
+      }
+      logger.debug("recorded membership join events", { 
+        chatId: ctx.chat.id, 
+        count: members.length 
+      });
+    } catch (error) {
+      logger.warn("failed to record membership events", { 
+        chatId: ctx.chat.id, 
+        error 
+      });
+    }
+  }
+
   // Check if welcome messages are enabled in group settings
   if (databaseAvailable) {
     try {
@@ -124,10 +156,39 @@ async function buildWelcomeActions(ctx: GroupChatContext): Promise<ProcessingAct
   ];
 }
 
-function buildLeaveActions(ctx: GroupChatContext): ProcessingAction[] {
+async function buildLeaveActions(ctx: GroupChatContext): Promise<ProcessingAction[]> {
   const leftMember = (ctx.message as any)?.left_chat_member;
   if (!leftMember) {
     return [];
+  }
+
+  // Record membership leave event to database for statistics
+  if (databaseAvailable && !leftMember.is_bot) {
+    try {
+      const { recordMembershipEvent } = await import("../../../server/db/mutateRepository.js");
+      const groupTitle = ctx.chat && "title" in ctx.chat ? ctx.chat.title : undefined;
+      
+      await recordMembershipEvent({
+        chatId: ctx.chat.id.toString(),
+        userId: leftMember.id.toString(),
+        event: "leave",
+        payload: {
+          username: leftMember.username ?? null,
+          firstName: leftMember.first_name ?? null,
+          lastName: leftMember.last_name ?? null,
+        },
+        groupTitle,
+      });
+      logger.debug("recorded membership leave event", { 
+        chatId: ctx.chat.id, 
+        userId: leftMember.id 
+      });
+    } catch (error) {
+      logger.warn("failed to record membership leave event", { 
+        chatId: ctx.chat.id, 
+        error 
+      });
+    }
   }
 
   return [
@@ -332,7 +393,8 @@ export const membershipHandler: UpdateHandler = {
     const actions: ProcessingAction[] = [];
     const welcomeActions = await buildWelcomeActions(ctx);
     actions.push(...welcomeActions);
-    actions.push(...buildLeaveActions(ctx));
+    const leaveActions = await buildLeaveActions(ctx);
+    actions.push(...leaveActions);
 
     // Remove join/leave service messages if configured in general settings
     try {

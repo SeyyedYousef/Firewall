@@ -1,7 +1,7 @@
 import PQueue from "p-queue";
 import { setTimeout as delay } from "node:timers/promises";
 import type { Telegraf } from "telegraf";
-import { getState } from "../state.js";
+import { getState, isGroupSubscriptionActive, getGroupExpirationInfo } from "../state.js";
 import { handlers } from "./handlers/index.js";
 import { ensureActions, executeAction, isGroupChat } from "./utils.js";
 import type { GroupChatContext } from "./types.js";
@@ -121,6 +121,25 @@ async function dispatchUpdate(ctx: GroupChatContext): Promise<void> {
   if (groupState && groupState.managed === false) {
     logger.debug("skipping processing for unmanaged group", { chatId });
     return;
+  }
+
+  // Check if group subscription is active
+  const expirationInfo = getGroupExpirationInfo(chatId);
+  if (expirationInfo && !expirationInfo.isActive && !expirationInfo.isInGracePeriod) {
+    // Group has expired and grace period is over - skip all processing
+    logger.debug("skipping processing for expired group (past grace period)", { 
+      chatId, 
+      expiresAt: expirationInfo.expiresAt 
+    });
+    return;
+  }
+  
+  if (expirationInfo && !expirationInfo.isActive && expirationInfo.isInGracePeriod) {
+    // Group is in grace period - log but continue processing with limited functionality
+    logger.debug("processing group in grace period", { 
+      chatId, 
+      graceDaysLeft: expirationInfo.graceDaysLeft 
+    });
   }
 
   for (const handler of handlers) {

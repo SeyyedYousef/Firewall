@@ -512,16 +512,25 @@ function computeGroupStatus(
     };
   }
 
-  const creditDaysLeft = record.creditBalance > 0 ? Math.ceil(record.creditBalance) : 0;
-  const creditExpiresAt =
-    creditDaysLeft > 0 ? addDays(new Date(statusChangedAt), creditDaysLeft).toISOString() : null;
-
-  if (creditDaysLeft > 0) {
-    return {
-      kind: "active",
-      expiresAt: addDays(new Date(), creditDaysLeft).toISOString(),
-      daysLeft: Math.max(1, creditDaysLeft),
-    };
+  // Credit system: creditBalance stores total days granted, we calculate expiration from when it was set
+  // The reference point is when the credit was last modified (statusChangedAt)
+  const creditBalanceRaw = record.creditBalance > 0 ? Math.ceil(record.creditBalance) : 0;
+  const creditExpiresAt = creditBalanceRaw > 0 
+    ? new Date(new Date(statusChangedAt).getTime() + creditBalanceRaw * DAY_MS).toISOString()
+    : null;
+    
+  if (creditBalanceRaw > 0 && creditExpiresAt) {
+    const creditExpiresAtMs = Date.parse(creditExpiresAt);
+    // Calculate actual days remaining from NOW
+    const creditDaysLeft = Math.max(0, Math.ceil((creditExpiresAtMs - nowMs) / DAY_MS));
+    
+    if (creditDaysLeft > 0) {
+      return {
+        kind: "active",
+        expiresAt: creditExpiresAt,
+        daysLeft: Math.max(1, creditDaysLeft),
+      };
+    }
   }
 
   const panelSettings = getPanelSettings();
