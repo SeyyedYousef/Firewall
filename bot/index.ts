@@ -3022,7 +3022,28 @@ export async function startBotWebhookServer(options: WebhookOptions): Promise<We
     next();
   });
 
+  const webhookPath = ensureLeadingSlash(options.path ?? "/telegram/webhook");
+
+  // Debug logging for all requests
   app.use((req, res, next) => {
+    if (req.path === webhookPath) {
+      logger.info("incoming webhook request", { 
+        method: req.method, 
+        ip: req.ip,
+        headers: {
+          "x-forwarded-for": req.headers["x-forwarded-for"],
+          "content-length": req.headers["content-length"]
+        }
+      });
+    }
+    next();
+  });
+
+  app.use((req, res, next) => {
+    // Skip HTTPS redirect for webhook to prevent 301/307 issues on POST requests
+    if (req.path === webhookPath) {
+      return next();
+    }
     if (process.env.NODE_ENV === "production" && !req.secure) {
       const host = req.headers.host;
       if (host) {
@@ -3052,7 +3073,6 @@ export async function startBotWebhookServer(options: WebhookOptions): Promise<We
 
   registerApiRoutes(app);
 
-  const webhookPath = ensureLeadingSlash(options.path ?? "/telegram/webhook");
   app.post(webhookPath, bot.webhookCallback(webhookPath));
 
   const trimmedDomain = trimTrailingSlash(options.domain.trim());
