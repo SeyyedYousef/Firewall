@@ -1,3 +1,4 @@
+import { hapticFeedback } from "@telegram-apps/sdk-react";
 import { Button, Text } from "@telegram-apps/telegram-ui";
 
 import { classNames } from "@/css/classnames.ts";

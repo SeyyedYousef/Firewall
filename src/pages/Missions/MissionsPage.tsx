@@ -433,7 +433,7 @@ function computeLevel(xp: number) {
   for (let index = 0; index < LEVEL_THRESHOLDS.length; index += 1) {
     const threshold = LEVEL_THRESHOLDS[index];
     const next = LEVEL_THRESHOLDS[index + 1];
-    if (xp >= threshold) {
+    if (threshold !== undefined && xp >= threshold) {
       level = index + 1;
       if (typeof next === "number") {
         nextThreshold = next;
@@ -443,9 +443,11 @@ function computeLevel(xp: number) {
     }
   }
 
-  const previousThreshold = LEVEL_THRESHOLDS[Math.max(0, level - 1)];
-  const delta = nextThreshold - previousThreshold || 1;
-  const progress = Math.min(1, Math.max(0, (xp - previousThreshold) / delta));
+  const previousThreshold = LEVEL_THRESHOLDS[Math.max(0, level - 1)] ?? 0;
+  const safeNextThreshold = nextThreshold ?? 0;
+  const safePreviousThreshold = previousThreshold ?? 0;
+  const delta = safeNextThreshold - safePreviousThreshold || 1;
+  const progress = Math.min(1, Math.max(0, (xp - safePreviousThreshold) / delta));
 
   return {
     level,
@@ -548,22 +550,28 @@ export function MissionsPage() {
 
     const sanitizedXp = Math.max(1, Math.round(dailyTaskChannel.xp));
     const channelUsername = extractChannelUsername(dailyTaskChannel.channelLink);
-    const mission: Mission = {
+    
+    // Create mission with proper typing for exactOptionalPropertyTypes
+    const baseMission = {
       id: "daily-channel-mission",
       title: dailyTaskChannel.buttonLabel,
       description: `${dailyTaskChannel.description}
 ${dailyTaskChannel.channelLink}`,
       xp: sanitizedXp,
-      icon: "link",
+      icon: "link" as const,
       ctaLabel: "Open channel",
       ctaLink: dailyTaskChannel.channelLink,
-      verification: channelUsername
-        ? {
+    };
+
+    const mission: Mission = channelUsername
+      ? {
+          ...baseMission,
+          verification: {
             kind: "telegram-channel",
             channelUsername,
-          }
-        : undefined,
-    };
+          },
+        }
+      : baseMission;
 
     const baseDaily = MISSIONS.daily.filter((item) => item.id !== mission.id);
     return {
@@ -932,7 +940,12 @@ ${dailyTaskChannel.channelLink}`,
       <section className={styles.hero}>
         <div className={styles.heroHeader}>
           <div className={styles.heroProfile}>
-            <Avatar size={96} src={heroAvatarSrc} acronym={heroAcronym} alt={heroDisplayName} />
+            <Avatar 
+              size={96} 
+              src={heroAvatarSrc} 
+              acronym={heroAcronym ?? undefined} 
+              alt={heroDisplayName} 
+            />
             <div className={styles.heroMeta}>
               <span className={styles.heroLabel}>{heroDisplayName}</span>
               <Title level="2" className={styles.heroTitle}>
@@ -961,7 +974,7 @@ ${dailyTaskChannel.channelLink}`,
           </div>
           <div className={styles.levelMeta}>
             <Text className={styles.levelProgress}>
-              {levelInfo.hasNext
+              {levelInfo.hasNext && levelInfo.nextThreshold
                 ? `${(levelInfo.nextThreshold - xp).toLocaleString("en-US")} XP until level ${levelInfo.level + 1}`
                 : "Maximum level reached for this season"}
             </Text>

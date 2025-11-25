@@ -97,6 +97,9 @@ function moveSlide(list: DashboardPromoSlot[], sourceId: string, targetId: strin
     return next;
   }
   const [item] = next.splice(sourceIndex, 1);
+  if (!item) {
+    return next;
+  }
   if (targetId === null) {
     next.push(item);
     return next;
@@ -220,6 +223,9 @@ export function PromoSliderManagerPage() {
         return;
       }
       const file = files[0];
+      if (!file) {
+        return;
+      }
       try {
         const { width, height } = recommendedDimensions;
         const { dataUrl, preview } = await resizeImageToWebp(file, width, height);

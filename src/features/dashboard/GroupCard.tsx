@@ -1,3 +1,4 @@
+import { hapticFeedback } from "@telegram-apps/sdk-react";
 import { Avatar, Button, Card, Text, Title } from "@telegram-apps/telegram-ui";
 
 import { classNames } from "@/css/classnames.ts";
@@ -92,7 +93,10 @@ export function GroupCard({ group, onOpenSettings, onRenew }: GroupCardProps) {
               size="s"
               mode="filled"
               className={styles.renewButton}
-              onClick={() => onRenew(group)}
+              onClick={() => {
+                hapticFeedback.impactOccurred("light");
+                onRenew(group);
+              }}
             >
               Renew subscription
             </Button>
@@ -103,7 +107,10 @@ export function GroupCard({ group, onOpenSettings, onRenew }: GroupCardProps) {
           mode="outline"
           stretched
           className={styles.manageButton}
-          onClick={() => onOpenSettings?.(group)}
+          onClick={() => {
+            hapticFeedback.impactOccurred("light");
+            onOpenSettings?.(group);
+          }}
           disabled={disabled}
         >
           Manage settings

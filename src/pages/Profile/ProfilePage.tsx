@@ -269,7 +269,7 @@ export function ProfilePage() {
           <Avatar
             size={96}
             src={avatarUrl ?? undefined}
-            acronym={avatarUrl ? undefined : initials}
+            acronym={avatarUrl ? undefined : (initials ?? undefined)}
             alt={displayName}
           />
           <div className={styles.heroMeta}>

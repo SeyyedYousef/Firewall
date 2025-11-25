@@ -17,6 +17,7 @@ export function EmptyState({ inviteUrl, onInvite }: EmptyStateProps) {
   const { data, isLoading } = useTgsAnimation<Record<string, unknown>>(NO_GROUPS_TGS);
 
   const handleInvite = () => {
+    hapticFeedback.impactOccurred('light');
     if (inviteUrl) {
       void openLink(inviteUrl);
       return;

@@ -98,15 +98,24 @@
   text-align: right;
   flex: 1;
   gap: 4px;
+  min-width: 0; /* Crucial for text-overflow to work in flex items */
 }
 
 .title {
   margin: 0;
   color: var(--tg-theme-text-color, #111);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
 }
 
 .meta {
   color: var(--tg-theme-hint-color, #6c7883);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
 }
 
 .statusRow {
@@ -140,6 +149,18 @@
 
 .renewButton {
   white-space: nowrap;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .manageButton {

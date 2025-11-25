@@ -113,7 +113,10 @@ export function StarsPage() {
         const overviewData = await fetchStarsOverview();
         setOverview(overviewData);
         if (overviewData.groups.length > 0) {
-          setSelectedManagedId((prev) => prev ?? overviewData.groups[0].group.id);
+          const firstGroup = overviewData.groups[0];
+          if (firstGroup?.group?.id) {
+            setSelectedManagedId((prev) => prev ?? firstGroup.group.id);
+          }
         }
         setError(null);
       } catch (err) {
@@ -358,7 +361,7 @@ export function StarsPage() {
                   <Avatar
                     size={48}
                     src={item.group.photoUrl ?? undefined}
-                    acronym={item.group.photoUrl ? undefined : initialsFromTitle(item.group.title)}
+                    acronym={item.group.photoUrl ? undefined : (initialsFromTitle(item.group.title) ?? undefined)}
                     alt={item.group.title}
                   />
                   <div className={styles.groupMeta}>
@@ -402,7 +405,7 @@ export function StarsPage() {
                     <Avatar
                       size={48}
                       src={group.photoUrl ?? undefined}
-                      acronym={group.photoUrl ? undefined : initialsFromTitle(group.title)}
+                      acronym={group.photoUrl ? undefined : (initialsFromTitle(group.title) ?? undefined)}
                       alt={group.title}
                     />
                     <div className={styles.groupMeta}>
@@ -504,9 +507,9 @@ function initialsFromTitle(title: string): string {
     return '?';
   }
   if (words.length === 1) {
-    return words[0].charAt(0).toUpperCase();
+    return words[0]?.charAt(0).toUpperCase() ?? '?';
   }
-  return `${words[0].charAt(0)}${words[1].charAt(0)}`.toUpperCase();
+  return `${words[0]?.charAt(0) ?? ''}${words[1]?.charAt(0) ?? ''}`.toUpperCase();
 }
 
 

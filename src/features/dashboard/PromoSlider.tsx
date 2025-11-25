@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { openLink } from '@telegram-apps/sdk-react';
+import { hapticFeedback, openLink } from '@telegram-apps/sdk-react';
 import { Button, Text } from '@telegram-apps/telegram-ui';
 
 import { trackPromoSlideEvent } from './api.ts';
@@ -119,6 +119,7 @@ export function PromoSlider({ slots, rotationSeconds = 6, metadata, canManage = 
       if (index === activeIndex) {
         return;
       }
+      hapticFeedback.selectionChanged();
       setActiveIndex(index);
       scheduleAutoplay();
     },
@@ -130,6 +131,7 @@ export function PromoSlider({ slots, rotationSeconds = 6, metadata, canManage = 
     if (!target) {
       return;
     }
+    hapticFeedback.impactOccurred('light');
     void trackPromoSlideEvent(slot.id, 'click', { variant: slot.variant ?? null });
     openLink(target);
   }, []);

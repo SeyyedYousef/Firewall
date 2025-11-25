@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { hapticFeedback } from '@telegram-apps/sdk-react';
 import { Avatar, Button, Input, Placeholder, Text } from '@telegram-apps/telegram-ui';
 
 import { dashboardConfig } from '@/config/dashboard.ts';
@@ -447,11 +448,13 @@ export function DashboardPage() {
 
           {!loading && filteredGroups.length > 0 && (
             <div className={styles.groupList}>
-              {filteredGroups.map((group) => {
+              {filteredGroups.map((group, index) => {
                 const badge = resolveCreditBadge(group);
                 const badgeClassName = [styles.badge, styles[badge.tone]].join(' ');
                 const status = statusLabel(group);
                 const daysLeft = getDaysLeft(group);
+                const isRenewable = group.status.kind === 'expired' || (daysLeft !== null && daysLeft <= 7);
+                
                 let nextAction = 'On track';
                 if (group.status.kind === 'removed') {
                   nextAction = 'Restore access';
@@ -469,7 +472,11 @@ export function DashboardPage() {
                   }
                 }
                 return (
-                  <article key={group.id} className={styles.groupCard}>
+                  <article 
+                    key={group.id} 
+                    className={styles.groupCard}
+                    style={{ animationDelay: `${index * 0.05}s` }}
+                  >
                     <header className={styles.groupHeader}>
                       <div className={styles.groupIdentity}>
                         <Avatar
@@ -514,17 +521,35 @@ export function DashboardPage() {
                     </div>
 
                     <div className={styles.groupActions}>
+                      {isRenewable && (
+                        <button
+                          type='button'
+                          className={`${styles.ctaButton} ${styles.ctaButtonPrimary}`}
+                          onClick={() => {
+                             hapticFeedback.impactOccurred('light');
+                             openGroup(group); // Usually renew is inside manage, or we could add a specific renew route
+                          }}
+                        >
+                          Renew subscription
+                        </button>
+                      )}
                       <button
                         type='button'
                         className={styles.ctaButton}
-                        onClick={() => openGroup(group)}
+                        onClick={() => {
+                          hapticFeedback.impactOccurred('light');
+                          openGroup(group);
+                        }}
                       >
                         {TEXT.manage}
                       </button>
                       <button
                         type='button'
                         className={`${styles.ctaButton} ${styles.ctaButtonSecondary}`}
-                        onClick={() => openAnalytics(group)}
+                        onClick={() => {
+                          hapticFeedback.impactOccurred('light');
+                          openAnalytics(group);
+                        }}
                       >
                         {TEXT.analytics}
                       </button>

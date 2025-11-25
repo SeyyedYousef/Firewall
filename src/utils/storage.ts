@@ -92,11 +92,14 @@ class SafeStorage {
 
     try {
       const fullKey = this.getKey(key);
-      const item: StorageItem<T> = {
+      const baseItem = {
         value,
         timestamp: Date.now(),
-        expiresAt: expiresIn ? Date.now() + expiresIn : undefined,
       };
+
+      const item: StorageItem<T> = expiresIn 
+        ? { ...baseItem, expiresAt: Date.now() + expiresIn }
+        : baseItem;
 
       const serialized = JSON.stringify(item);
       const dataSize = serialized.length * 2; // UTF-16 uses 2 bytes per char
@@ -125,12 +128,16 @@ class SafeStorage {
         
         try {
           const fullKey = this.getKey(key);
-          const item: StorageItem<T> = {
+          const baseRetryItem = {
             value,
             timestamp: Date.now(),
-            expiresAt: expiresIn ? Date.now() + expiresIn : undefined,
           };
-          localStorage.setItem(fullKey, JSON.stringify(item));
+
+          const retryItem: StorageItem<T> = expiresIn 
+            ? { ...baseRetryItem, expiresAt: Date.now() + expiresIn }
+            : baseRetryItem;
+
+          localStorage.setItem(fullKey, JSON.stringify(retryItem));
           return true;
         } catch {
           return false;
