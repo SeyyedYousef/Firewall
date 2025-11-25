@@ -342,7 +342,7 @@ export function GroupSilenceSettingsPage() {
           <Avatar
             size={48}
             src={group?.photoUrl ?? undefined}
-            acronym={group?.photoUrl ? undefined : group?.title?.charAt(0).toUpperCase() ?? "?"}
+            acronym={group?.photoUrl ? undefined : ((group?.title?.charAt(0).toUpperCase() ?? "?") ?? undefined)}
             alt={group?.title ?? "group"}
           />
           <div className={styles.headerTitles}>

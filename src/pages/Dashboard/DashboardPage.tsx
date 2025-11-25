@@ -125,9 +125,9 @@ function initialsFromTitle(title: string): string {
     return '?';
   }
   if (words.length === 1) {
-    return words[0].charAt(0).toUpperCase();
+    return words[0]?.charAt(0).toUpperCase() ?? '?';
   }
-  const letters = words.slice(0, 2).map((word) => word.charAt(0).toUpperCase());
+  const letters = words.slice(0, 2).map((word) => word?.charAt(0).toUpperCase() ?? '').filter(Boolean);
   return letters.join('');
 }
 
@@ -482,7 +482,7 @@ export function DashboardPage() {
                         <Avatar
                           size={48}
                           src={group.photoUrl ?? undefined}
-                          acronym={group.photoUrl ? undefined : initialsFromTitle(group.title)}
+                          acronym={group.photoUrl ? undefined : (initialsFromTitle(group.title) ?? undefined)}
                           alt={group.title}
                         />
                         <div className={styles.groupMeta}>

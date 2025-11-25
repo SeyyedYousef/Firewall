@@ -21,9 +21,9 @@ function initialsFromTitle(title: string): string {
   }
   const [first, second] = words;
   if (!second) {
-    return words[0].charAt(0).toUpperCase();
+    return words[0]?.charAt(0).toUpperCase() ?? '?';
   }
-  return `${first.charAt(0)}${second.charAt(0)}`.toUpperCase();
+  return `${first?.charAt(0) ?? ''}${second?.charAt(0) ?? ''}`.toUpperCase();
 }
 
 export function GroupCard({ group, onOpenSettings, onRenew }: GroupCardProps) {
@@ -72,7 +72,7 @@ export function GroupCard({ group, onOpenSettings, onRenew }: GroupCardProps) {
           <Avatar
             size={48}
             src={group.photoUrl ?? undefined}
-            acronym={group.photoUrl ? undefined : initialsFromTitle(group.title)}
+            acronym={group.photoUrl ? undefined : (initialsFromTitle(group.title) ?? undefined)}
             alt={group.title}
           />
           <div className={styles.details}>

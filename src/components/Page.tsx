@@ -18,6 +18,7 @@ export function Page({ children, back = true }: PropsWithChildren<{
       });
     } else {
       hideBackButton();
+      return undefined;
     }
   }, [back]);
 

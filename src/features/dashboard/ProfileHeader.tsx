@@ -15,9 +15,9 @@ function buildInitials(name: string): string {
   }
   const [first, second] = words;
   if (!second) {
-    return words[0].charAt(0).toUpperCase();
+    return words[0]?.charAt(0).toUpperCase() ?? '?';
   }
-  return `${first.charAt(0)}${second.charAt(0)}`.toUpperCase();
+  return `${first?.charAt(0) ?? ''}${second?.charAt(0) ?? ''}`.toUpperCase();
 }
 
 export function ProfileHeader({ displayName, username, avatarUrl }: ProfileHeaderProps) {
@@ -28,7 +28,7 @@ export function ProfileHeader({ displayName, username, avatarUrl }: ProfileHeade
       <Avatar
         size={96}
         src={avatarUrl ?? undefined}
-        acronym={avatarUrl ? undefined : acronym}
+        acronym={avatarUrl ? undefined : (acronym ?? undefined)}
         alt={displayName}
       />
       <div className={styles.meta}>

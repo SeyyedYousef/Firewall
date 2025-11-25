@@ -317,7 +317,11 @@ function downloadCsv(filename: string, rows: Array<Record<string, string | numbe
   if (rows.length === 0) {
     return;
   }
-  const headers = Object.keys(rows[0]);
+  const firstRow = rows[0];
+  if (!firstRow) {
+    return;
+  }
+  const headers = Object.keys(firstRow);
   const escapeCell = (value: string | number) => {
     const cell = String(value ?? "");
     if (cell.includes(",") || cell.includes("\"") || cell.includes("\n")) {
@@ -433,10 +437,15 @@ function MembersChart({ buckets, width, height, svgRef, gradientId }: MembersCha
       }
       const rect = event.currentTarget.getBoundingClientRect();
       const xPosition = event.clientX - rect.left;
-      let closest = points[0];
-      let minDistance = Math.abs(xPosition - points[0].x);
+      const firstPoint = points[0];
+      if (!firstPoint) {
+        return;
+      }
+      let closest = firstPoint;
+      let minDistance = Math.abs(xPosition - firstPoint.x);
       for (let index = 1; index < points.length; index += 1) {
         const candidate = points[index];
+        if (!candidate) continue;
         const distance = Math.abs(xPosition - candidate.x);
         if (distance < minDistance) {
           minDistance = distance;
@@ -792,7 +801,10 @@ export function GroupAnalyticsPage() {
 
   useEffect(() => {
     if (!allowedGranularities.includes(granularity)) {
-      setGranularity(allowedGranularities[0]);
+      const firstGranularity = allowedGranularities[0];
+      if (firstGranularity) {
+        setGranularity(firstGranularity);
+      }
     }
   }, [allowedGranularities, granularity]);
 
@@ -1451,7 +1463,7 @@ export function GroupAnalyticsPage() {
           <Avatar
             size={48}
             src={group?.photoUrl ?? undefined}
-            acronym={group?.photoUrl ? undefined : group?.title?.charAt(0).toUpperCase() ?? "A"}
+            acronym={group?.photoUrl ? undefined : ((group?.title?.charAt(0).toUpperCase() ?? "A") ?? undefined)}
             alt={group?.title ?? "group"}
           />
           <div className={styles.headerTitles}>

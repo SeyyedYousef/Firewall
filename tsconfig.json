@@ -34,7 +34,7 @@
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
+    "exactOptionalPropertyTypes": false,
     "target": "ES2022",
     "useDefineForClassFields": true,
     "allowUnusedLabels": false,

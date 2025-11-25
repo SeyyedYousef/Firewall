@@ -47,9 +47,9 @@ function initialsFromTitle(title: string): string {
     return '?';
   }
   if (words.length === 1) {
-    return words[0].charAt(0).toUpperCase();
+    return words[0]?.charAt(0).toUpperCase() ?? '?';
   }
-  return `${words[0].charAt(0)}${words[1].charAt(0)}`.toUpperCase();
+  return `${words[0]?.charAt(0) ?? ''}${words[1]?.charAt(0) ?? ''}`.toUpperCase();
 }
 
 function formatRelative(timestamp: string): string {
@@ -69,20 +69,20 @@ function formatRelative(timestamp: string): string {
 function severityClass(severity: GroupWarning['severity']): string {
   switch (severity) {
     case 'critical':
-      return styles.severityCritical;
+      return styles.severityCritical || '';
     case 'warning':
-      return styles.severityWarning;
+      return styles.severityWarning || '';
     default:
-      return styles.severityInfo;
+      return styles.severityInfo || '';
   }
 }
 
 function resolveCreditBadge(group: ManagedGroup, remainingMs: number, isExpired: boolean): { label: string; className: string } {
   if (group.status.kind === 'removed') {
-    return { label: 'Removed', className: styles.statusBadgeDanger };
+    return { label: 'Removed', className: styles.statusBadgeDanger || '' };
   }
   if (isExpired || group.status.kind === 'expired') {
-    return { label: 'Expired', className: styles.statusBadgeDanger };
+    return { label: 'Expired', className: styles.statusBadgeDanger || '' };
   }
 
   const daysLeft = group.status.kind === 'active'
@@ -92,22 +92,22 @@ function resolveCreditBadge(group: ManagedGroup, remainingMs: number, isExpired:
     : Math.max(0, Math.ceil(remainingMs / DAY_MS));
 
   if (daysLeft <= 5) {
-    return { label: `Expiring in ${daysLeft} days`, className: styles.statusBadgeDanger };
+    return { label: `Expiring in ${daysLeft} days`, className: styles.statusBadgeDanger || '' };
   }
   if (daysLeft <= 10) {
-    return { label: `Expiring in ${daysLeft} days`, className: styles.statusBadgeWarning };
+    return { label: `Expiring in ${daysLeft} days`, className: styles.statusBadgeWarning || '' };
   }
-  return { label: `Credit: ${daysLeft} days left`, className: styles.statusBadge };
+  return { label: `Credit: ${daysLeft} days left`, className: styles.statusBadge || '' };
 }
 
 function trendClass(direction: 'up' | 'down' | 'flat'): string {
   if (direction === 'up') {
-    return styles.deltaPositive;
+    return styles.deltaPositive || '';
   }
   if (direction === 'down') {
-    return styles.deltaNegative;
+    return styles.deltaNegative || '';
   }
-  return styles.deltaNeutral;
+  return styles.deltaNeutral || '';
 }
 
 export function GroupDashboardPage() {
@@ -343,7 +343,7 @@ export function GroupDashboardPage() {
           <Avatar
             size={48}
             src={group.photoUrl ?? undefined}
-            acronym={group.photoUrl ? undefined : initialsFromTitle(group.title)}
+            acronym={group.photoUrl ? undefined : (initialsFromTitle(group.title) ?? undefined)}
             alt={group.title}
           />
           <div className={styles.heroMeta}>
