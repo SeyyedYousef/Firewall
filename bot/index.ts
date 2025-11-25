@@ -3078,9 +3078,27 @@ export async function startBotWebhookServer(options: WebhookOptions): Promise<We
   const trimmedDomain = trimTrailingSlash(options.domain.trim());
   const webhookUrl = `${trimmedDomain}${webhookPath}`;
 
+  // Must include pre_checkout_query and successful_payment for Stars payments
+  const allowedUpdates = [
+    "message",
+    "edited_message",
+    "channel_post",
+    "edited_channel_post",
+    "callback_query",
+    "my_chat_member",
+    "chat_member",
+    "poll",
+    "poll_answer",
+    "pre_checkout_query",
+    "successful_payment",
+  ] as const;
+
   try {
-    await bot.telegram.setWebhook(webhookUrl, options.secretToken ? { secret_token: options.secretToken } : undefined);
-    logger.info("bot webhook registered", { webhookUrl });
+    await bot.telegram.setWebhook(webhookUrl, {
+      secret_token: options.secretToken,
+      allowed_updates: [...allowedUpdates],
+    });
+    logger.info("bot webhook registered", { webhookUrl, allowedUpdates: [...allowedUpdates] });
   } catch (error) {
     logger.error("bot webhook registration failed", { error, webhookUrl });
     logger.warn(
