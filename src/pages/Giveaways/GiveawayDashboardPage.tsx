@@ -40,12 +40,12 @@ function formatDateTime(value: string): string {
 
 function statusBadge(status: GiveawaySummary['status']): string {
   if (status === 'active') {
-    return styles.badgeActive;
+    return styles.badgeActive || '';
   }
   if (status === 'scheduled') {
-    return styles.badgeScheduled;
+    return styles.badgeScheduled || '';
   }
-  return styles.badgeCompleted;
+  return styles.badgeCompleted || '';
 }
 
 export function GiveawayDashboardPage() {
