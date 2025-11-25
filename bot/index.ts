@@ -2229,6 +2229,12 @@ bot.action(actionId("ownerMainMenu"), async (ctx) => {
 
 bot.on("pre_checkout_query", async (ctx) => {
   const query = ctx.update.pre_checkout_query;
+  logger.info("received pre_checkout_query", { 
+    id: query.id,
+    payload: query.invoice_payload, 
+    amount: query.total_amount 
+  });
+
   const transactionId = extractTransactionIdFromPayload(query.invoice_payload);
   if (!transactionId) {
     try {

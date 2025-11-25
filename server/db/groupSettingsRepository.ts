@@ -626,23 +626,36 @@ export async function saveMandatoryMembershipSettings(
 }
 
 const DEFAULT_CUSTOM_TEXTS: CustomTextSettingsRecord = {
-  welcomeMessage: "Hello {user}!\nWelcome to {group}.\nPlease read the next message to learn the rules.",
+  welcomeMessage:
+    "👋 <b>Welcome, {user}!</b>\n\n" +
+    "Welcome to <b>{group}</b>. We're glad to have you here!\n\n" +,
   silenceStartMessage:
-    "Quiet hours are now active.\nMessages are paused from {starttime} until {endtime}.\nThanks for keeping the chat tidy.",
-  silenceEndMessage: "Quiet hours have finished.\nThe next quiet period starts at {starttime}.",
+    "🌙 <b>Quiet Hours Active</b>\n\n" +
+    "Messages are paused from <b>{starttime}</b> until <b>{endtime}</b>.\n\n" +
+    "<i>The chat will automatically reopen in the morning. Sweet dreams!</i> 💤",
+  silenceEndMessage:
+    "☀️ <b>Good Morning!</b>\n\n" +
+    "Quiet hours have ended. You can now send messages.\n\n" +
+    "<i>Next quiet period starts at {starttime}.</i>",
   warningMessage:
-    "👤 {user}\n\n" +
-    "🚫 This message was removed for the following reason:\n\n" +
-    "❗️ Reason: {reason}\n" +
-    "🔻 Consequence: Message deleted\n\n" +
-    "⚠️ Warning {user_warnings} of {warnings_count}\n" +
-    "💡 Each warning expires after {warningstime} days.",
+    "👤 <b>{user}</b>\n\n" +
+    "🚫 <b>Message Removed</b>\n" +
+    "Your message was deleted for the following reason:\n\n" +
+    "❗️ <b>Reason:</b> {reason}\n\n" +
+    "⚠️ <b>Warning:</b> {user_warnings}/{warnings_count}\n" +
+    "<i>Warnings expire after {warningstime} days.</i>",
   forcedInviteMessage:
-    "{user}\nYou need to invite {number} new member(s) before you can send messages.\nYou have invited {added} so far.",
+    "🚫 <b>Action Required</b>\n\n" +
+    "Hi {user}, to prevent spam, we require new members to invite friends before chatting.\n\n" +
+    "👥 <b>Progress:</b> {added}/{number} friends invited.\n\n" +
+    "<i>Please invite more friends to unlock the chat!</i>",
   mandatoryChannelMessage:
-    "Please join the required channel(s) below before sending messages:\n{channel_names}",
+    "📢 <b>Subscription Required</b>\n\n" +
+    "Hi {user}, to chat in this group, you must join our channel(s):\n\n" +
+    "{channel_names}\n\n" +
+    "<i>Once you've joined, you can start chatting!</i>",
   promoButtonEnabled: false,
-  promoButtonText: "Read more",
+  promoButtonText: "🛡 Protected by Firewall",
   promoButtonUrl: "https://t.me/tgfirewall",
 };
 
