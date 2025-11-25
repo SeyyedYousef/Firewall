@@ -1356,6 +1356,9 @@ function upsertGroupInDraft(draft: BotState, record: UpsertGroupInput): GroupRec
       typeof record.creditDelta === "number"
         ? Math.max(0, existing.creditBalance + record.creditDelta)
         : existing.creditBalance;
+    
+    // Track if credit balance actually changed
+    const creditChanged = typeof record.creditDelta === "number" && record.creditDelta !== 0;
 
     const normalizedAdminIds =
       record.adminIds === undefined
@@ -1373,6 +1376,8 @@ function upsertGroupInDraft(draft: BotState, record: UpsertGroupInput): GroupRec
       title: record.title?.trim() || existing.title,
       creditBalance: nextCredit,
       updatedAt: now,
+      // Update statusUpdatedAt when credit changes to properly track credit expiration base date
+      statusUpdatedAt: creditChanged ? now : (record.statusUpdatedAt === undefined ? existing.statusUpdatedAt : record.statusUpdatedAt ?? null),
       lastAdjustmentNote: record.note ?? existing.lastAdjustmentNote,
       membersCount:
         typeof record.membersCount === "number" && Number.isFinite(record.membersCount)
@@ -1397,8 +1402,6 @@ function upsertGroupInDraft(draft: BotState, record: UpsertGroupInput): GroupRec
       ownerId: record.ownerId === undefined ? existing.ownerId : record.ownerId ?? null,
       adminIds: normalizedAdminIds ?? [],
       status: record.status === undefined ? existing.status : record.status ?? null,
-      statusUpdatedAt:
-        record.statusUpdatedAt === undefined ? existing.statusUpdatedAt : record.statusUpdatedAt ?? null,
       dbId: record.dbId === undefined ? existing.dbId : record.dbId ?? null,
     };
     draft.groups[id] = updated;

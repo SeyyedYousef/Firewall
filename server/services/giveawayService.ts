@@ -252,22 +252,39 @@ function mapGroupToManagedSummary(group: {
   title: string;
   inviteLink: string | null;
   creditBalance: Prisma.Decimal;
+  updatedAt?: Date;
 }): ManagedGroupSummary {
   const credit = Number(group.creditBalance ?? 0);
+  const DAY_MS = 86_400_000;
   let status: ManagedGroupSummary["status"];
+  
   if (credit > 0) {
-    const daysLeft = Math.ceil(credit);
-    const expiresAt = new Date(Date.now() + daysLeft * 86_400_000).toISOString();
-    status = {
-      kind: "active",
-      daysLeft,
-      expiresAt,
-    };
+    // Calculate expiration based on when credit was set (updatedAt) + credit days
+    const baseDate = group.updatedAt ? group.updatedAt.getTime() : Date.now();
+    const creditExpiresAtMs = baseDate + Math.ceil(credit) * DAY_MS;
+    const nowMs = Date.now();
+    
+    // Calculate actual days remaining from NOW
+    const daysLeft = Math.max(0, Math.ceil((creditExpiresAtMs - nowMs) / DAY_MS));
+    
+    if (daysLeft > 0) {
+      status = {
+        kind: "active",
+        daysLeft: Math.max(1, daysLeft),
+        expiresAt: new Date(creditExpiresAtMs).toISOString(),
+      };
+    } else {
+      status = {
+        kind: "expired",
+        expiredAt: new Date(creditExpiresAtMs).toISOString(),
+        graceEndsAt: new Date(creditExpiresAtMs + 10 * DAY_MS).toISOString(),
+      };
+    }
   } else {
     status = {
       kind: "expired",
       expiredAt: new Date().toISOString(),
-      graceEndsAt: new Date(Date.now() + 10 * 86_400_000).toISOString(),
+      graceEndsAt: new Date(Date.now() + 10 * DAY_MS).toISOString(),
     };
   }
 
