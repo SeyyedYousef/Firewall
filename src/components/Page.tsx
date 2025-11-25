@@ -16,8 +16,9 @@ export function Page({ children, back = true }: PropsWithChildren<{
       return onBackButtonClick(() => {
         navigate(-1);
       });
+    } else {
+      hideBackButton();
     }
-    hideBackButton();
   }, [back]);
 
   return <>{children}</>;

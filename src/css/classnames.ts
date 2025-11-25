@@ -27,6 +27,9 @@ export function classNames(...values: any[]): string {
       if (Array.isArray(value)) {
         return classNames(...value);
       }
+
+      // Return empty string for other types
+      return '';
     })
     .filter(Boolean)
     .join(' ');

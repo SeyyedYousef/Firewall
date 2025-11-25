@@ -438,7 +438,7 @@ export function DashboardPage() {
 
           {!loading && isEmpty && (
             <div className={styles.emptyState}>
-              <EmptyState inviteUrl={dashboardConfig.inviteLink} />
+              <EmptyState inviteUrl={dashboardConfig.inviteLink || ''} />
             </div>
           )}
 

@@ -164,14 +164,19 @@ export function useSafeApiCall<T = any>(
 
   const apiCall = useCallback(
     async (body?: any): Promise<T> => {
-      const response = await fetch(endpoint, {
+      const fetchOptions: RequestInit = {
         method,
         headers: {
           'Content-Type': 'application/json',
           ...headers,
         },
-        body: body ? JSON.stringify(body) : undefined,
-      });
+      };
+
+      if (body) {
+        fetchOptions.body = JSON.stringify(body);
+      }
+
+      const response = await fetch(endpoint, fetchOptions);
 
       if (!response.ok) {
         throw new Error(`API call failed: ${response.status} ${response.statusText}`);

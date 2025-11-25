@@ -454,7 +454,7 @@ function computeLevel(xp: number) {
     previousThreshold,
     nextThreshold,
     progress,
-    hasNext: nextThreshold > xp,
+    hasNext: (nextThreshold ?? 0) > xp,
   };
 }
 

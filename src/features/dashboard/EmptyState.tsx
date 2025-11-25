@@ -1,4 +1,4 @@
-import { openLink } from '@telegram-apps/sdk-react';
+import { openLink, hapticFeedback } from '@telegram-apps/sdk-react';
 import { Button, Placeholder, Text } from '@telegram-apps/telegram-ui';
 import Lottie from 'lottie-react';
 
@@ -7,7 +7,7 @@ import { useTgsAnimation } from '@/hooks/useTgsAnimation.ts';
 import styles from './EmptyState.module.css';
 
 type EmptyStateProps = {
-  inviteUrl?: string;
+  inviteUrl: string;
   onInvite?: () => void;
 };
 
