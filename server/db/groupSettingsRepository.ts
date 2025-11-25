@@ -628,7 +628,7 @@ export async function saveMandatoryMembershipSettings(
 const DEFAULT_CUSTOM_TEXTS: CustomTextSettingsRecord = {
   welcomeMessage:
     "👋 <b>Welcome, {user}!</b>\n\n" +
-    "Welcome to <b>{group}</b>. We're glad to have you here!\n\n" +,
+    "Welcome to <b>{group}</b>. We're glad to have you here!\n\n",
   silenceStartMessage:
     "🌙 <b>Quiet Hours Active</b>\n\n" +
     "Messages are paused from <b>{starttime}</b> until <b>{endtime}</b>.\n\n" +
