@@ -36,6 +36,9 @@ export function GroupCard({ group, onOpenSettings, onRenew }: GroupCardProps) {
   if (status.kind === "active") {
     statusLabel = `Credits: ${formatDaysLeft(status.daysLeft)}`;
     statusClassName = styles.statusPositive;
+    if (status.daysLeft <= 7) {
+      showRenew = true;
+    }
   } else if (status.kind === "expired") {
     statusLabel = "Credits expired";
     statusClassName = styles.statusNegative;

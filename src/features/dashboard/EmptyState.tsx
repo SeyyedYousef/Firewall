@@ -47,7 +47,7 @@ export function EmptyState({ inviteUrl, onInvite }: EmptyStateProps) {
           onClick={handleInvite}
           disabled={!inviteUrl && !onInvite}
         >
-          ? Add bot to a group
+          Add bot to a group
         </Button>
       </Placeholder>
     </div>

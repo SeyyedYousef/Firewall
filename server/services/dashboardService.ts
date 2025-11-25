@@ -519,7 +519,7 @@ function computeGroupStatus(
   if (creditDaysLeft > 0) {
     return {
       kind: "active",
-      expiresAt: creditExpiresAt ?? addDays(new Date(), creditDaysLeft).toISOString(),
+      expiresAt: addDays(new Date(), creditDaysLeft).toISOString(),
       daysLeft: Math.max(1, creditDaysLeft),
     };
   }

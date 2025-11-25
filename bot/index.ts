@@ -9,6 +9,18 @@ import rateLimit from "express-rate-limit";
 import { randomUUID } from "node:crypto";
 import { Markup, Telegraf, type Context } from "telegraf";
 
+// Import validation utilities
+import { 
+  validateTelegramUserId, 
+  validateTelegramChatId, 
+  validateCreditAmount,
+  validateXpReward,
+  validateTelegramChannelLink,
+  validateButtonLabel,
+  validateMessage,
+  validateJson
+} from "../src/utils/validation.js";
+
 import { loadBotContent } from "./content.js";
 import { renderTemplate, resolveUserDisplayName } from "./templating.js";
 import { installFirewall, invalidateFirewallCache } from "./firewall.js";
@@ -523,45 +535,17 @@ const ownerMessages = {
     "📢 <b>Broadcast Message</b>\n\nSend the message you want to deliver to all active groups. The bot will ask for confirmation before broadcasting.\n\n💡 <i>Use HTML formatting for better presentation</i>",
   statistics: "📊 <b>Global Statistics</b>\n\nHere are the latest metrics for your bot's performance and usage:",
   settingsIntro: "⚙️ <b>Global Configuration</b>\n\nSelect the parameter you want to configure:",
-settingsFreeDays: "Free Trial Days\nSend the new number of free days that groups receive after activation.",
-settingsStars: "Monthly Stars Quota\nSend the monthly Stars allowance that each group should get.",
-settingsWelcomeMessages:
-  "Welcome Messages\nSend up to four welcome texts, one per message. The bot will replace the stored templates in order.",
-settingsGpidHelp: "GPID Help Text\nProvide the helper text that explains how to find the group GPID.",
-settingsLabels:
-  "Button Labels\nSend the updated labels for all buttons as a JSON object or one label per message following the prompts.",
-settingsChannelText:
-  "Channel Announcement Text\nSend the announcement template that should appear when the channel button is used.",
-settingsInfoCommands:
-  "Info and Commands Text\nShare the combined Info and Commands message that should be shown to users.",
-sliderIntro: `Promo Slider Control\nManage the slides displayed in the dashboard carousel.\nRecommended image size: ${REQUIRED_SLIDE_WIDTH}x${REQUIRED_SLIDE_HEIGHT}px.`,
-sliderViewEmpty: "No promo slides have been configured yet.\nUse \"Add Slide\" to upload the first banner.",
-sliderViewHeader: "Current Promo Slides:",
-sliderAddPromptPhoto: `Send a high-quality photo (recommended ${REQUIRED_SLIDE_WIDTH}x${REQUIRED_SLIDE_HEIGHT}px). The bot will crop and compress it automatically.`,
-sliderAwaitLink: "Great! Now send the HTTPS link that should open when users tap the slide.",
-sliderDimensionsMismatch:
-  `For best results, upload at least ${REQUIRED_SLIDE_WIDTH}x${REQUIRED_SLIDE_HEIGHT}px. Smaller images will be upscaled automatically.`,
-sliderLinkInvalid: "Please send a valid HTTPS link pointing to an approved domain.",
-sliderMissingPhoto: "No image is pending. Please start again by sending the promo photo first.",
-sliderRemovePrompt: "Send the slide id you want to remove (for example: promo-001).",
-sliderRemoveMissing: "No slide matches that id. Check the list and try again.",
-dailyTaskIntro:
-  "Daily Task Channel\nShare a channel mission in the daily checklist. Make sure the bot is already an admin before you send the invite link.",
-dailyTaskPromptLink: "Send the public invite link of the channel (for example: https://t.me/firewall_channel). The bot must already be an administrator.",
-dailyTaskLinkInvalid: "The link must start with https://t.me/ or t.me/. Please double-check that the bot is an admin and send a valid public link.",
-dailyTaskPromptButton: 'Great! Now send the button label you want users to see (for example: "Join Security Briefings").',
-dailyTaskButtonInvalid: "The button label cannot be empty. Please send a short call-to-action.",
-dailyTaskPromptDescription: 'Send the description text that will appear under the mission (for example: "Watch the daily hardening tips in Command Center").',
-dailyTaskDescriptionInvalid: "Please send a short description for the mission.",
-dailyTaskPromptXp: "Finally, send the XP reward (positive integer).",
-dailyTaskXpInvalid: "Please send a positive integer value for XP reward.",
-dailyTaskSaved: "Daily task channel saved. Reload the missions dashboard to see the new button.",
-  banIntro: "🚫 <b>User Ban Management</b>\n\nManage access restrictions for panel users:",
-  banAddPrompt: "🚫 <b>Ban User</b>\n\nSend the numeric Telegram user ID that should be banned from accessing the panel.\n\n<i>Example: 123456789</i>",
-  banRemovePrompt: "✅ <b>Unban User</b>\n\nSend the numeric Telegram user ID that should be removed from the ban list.\n\n<i>Example: 123456789</i>",
-  banListEmpty: "📋 The ban list is currently empty.",
-  banListHeader: "📋 <b>Banned Users:</b>",
-  banNotFound: "❌ That user ID is not currently banned. Check the list and try again.",
+  settingsFreeDays: "📅 <b>Free Trial Days</b>\n\nSend the new number of free days that groups receive after activation.\n\n<i>Current setting will be replaced with your input.</i>",
+  settingsStars: "⭐ <b>Monthly Stars Quota</b>\n\nSend the monthly Stars allowance that each group should get.\n\n<i>This affects the Stars balance for all groups.</i>",
+  settingsWelcomeMessages:
+    "👋 <b>Welcome Messages</b>\n\nSend up to four welcome texts, one per message. The bot will replace the stored templates in order.\n\n<i>Use HTML formatting for better presentation.</i>",
+  settingsGpidHelp: "🆔 <b>GPID Help Text</b>\n\nProvide the helper text that explains how to find the group GPID.\n\n<i>This message helps users locate their group identifier.</i>",
+  settingsLabels:
+    "🏷️ <b>Button Labels</b>\n\nSend the updated labels for all buttons as a JSON object.\n\n<i>Example: {\"start_add_to_group\":\"➕ Add Bot\",\"owner_nav_back\":\"🔙 Back\"}</i>",
+  settingsChannelText:
+    "📢 <b>Channel Announcement Text</b>\n\nSend the announcement template that should appear when the channel button is used.\n\n<i>Use placeholders like {user} and {group} for personalization.</i>",
+  settingsInfoCommands:
+    "ℹ️ <b>Info and Commands Text</b>\n\nShare the combined Info and Commands message that should be shown to users.\n\n<i>This appears when users tap the Info button.</i>",
   creditCodesIntro: "🎁 <b>Credit Code Management</b>\n\nGenerate and manage credit codes for your users. These codes can be used to add days to group subscriptions:",
   createCreditCode: "➕ <b>Create New Credit Code</b>\n\nSend the details in this format:\n<code>DAYS MAX_USES [EXPIRES_IN_DAYS]</code>\n\n<b>Examples:</b>\n• <code>7 100</code> - 7 days, 100 uses, no expiry\n• <code>30 50 90</code> - 30 days, 50 uses, expires in 90 days\n• <code>14 1</code> - 14 days, single use, no expiry",
   creditCodesList: "📋 <b>Active Credit Codes</b>\n\nHere are your current credit codes:",
@@ -569,40 +553,34 @@ dailyTaskSaved: "Daily task channel saved. Reload the missions dashboard to see 
   creditCodeCreated: "✅ <b>Credit Code Created Successfully!</b>",
   creditCodeDeleted: "🗑️ Credit code deleted successfully.",
   creditCodeNotFound: "❌ Credit code not found.",
-  settingsLabels:
-    "🏷️ <b>Button Labels</b>\n\nSend the updated labels for all buttons as a JSON object or one label per message following the prompts.\n\n<i>Example: {\"start_add_to_group\":\"➕ Add Bot\",\"owner_nav_back\":\"🔙 Back\"}</i>",
-  settingsChannelText:
-    "Channel Announcement Text\nSend the announcement template that should appear when the channel button is used.",
-  settingsInfoCommands:
-    "Info and Commands Text\nShare the combined Info and Commands message that should be shown to users.",
-  sliderIntro: `Promo Slider Control\nManage the slides displayed in the dashboard carousel.\nRecommended image size: ${REQUIRED_SLIDE_WIDTH}x${REQUIRED_SLIDE_HEIGHT}px.`,
-  sliderViewEmpty: "No promo slides have been configured yet.\nUse \"Add Slide\" to upload the first banner.",
-  sliderViewHeader: "Current Promo Slides:",
-  sliderAddPromptPhoto: `Send a high-quality photo (recommended ${REQUIRED_SLIDE_WIDTH}x${REQUIRED_SLIDE_HEIGHT}px). The bot will crop and compress it automatically.`,
-  sliderAwaitLink: "Great! Now send the HTTPS link that should open when users tap the slide.",
+  sliderIntro: `🎨 <b>Promo Slider Control</b>\n\nManage the slides displayed in the dashboard carousel.\n\n<i>Recommended image size: ${REQUIRED_SLIDE_WIDTH}x${REQUIRED_SLIDE_HEIGHT}px</i>`,
+  sliderViewEmpty: "📭 <b>No promo slides configured yet</b>\n\nUse \"Add Slide\" to upload the first banner and start engaging your users.",
+  sliderViewHeader: "🎨 <b>Current Promo Slides:</b>",
+  sliderAddPromptPhoto: `📸 <b>Upload Promo Image</b>\n\nSend a high-quality photo (recommended ${REQUIRED_SLIDE_WIDTH}x${REQUIRED_SLIDE_HEIGHT}px).\n\n<i>The bot will crop and compress it automatically.</i>`,
+  sliderAwaitLink: "🔗 <b>Add Slide Link</b>\n\nGreat! Now send the HTTPS link that should open when users tap the slide.\n\n<i>Make sure the link is accessible and relevant.</i>",
   sliderDimensionsMismatch:
-    `For best results, upload at least ${REQUIRED_SLIDE_WIDTH}x${REQUIRED_SLIDE_HEIGHT}px. Smaller images will be upscaled automatically.`,
-  sliderLinkInvalid: "Please send a valid HTTPS link pointing to an approved domain.",
-  sliderMissingPhoto: "No image is pending. Please start again by sending the promo photo first.",
-  sliderRemovePrompt: "Send the slide id you want to remove (for example: promo-001).",
-  sliderRemoveMissing: "No slide matches that id. Check the list and try again.",
+    `⚠️ <b>Image Size Notice</b>\n\nFor best results, upload at least ${REQUIRED_SLIDE_WIDTH}x${REQUIRED_SLIDE_HEIGHT}px.\n\n<i>Smaller images will be upscaled automatically but may lose quality.</i>`,
+  sliderLinkInvalid: "❌ <b>Invalid Link</b>\n\nPlease send a valid HTTPS link pointing to an approved domain.",
+  sliderMissingPhoto: "⚠️ <b>No Image Pending</b>\n\nNo image is pending. Please start again by sending the promo photo first.",
+  sliderRemovePrompt: "🗑️ <b>Remove Slide</b>\n\nSend the slide ID you want to remove.\n\n<i>Example: promo-001</i>",
+  sliderRemoveMissing: "❌ <b>Slide Not Found</b>\n\nNo slide matches that ID. Check the list and try again.",
   dailyTaskIntro:
-    "Daily Task Channel\nShare a channel mission in the daily checklist. Make sure the bot is already an admin before you send the invite link.",
-  dailyTaskPromptLink: "Send the public invite link of the channel (for example: https://t.me/firewall_channel). The bot must already be an administrator.",
-  dailyTaskLinkInvalid: "The link must start with https://t.me/ or t.me/. Please double-check that the bot is an admin and send a valid public link.",
-  dailyTaskPromptButton: 'Great! Now send the button label you want users to see (for example: "Join Security Briefings").',
-  dailyTaskButtonInvalid: "The button label cannot be empty. Please send a short call-to-action.",
-  dailyTaskPromptDescription: 'Send the description text that will appear under the mission (for example: "Watch the daily hardening tips in Command Center").',
-  dailyTaskDescriptionInvalid: "Please send a short description for the mission.",
-  dailyTaskPromptXp: "Finally, send the XP reward (positive integer).",
-  dailyTaskXpInvalid: "Please send a positive integer value for XP reward.",
-  dailyTaskSaved: "Daily task channel saved. Reload the missions dashboard to see the new button.",
-  banIntro: "Ban List Management\nBlock or unblock users from accessing the panel.",
-  banAddPrompt: "Send the numeric Telegram user id that should be banned.",
-  banRemovePrompt: "Send the numeric Telegram user id that should be removed from the ban list.",
-  banListEmpty: "The ban list is currently empty.",
-  banListHeader: "Users banned from the panel:",
-  banNotFound: "That user id is not currently banned. Check the list and try again."
+    "📋 <b>Daily Task Channel</b>\n\nShare a channel mission in the daily checklist.\n\n⚠️ <i>Make sure the bot is already an admin before you send the invite link.</i>",
+  dailyTaskPromptLink: "🔗 <b>Channel Invite Link</b>\n\nSend the public invite link of the channel.\n\n<i>Example: https://t.me/firewall_channel</i>\n\n⚠️ The bot must already be an administrator.",
+  dailyTaskLinkInvalid: "❌ <b>Invalid Link</b>\n\nThe link must start with https://t.me/ or t.me/.\n\n<i>Please double-check that the bot is an admin and send a valid public link.</i>",
+  dailyTaskPromptButton: '🏷️ <b>Button Label</b>\n\nGreat! Now send the button label you want users to see.\n\n<i>Example: "Join Security Briefings"</i>',
+  dailyTaskButtonInvalid: "❌ <b>Invalid Button Label</b>\n\nThe button label cannot be empty. Please send a short call-to-action.",
+  dailyTaskPromptDescription: '📝 <b>Mission Description</b>\n\nSend the description text that will appear under the mission.\n\n<i>Example: "Watch the daily hardening tips in Command Center"</i>',
+  dailyTaskDescriptionInvalid: "❌ <b>Invalid Description</b>\n\nPlease send a short description for the mission.",
+  dailyTaskPromptXp: "⭐ <b>XP Reward</b>\n\nFinally, send the XP reward (positive integer).\n\n<i>Recommended: 20-50 XP for daily tasks</i>",
+  dailyTaskXpInvalid: "❌ <b>Invalid XP Value</b>\n\nPlease send a positive integer value for XP reward.",
+  dailyTaskSaved: "✅ <b>Daily Task Saved</b>\n\nDaily task channel saved successfully!\n\n<i>Reload the missions dashboard to see the new button.</i>",
+  banIntro: "🚫 <b>Ban List Management</b>\n\nBlock or unblock users from accessing the panel.\n\n<i>Banned users cannot access any panel features.</i>",
+  banAddPrompt: "➕ <b>Ban User</b>\n\nSend the numeric Telegram user ID that should be banned.\n\n<i>Example: 123456789</i>",
+  banRemovePrompt: "➖ <b>Unban User</b>\n\nSend the numeric Telegram user ID that should be removed from the ban list.\n\n<i>Example: 123456789</i>",
+  banListEmpty: "📋 <b>Ban List Empty</b>\n\nThe ban list is currently empty. No users are banned.",
+  banListHeader: "🚫 <b>Banned Users:</b>",
+  banNotFound: "❌ <b>User Not Found</b>\n\nThat user ID is not currently banned. Check the list and try again."
 };
 
 const firewallSampleRule = JSON.stringify(
@@ -2973,6 +2951,7 @@ export async function startBotPolling(): Promise<void> {
     "chat_member",
     "poll",
     "poll_answer",
+    "pre_checkout_query",
   ] as const;
 
   await bot.launch({ allowedUpdates: [...allowedUpdates] });

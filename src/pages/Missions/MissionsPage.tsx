@@ -473,8 +473,6 @@ export function MissionsPage() {
   const [verifyingMissionId, setVerifyingMissionId] = useState<string | null>(null);
   const [completingMissionId, setCompletingMissionId] = useState<string | null>(null);
   const [completedMissions, setCompletedMissions] = useState<Record<MissionCategory, Set<string>>>(() => {
-    // Load completed missions from localStorage if available
-    // Ensure we always return Sets (older saved data may be plain arrays/objects)
     const empty = {
       daily: new Set<string>(),
       weekly: new Set<string>(),
@@ -486,12 +484,12 @@ export function MissionsPage() {
       return empty;
     }
 
-    const saved = localStorage.getItem('completedMissions');
-    if (!saved) {
-      return empty;
-    }
-
     try {
+      const saved = localStorage.getItem('completedMissions');
+      if (!saved) {
+        return empty;
+      }
+
       const parsed = JSON.parse(saved) as Record<string, any>;
       return {
         daily: new Set<string>(Array.isArray(parsed.daily) ? parsed.daily : []),
@@ -500,16 +498,20 @@ export function MissionsPage() {
         general: new Set<string>(Array.isArray(parsed.general) ? parsed.general : []),
       };
     } catch (err) {
-      console.warn('[missions] failed to parse completedMissions from localStorage', err);
+      console.warn('[missions] failed to load completedMissions from localStorage', err);
       return empty;
     }
   });
   
   const [dailyWheelReward, setDailyWheelReward] = useState<number | null>(() => {
-    // Load daily wheel reward from localStorage if available
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('dailyWheelReward');
-      return saved ? JSON.parse(saved) : null;
+      try {
+        const saved = localStorage.getItem('dailyWheelReward');
+        return saved ? JSON.parse(saved) : null;
+      } catch (err) {
+        console.warn('[missions] failed to load dailyWheelReward from localStorage', err);
+        return null;
+      }
     }
     return null;
   });
@@ -789,6 +791,11 @@ ${dailyTaskChannel.channelLink}`,
 
   const handleMissionComplete = useCallback(
     async (category: MissionCategory, mission: Mission) => {
+      // Prevent concurrent execution
+      if (completingMissionId === mission.id) {
+        return;
+      }
+
       if (completedMissions[category].has(mission.id)) {
         setSnackbar(TEXT.toastAlreadyLogged);
         return;
@@ -819,16 +826,19 @@ ${dailyTaskChannel.channelLink}`,
             const missionCategory = category;
             next[missionCategory] = new Set([...next[missionCategory], mission.id]);
             
-            // Save to localStorage
+            // Save to localStorage with error handling
             if (typeof window !== 'undefined') {
-              const serialized = {
-                ...next,
-                daily: Array.from(next.daily),
-                weekly: Array.from(next.weekly),
-                monthly: Array.from(next.monthly),
-                general: Array.from(next.general),
-              };
-              localStorage.setItem('completedMissions', JSON.stringify(serialized));
+              try {
+                const serialized = {
+                  daily: Array.from(next.daily),
+                  weekly: Array.from(next.weekly),
+                  monthly: Array.from(next.monthly),
+                  general: Array.from(next.general),
+                };
+                localStorage.setItem('completedMissions', JSON.stringify(serialized));
+              } catch (err) {
+                console.warn('[missions] failed to save completedMissions to localStorage', err);
+              }
             }
             
             return next;
@@ -836,7 +846,11 @@ ${dailyTaskChannel.channelLink}`,
           
           setDailyWheelReward(rewardXp);
           if (typeof window !== 'undefined') {
-            localStorage.setItem('dailyWheelReward', JSON.stringify(rewardXp));
+            try {
+              localStorage.setItem('dailyWheelReward', JSON.stringify(rewardXp));
+            } catch (err) {
+              console.warn('[missions] failed to save dailyWheelReward to localStorage', err);
+            }
           }
           
           setXp(nextXp);

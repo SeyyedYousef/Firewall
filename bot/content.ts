@@ -29,22 +29,30 @@ export interface BotContent {
 const fallbackContent: BotContent = {
   messages: {
     start: [
-      "Hello {user} 👋🏻",
+      "Welcome, {user}! 👋",
       "",
-      "• <b>Firewall</b> is a <b>complete Telegram Mini App bot</b> built for <i>smart</i>, <i>fast</i>, and <i>secure</i> group management.",
-      "With <b>Firewall</b>, you can keep everything under control — from <b>removing spam</b> and <b>locking unwanted content</b> to <b>maintaining order</b> and <b>user security</b>.",
+      "<b>Firewall</b> is your <b>complete group security solution</b> — designed for <i>smart</i>, <i>fast</i>, and <i>secure</i> community management.",
       "",
-      "👈🏻 Just <b>add the bot to your supergroup</b> and <b>grant admin rights</b> to start smart management.",
+      "✨ <b>What Firewall does:</b>",
+      "• 🛡️ <b>Automated spam protection</b> — Block unwanted content instantly",
+      "• 🔒 <b>Smart content filtering</b> — Keep your group clean and safe",
+      "• 📊 <b>Real-time analytics</b> — Track member activity and engagement",
+      "• ⚡ <b>Instant moderation</b> — Automated warnings and restrictions",
       "",
-      "<b>Firewall — Security, without the noise.</b> 🔥"
+      "<b>Getting started is easy:</b>",
+      "1️⃣ Add Firewall to your supergroup",
+      "2️⃣ Grant admin permissions",
+      "3️⃣ Configure your settings in the Mini App",
+      "",
+      "<b>Firewall — Your community, protected.</b> 🔥"
     ].join("\n"),
-    welcome: "Welcome {user}! 👋\n\nGreat to have you here in <b>{group}</b>!",
-    managementPanel: "⚙️ <b>Management Panel</b>\n\nKeep your community running like clockwork. Review active locks, monitor insights, and fine-tune automation — all from one streamlined panel.",
-    managementQuestion: "How would you like to manage the group?\n\n• <b>Mini App</b> — Full visual dashboard with analytics, locks, and billing.\n• <b>Inline Panel</b> — Lightweight controls right inside the chat.",
-    channel: "📢 <b>Stay in the loop</b>\n\nGet instant updates on new features, best practices, and security alerts. Join the official Firewall channel and never miss a release.",
-    commands: "📚 <b>Quick Guide</b>\nTo get started, explore these key commands:\n\n• <code>Coming soon</code>\n\n💡 For the best experience, configure your settings in the Mini App right after setup.",
-    info: "🚀 <b>Firewall</b> was created and is continuously developed with care by <b>@iamSeyyed</b>.\n\n🙏 Special thanks to <b>@maxim</b>, <b>@username</b>, all server admins, the development team, supporters, and every user who reports bugs or suggests new features — your feedback keeps this project alive.\n\n💬 We deeply appreciate every group that uses <b>Firewall</b>.\nYour trust is our motivation — and we'll keep making <b>Firewall</b> stronger every day. 🔥",
-    inlinePanel: "🛠 <b>Inline Panel</b>\n\n⏳ This feature will be added soon!\n\nFor now, use the Mini App to manage your group settings and controls."
+    welcome: "Welcome to <b>{group}</b>, {user}! 👋\n\nWe're excited to have you here. Please take a moment to read our group rules and enjoy your stay!\n\n💡 <i>This group is protected by Firewall for your safety.</i>",
+    managementPanel: "⚙️ <b>Management Dashboard</b>\n\n<b>Your command center for group management.</b>\n\n✨ <b>What you can do:</b>\n• 📊 View real-time analytics and insights\n• 🔒 Configure content locks and filters\n• ⚡ Monitor automated actions\n• 📈 Track member growth and engagement\n\n<i>Open the Mini App to access your full dashboard.</i>",
+    managementQuestion: "<b>Choose Your Management Style</b>\n\nHow would you like to manage your group?\n\n🧩 <b>Mini App Dashboard</b>\n• Full visual interface\n• Detailed analytics and insights\n• Advanced settings and controls\n• Real-time monitoring\n\n⌨️ <b>Inline Panel</b> (Coming Soon)\n• Quick actions in chat\n• Lightweight controls\n• Fast access to essentials\n\n💡 <i>We recommend the Mini App for the complete experience!</i>",
+    channel: "📢 <b>Join Our Official Channel</b>\n\n<b>Stay ahead with Firewall updates!</b>\n\n✨ <b>What you'll get:</b>\n• 🚀 New feature announcements\n• 🔐 Security tips and best practices\n• 🐛 Bug fixes and improvements\n• 💡 Pro tips for better moderation\n\n<i>Never miss an important update — join now!</i>",
+    commands: "📚 <b>Command Reference</b>\n\n<b>Essential commands to get started:</b>\n\n🔹 <code>/start</code> — Open the main menu\n🔹 <code>/panel</code> — Access management dashboard\n🔹 <code>/help</code> — Get help and support\n🔹 <code>/settings</code> — Configure group settings\n\n💡 <b>Pro tip:</b> Use the Mini App for the best experience with full visual controls and analytics.\n\n<i>More commands coming soon!</i>",
+    info: "🚀 <b>About Firewall</b>\n\n<b>Firewall</b> is proudly developed and maintained by <b>@iamSeyyed</b> with dedication to making Telegram communities safer and better.\n\n🙏 <b>Special Thanks:</b>\n• Development team for continuous improvements\n• Beta testers and early adopters\n• Every user who reports bugs and suggests features\n• All community admins who trust Firewall\n\n💬 <b>Your feedback matters!</b>\nEvery suggestion helps us improve. Together, we're building the best moderation bot for Telegram.\n\n<b>Firewall — Built with care, powered by community.</b> 🔥",
+    inlinePanel: "🛠 <b>Inline Panel</b>\n\n⏳ <b>Coming Soon!</b>\n\nWe're working on bringing lightweight inline controls directly to your chat.\n\n<b>For now, use the Mini App to:</b>\n• 📊 View detailed analytics\n• ⚙️ Configure all settings\n• 🔒 Manage content locks\n• 📈 Track performance\n\n<i>Stay tuned for updates!</i>"
   },
   buttons: {
     addToGroup: "➕ Add to Group",
