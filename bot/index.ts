@@ -1448,15 +1448,28 @@ async function respondWithOwnerView(ctx: Context, text: string, keyboard: Inline
 
 bot.start(async (ctx) => {
   // Handle referral tracking
+  // Support both formats: ref_<userId> and ref=<userId>
   const startPayload = ctx.message?.text?.split(' ')[1];
-  if (startPayload?.includes('ref=')) {
+  if (startPayload) {
     try {
-      const referralCode = startPayload.split('ref=')[1]?.split('&')[0];
-      if (referralCode && referralCode.trim().length > 0) {
-        const referrerId = referralCode.trim();
+      let referrerId: string | null = null;
+      
+      // Format 1: ref_<userId> (from MissionsPage referral links)
+      if (startPayload.startsWith('ref_')) {
+        referrerId = startPayload.substring(4).split('&')[0];
+      }
+      // Format 2: ref=<userId> (legacy format)
+      else if (startPayload.includes('ref=')) {
+        referrerId = startPayload.split('ref=')[1]?.split('&')[0] ?? null;
+      }
+      
+      if (referrerId && referrerId.trim().length > 0) {
+        referrerId = referrerId.trim();
         const newUserId = ctx.from?.id?.toString();
         
         if (newUserId && referrerId !== newUserId) {
+          logger.info('processing referral', { referrerId, newUserId, payload: startPayload });
+          
           // Track referral via API
           await fetch(`http://localhost:${process.env.PORT || 3000}/api/referrals/track`, {
             method: 'POST',
@@ -1469,12 +1482,12 @@ bot.start(async (ctx) => {
               source: 'bot-start'
             })
           }).catch(error => {
-            console.warn('Failed to track referral:', error);
+            logger.warn('Failed to track referral', { referrerId, newUserId, error });
           });
         }
       }
     } catch (error) {
-      console.warn('Error processing referral:', error);
+      logger.warn('Error processing referral', { payload: startPayload, error });
     }
   }
   

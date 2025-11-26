@@ -48,7 +48,17 @@ async function buildWelcomeActions(ctx: GroupChatContext): Promise<ProcessingAct
       const { recordMembershipEvent } = await import("../../../server/db/mutateRepository.js");
       const groupTitle = ctx.chat && "title" in ctx.chat ? ctx.chat.title : undefined;
       
+      // Determine inviter: if message.from is different from the member and not a bot, they're the inviter
+      const messageFrom = (ctx.message as any)?.from;
+      const inviterUserId = messageFrom?.id;
+      const inviterIsBot = messageFrom?.is_bot;
+      
       for (const member of members) {
+        // If the inviter is different from the member being added, record them as inviter
+        const effectiveInviter = inviterUserId && !inviterIsBot && inviterUserId !== member.id
+          ? inviterUserId.toString()
+          : null;
+        
         await recordMembershipEvent({
           chatId: ctx.chat.id.toString(),
           userId: member.id.toString(),
@@ -58,6 +68,8 @@ async function buildWelcomeActions(ctx: GroupChatContext): Promise<ProcessingAct
             firstName: member.first_name ?? null,
             lastName: member.last_name ?? null,
             isBot: member.is_bot ?? false,
+            invitedBy: effectiveInviter,
+            joinMethod: "new_chat_members",
           },
           groupTitle,
         });

@@ -1,5 +1,6 @@
 import type { UpdateHandler } from "../types.js";
 import type { GroupChatContext, ProcessingAction } from "../types.js";
+import { Markup } from "telegraf";
 import { ensureActions, isGroupChat } from "../utils.js";
 import { logger } from "../../../server/utils/logger.js";
 import { loadBotContent } from "../../content.js";
@@ -195,6 +196,72 @@ export const chatMemberHandler: UpdateHandler = {
           }
         } catch (error) {
           logger.debug("failed to check welcome settings (chat_member)", { chatId, error });
+        }
+      }
+      
+      // Apply user verification if enabled
+      if (databaseAvailable && !user.is_bot) {
+        try {
+          const generalSettings = await loadGeneralSettingsByChatId(chatId);
+          
+          if (generalSettings.userVerificationEnabled) {
+            // Restrict the user until they verify
+            await ctx.telegram.restrictChatMember(
+              ctx.chat.id,
+              user.id,
+              {
+                permissions: {
+                  can_send_messages: false,
+                  can_send_audios: false,
+                  can_send_documents: false,
+                  can_send_photos: false,
+                  can_send_videos: false,
+                  can_send_video_notes: false,
+                  can_send_voice_notes: false,
+                  can_send_polls: false,
+                  can_invite_users: false,
+                  can_pin_messages: false,
+                  can_manage_topics: false,
+                  can_change_info: false,
+                  can_add_web_page_previews: false,
+                },
+              } as any,
+            );
+            
+            const callbackData = `fw_verify_member:${ctx.chat.id}:${user.id}`;
+            const verificationText =
+              "To send messages in this group, please confirm that you are not a bot.\n\nTap the button below to verify.";
+            
+            await ctx.telegram.sendMessage(
+              ctx.chat.id,
+              verificationText,
+              Markup.inlineKeyboard([[Markup.button.callback("I am not a bot", callbackData)]]),
+            );
+            
+            logger.info("user verification applied for chat_member join", {
+              chatId,
+              userId: user.id,
+            });
+            
+            // Record this as a bot action
+            actions.push({
+              type: "record_moderation",
+              ruleId: "system:user_verification",
+              userId: user.id,
+              actions: ["user_verification_applied"],
+              reason: "New member requires verification",
+              metadata: {
+                eventType: "chat_member_join",
+                username: user.username ?? null,
+              },
+            });
+          }
+        } catch (error) {
+          logger.warn("failed to apply user verification (chat_member)", {
+            chatId,
+            userId: user.id,
+            error,
+          });
         }
       }
       

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { openLink } from '@telegram-apps/sdk-react';
 import { Avatar, Button, Card, Snackbar, Text, Title } from '@telegram-apps/telegram-ui';
-// import { getReferralStats } from '../../features/referrals/referralService.ts';
+import { getReferralStats } from '../../features/referrals/referralService.ts';
 
 import { useOwnerProfile } from "@/features/dashboard/useOwnerProfile.ts";
 import { dashboardConfig } from "@/config/dashboard.ts";
@@ -541,6 +541,24 @@ export function MissionsPage() {
       setSnackbar(profileError);
     }
   }, [profileError]);
+
+  // Fetch referral stats from backend
+  useEffect(() => {
+    const fetchReferralStats = async () => {
+      try {
+        const stats = await getReferralStats();
+        setReferralStats({
+          tracked: stats.tracked ?? 0,
+          activated: stats.activated ?? 0,
+          xpEarned: stats.xpEarned ?? 0,
+        });
+      } catch (error) {
+        console.warn('[missions] failed to fetch referral stats', error);
+      }
+    };
+    
+    fetchReferralStats();
+  }, []);
 
   const levelInfo = useMemo(() => computeLevel(xp), [xp]);
   const missionsByCategory = useMemo(() => {
