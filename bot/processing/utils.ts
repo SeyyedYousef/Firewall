@@ -4,8 +4,32 @@ import { logger } from "../../server/utils/logger.js";
 import { markAdminPermission, queuePendingOnboardingMessages } from "../state.js";
 
 export function isGroupChat(ctx: Context): ctx is GroupChatContext {
+  // First check standard ctx.chat
   const type = ctx.chat?.type;
-  return type === "group" || type === "supergroup";
+  if (type === "group" || type === "supergroup") {
+    return true;
+  }
+  
+  // For chat_member and my_chat_member updates, chat info is in the update object
+  const update = ctx.update as any;
+  if (update?.chat_member?.chat) {
+    const chatMemberType = update.chat_member.chat.type;
+    if (chatMemberType === "group" || chatMemberType === "supergroup") {
+      // Assign ctx.chat from the update for consistency
+      (ctx as any).chat = update.chat_member.chat;
+      return true;
+    }
+  }
+  if (update?.my_chat_member?.chat) {
+    const myChatMemberType = update.my_chat_member.chat.type;
+    if (myChatMemberType === "group" || myChatMemberType === "supergroup") {
+      // Assign ctx.chat from the update for consistency
+      (ctx as any).chat = update.my_chat_member.chat;
+      return true;
+    }
+  }
+  
+  return false;
 }
 
 export function ensureActions(result: ProcessingAction[] | undefined): ProcessingAction[] {

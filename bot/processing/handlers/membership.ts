@@ -129,7 +129,7 @@ async function buildWelcomeActions(ctx: GroupChatContext): Promise<ProcessingAct
   const welcomeText = renderTemplate(welcomeTemplate, replacements).trim();
   const messageBody = welcomeText.length > 0 ? welcomeText : `Welcome ${names}!`;
 
-  return [
+  const actions: ProcessingAction[] = [
     {
       type: "log",
       level: "info",
@@ -154,6 +154,29 @@ async function buildWelcomeActions(ctx: GroupChatContext): Promise<ProcessingAct
       autoDeleteSeconds: 60,
     },
   ];
+
+  // Record bot action for welcome message sent
+  if (databaseAvailable) {
+    for (const member of members) {
+      if (!member.is_bot) {
+        actions.push({
+          type: "record_moderation",
+          ruleId: "system:welcome_message",
+          userId: member.id,
+          actions: ["welcome_message_sent"],
+          reason: "New member joined group",
+          metadata: {
+            eventType: "new_chat_members",
+            username: member.username ?? null,
+            firstName: member.first_name ?? null,
+            membersCount: members.length,
+          },
+        });
+      }
+    }
+  }
+
+  return actions;
 }
 
 async function buildLeaveActions(ctx: GroupChatContext): Promise<ProcessingAction[]> {
