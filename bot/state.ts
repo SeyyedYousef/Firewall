@@ -1898,26 +1898,8 @@ export function applyStarsPurchase(input: StarsPurchaseInput): StarsPurchaseInte
 
     const nowMs = Date.now();
     const existing = draft.stars.groups[input.groupId];
-    
-    // Debug logging for renewal stacking
-    console.log("[applyStarsPurchase] Renewal debug:", {
-      inputGroupId: input.groupId,
-      existingFound: Boolean(existing),
-      existingExpiresAt: existing?.expiresAt ?? null,
-      existingKeys: Object.keys(draft.stars.groups).slice(0, 5), // First 5 keys for reference
-      planDays: plan.days,
-    });
-    
     const baseMs = existing ? Math.max(new Date(existing.expiresAt).getTime(), nowMs) : nowMs;
     const expiresAt = new Date(baseMs + plan.days * DAY_MS).toISOString();
-    
-    // Log the calculated expiration
-    console.log("[applyStarsPurchase] Calculated expiration:", {
-      baseMsUsed: existing ? "existing.expiresAt or now" : "now",
-      baseMs,
-      planDaysMs: plan.days * DAY_MS,
-      newExpiresAt: expiresAt,
-    });
 
     draft.stars.groups[input.groupId] = {
       groupId: input.groupId,

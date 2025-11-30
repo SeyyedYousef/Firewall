@@ -27,6 +27,13 @@ dist-ssr
 bot/data/
 .data/
 backups/
+.gitconfig
+.emergent/
+*.tmp
+temp.*
+test.ts
+tsc-output.txt
+tsc-report.txt
 
 # Environment files
 .env
