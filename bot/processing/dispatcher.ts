@@ -1,7 +1,7 @@
 import PQueue from "p-queue";
 import { setTimeout as delay } from "node:timers/promises";
 import type { Telegraf } from "telegraf";
-import { getState, isGroupSubscriptionActive, getGroupExpirationInfo } from "../state.js";
+import { getState, isGroupSubscriptionActive, getGroupExpirationInfo, recordGroupActivity } from "../state.js";
 import { handlers } from "./handlers/index.js";
 import { ensureActions, executeAction, isGroupChat } from "./utils.js";
 import type { GroupChatContext } from "./types.js";
@@ -141,6 +141,9 @@ async function dispatchUpdate(ctx: GroupChatContext): Promise<void> {
       graceDaysLeft: expirationInfo.graceDaysLeft 
     });
   }
+
+  // Record activity to prevent auto-leave for inactive groups
+  recordGroupActivity(chatId);
 
   for (const handler of handlers) {
     try {

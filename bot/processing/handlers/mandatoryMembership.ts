@@ -4,6 +4,7 @@ import { ensureActions, isGroupChat } from "../utils.js";
 import { logger } from "../../../server/utils/logger.js";
 import { loadMandatoryMembershipSettingsByChatId, loadCustomTextSettingsByChatId } from "../../../server/db/groupSettingsRepository.js";
 import { renderTemplate, resolveUserDisplayName } from "../../templating.js";
+import { getMaxMandatoryChannels } from "../../state.js";
 
 const databaseAvailable = Boolean(process.env.DATABASE_URL);
 
@@ -281,11 +282,15 @@ export const mandatoryMembershipHandler: UpdateHandler = {
       }
 
       // Check channel membership requirements
-      if (mandatorySettings.mandatoryChannels.length > 0 && actions.length === 0) {
+      // PREMIUM FEATURE: Free users can only enforce 1 channel, Premium users up to 3
+      const maxChannels = getMaxMandatoryChannels(chatId);
+      const effectiveChannels = mandatorySettings.mandatoryChannels.slice(0, maxChannels);
+      
+      if (effectiveChannels.length > 0 && actions.length === 0) {
         const isChannelMembershipValid = await checkChannelMembership(
           ctx,
           userId,
-          mandatorySettings.mandatoryChannels
+          effectiveChannels
         );
 
         if (!isChannelMembershipValid) {
@@ -295,7 +300,7 @@ export const mandatoryMembershipHandler: UpdateHandler = {
             mandatorySettings,
             customTexts,
             {
-              requiredChannels: mandatorySettings.mandatoryChannels
+              requiredChannels: effectiveChannels
             }
           );
           actions.push(...violationActions);

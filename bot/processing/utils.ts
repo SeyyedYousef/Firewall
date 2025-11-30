@@ -1,7 +1,7 @@
 import type { Context } from "telegraf";
 import type { GroupChatContext, ProcessingAction } from "./types.js";
 import { logger } from "../../server/utils/logger.js";
-import { markAdminPermission, queuePendingOnboardingMessages } from "../state.js";
+import { markAdminPermission, queuePendingOnboardingMessages, hasPromoButton, hasDetailedWarnings, hasAdvancedAnalytics, isGroupPremium, hasAutoWarning, hasAutoDelete } from "../state.js";
 
 export function isGroupChat(ctx: Context): ctx is GroupChatContext {
   // First check standard ctx.chat
@@ -137,7 +137,9 @@ async function warnMember(ctx: GroupChatContext, action: Extract<ProcessingActio
         return;
       }
 
-      if (generalSettings.autoWarningEnabled && generalSettings.autoWarning) {
+      // PREMIUM FEATURE: Auto-warning is only available for Premium groups
+      const chatIdStr = ctx.chat.id.toString();
+      if (generalSettings.autoWarningEnabled && generalSettings.autoWarning && hasAutoWarning(chatIdStr)) {
         const auto = generalSettings.autoWarning;
         warningsLimitTotal = typeof auto.threshold === "number" ? auto.threshold : null;
         warningsRetentionDays = typeof auto.retentionDays === "number" ? auto.retentionDays : null;
@@ -227,14 +229,31 @@ async function warnMember(ctx: GroupChatContext, action: Extract<ProcessingActio
   }
 
   // Try to load custom warning message template
-  let warningTemplate = "{user}, you violated: {reason}. Severity: {severity}";
+  // Free: Basic reason, Premium: Detailed explanation
+  const chatIdStr = ctx.chat.id.toString();
+  const showDetailedWarning = hasDetailedWarnings(chatIdStr);
   
+  // Default templates:
+  // Free: Shows reason but simpler format
+  // Premium: Shows detailed explanation with all info
+  let warningTemplate = showDetailedWarning 
+    ? "⚠️ <b>Warning!</b>\n\n👤 {user}\n\n📋 <b>Violation:</b> {reason}\n🔴 <b>Severity:</b> {severity}\n⚡ <b>Action:</b> {penalty}\n📊 <b>Your warnings:</b> {user_warnings}/{warnings_count}\n⏰ <b>Reset after:</b> {warningstime} days\n\n💡 <i>Repeated violations may result in a ban.</i>"
+    : "⚠️ {user}, rule violated: {reason}";
+  
+  // Load custom template from database
   if (databaseAvailable) {
     try {
       const { loadCustomTextSettingsByChatId } = await import("../../server/db/groupSettingsRepository.js");
-      const customTexts = await loadCustomTextSettingsByChatId(ctx.chat.id.toString());
+      const customTexts = await loadCustomTextSettingsByChatId(chatIdStr);
       if (customTexts.warningMessage && customTexts.warningMessage.trim()) {
-        warningTemplate = customTexts.warningMessage;
+        // For Premium, use full custom template
+        // For Free, use custom template but strip some parts
+        if (showDetailedWarning) {
+          warningTemplate = customTexts.warningMessage;
+        } else {
+          // Free users get simpler version even with custom template
+          warningTemplate = "⚠️ {user}, rule violated: {reason}";
+        }
       }
     } catch (error) {
       // Fall back to default template if custom text loading fails
@@ -404,13 +423,13 @@ async function sendMessage(ctx: GroupChatContext, action: Extract<ProcessingActi
   }
 
   // Optionally attach promo button as inline keyboard when enabled in settings.
-  // By default, all send_message actions get the promo button unless explicitly opted out
-  // with attachPromoButton === false.
-  const shouldAttachPromo = action.attachPromoButton !== false;
+  // PREMIUM FEATURE: Promo button is only available for Premium groups
+  const chatId = ctx.chat.id.toString();
+  const shouldAttachPromo = action.attachPromoButton !== false && hasPromoButton(chatId);
   if (databaseAvailable && shouldAttachPromo) {
     try {
       const { loadCustomTextSettingsByChatId } = await import("../../server/db/groupSettingsRepository.js");
-      const customTexts = await loadCustomTextSettingsByChatId(ctx.chat.id.toString());
+      const customTexts = await loadCustomTextSettingsByChatId(chatId);
       const enabled = customTexts.promoButtonEnabled;
       const text = (customTexts.promoButtonText ?? "").trim();
       const url = (customTexts.promoButtonUrl ?? "").trim();

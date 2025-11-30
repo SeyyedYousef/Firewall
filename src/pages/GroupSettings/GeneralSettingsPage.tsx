@@ -15,6 +15,7 @@ import {
 
 import { GroupMenuDrawer } from "@/features/dashboard/GroupMenuDrawer.tsx";
 import { fetchGroupDetails, fetchGroupGeneralSettings, updateGroupGeneralSettings } from "@/features/dashboard/api.ts";
+import { PremiumLock, PremiumLockIcon } from "@/components/PremiumLock";
 import type {
   AutoWarningPenalty,
   GroupGeneralSettings,
@@ -440,18 +441,26 @@ export function GroupGeneralSettingsPage() {
           )}
         </Card>
 
-        <Card className={styles.card}>
-          <div className={styles.cardHeader}>
-            <div>
-              <Title level="3" className={styles.cardTitle}>Vote to mute</Title>
-              <Text weight="2" className={styles.cardHint}>Members can vote to temporarily mute violating users.</Text>
+        <PremiumLock
+          isLocked={group?.subscriptionType !== 'premium'}
+          message="Vote to mute is a Premium feature. Upgrade to allow members to vote on muting violating users."
+          onUpgradeClick={() => navigate(`/groups/${groupId}/upgrade`)}
+        >
+          <Card className={styles.card}>
+            <div className={styles.cardHeader}>
+              <div>
+                <Title level="3" className={styles.cardTitle}>
+                  Vote to mute <PremiumLockIcon />
+                </Title>
+                <Text weight="2" className={styles.cardHint}>Members can vote to temporarily mute violating users.</Text>
+              </div>
+              <Switch
+                checked={settings.voteMuteEnabled}
+                onChange={(event) => updateSettings({ voteMuteEnabled: event.target.checked })}
+              />
             </div>
-            <Switch
-              checked={settings.voteMuteEnabled}
-              onChange={(event) => updateSettings({ voteMuteEnabled: event.target.checked })}
-            />
-          </div>
-        </Card>
+          </Card>
+        </PremiumLock>
 
         <Card className={styles.card}>
           <div className={styles.cardHeader}>
@@ -644,59 +653,67 @@ export function GroupGeneralSettingsPage() {
           </div>
         </Card>
 
-        <Card className={styles.card}>
-          <div className={styles.cardHeader}>
-            <div>
-              <Title level="3" className={styles.cardTitle}>Automatic warning counter</Title>
-              <Text weight="2" className={styles.cardHint}>Once the threshold is exceeded, the default penalty is applied.</Text>
-            </div>
-            <Switch
-              checked={settings.autoWarningEnabled}
-              onChange={(event) => updateSettings({ autoWarningEnabled: event.target.checked })}
-            />
-          </div>
-          {settings.autoWarningEnabled && (
-            <div className={styles.autoWarningFields}>
-              <div className={styles.fieldRow}>
-                <label className={styles.fieldLabel}>Allowed warning count</label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={settings.autoWarning.threshold}
-                  onChange={(event) => updateAutoWarning({ threshold: Number(event.target.value) })}
-                />
+        <PremiumLock
+          isLocked={group?.subscriptionType !== 'premium'}
+          message="Auto warning counter is a Premium feature. Upgrade to automatically track and penalize repeat offenders."
+          onUpgradeClick={() => navigate(`/groups/${groupId}/upgrade`)}
+        >
+          <Card className={styles.card}>
+            <div className={styles.cardHeader}>
+              <div>
+                <Title level="3" className={styles.cardTitle}>
+                  Automatic warning counter <PremiumLockIcon />
+                </Title>
+                <Text weight="2" className={styles.cardHint}>Once the threshold is exceeded, the default penalty is applied.</Text>
               </div>
-              <div className={styles.fieldRow}>
-                <label className={styles.fieldLabel}>Retention period (days)</label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={settings.autoWarning.retentionDays}
-                  onChange={(event) => updateAutoWarning({ retentionDays: Number(event.target.value) })}
-                />
-              </div>
-              <div className={styles.fieldRow}>
-                <label className={styles.fieldLabel}>Default warning penalty</label>
-                <select
-                  className={styles.select}
-                  value={settings.autoWarning.penalty}
-                  onChange={(event) => updateAutoWarning({ penalty: event.target.value as AutoWarningPenalty })}
-                >
-                  <option value="delete">Delete message</option>
-                  <option value="mute">Mute</option>
-                  <option value="kick">Kick</option>
-                </select>
-              </div>
-              <ScheduleSection
-                title="Execution window"
-                value={settings.autoWarning.schedule}
-                onModeChange={(mode) => updateAutoWarning({ schedule: { ...settings.autoWarning.schedule, mode } })}
-                onStartChange={(value) => updateAutoWarning({ schedule: { ...settings.autoWarning.schedule, start: value } })}
-                onEndChange={(value) => updateAutoWarning({ schedule: { ...settings.autoWarning.schedule, end: value } })}
+              <Switch
+                checked={settings.autoWarningEnabled}
+                onChange={(event) => updateSettings({ autoWarningEnabled: event.target.checked })}
               />
             </div>
-          )}
-        </Card>
+            {settings.autoWarningEnabled && (
+              <div className={styles.autoWarningFields}>
+                <div className={styles.fieldRow}>
+                  <label className={styles.fieldLabel}>Allowed warning count</label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={settings.autoWarning.threshold}
+                    onChange={(event) => updateAutoWarning({ threshold: Number(event.target.value) })}
+                  />
+                </div>
+                <div className={styles.fieldRow}>
+                  <label className={styles.fieldLabel}>Retention period (days)</label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={settings.autoWarning.retentionDays}
+                    onChange={(event) => updateAutoWarning({ retentionDays: Number(event.target.value) })}
+                  />
+                </div>
+                <div className={styles.fieldRow}>
+                  <label className={styles.fieldLabel}>Default warning penalty</label>
+                  <select
+                    className={styles.select}
+                    value={settings.autoWarning.penalty}
+                    onChange={(event) => updateAutoWarning({ penalty: event.target.value as AutoWarningPenalty })}
+                  >
+                    <option value="delete">Delete message</option>
+                    <option value="mute">Mute</option>
+                    <option value="kick">Kick</option>
+                  </select>
+                </div>
+                <ScheduleSection
+                  title="Execution window"
+                  value={settings.autoWarning.schedule}
+                  onModeChange={(mode) => updateAutoWarning({ schedule: { ...settings.autoWarning.schedule, mode } })}
+                  onStartChange={(value) => updateAutoWarning({ schedule: { ...settings.autoWarning.schedule, start: value } })}
+                  onEndChange={(value) => updateAutoWarning({ schedule: { ...settings.autoWarning.schedule, end: value } })}
+                />
+              </div>
+            )}
+          </Card>
+        </PremiumLock>
       </main>
 
       <footer className={styles.saveBar}>

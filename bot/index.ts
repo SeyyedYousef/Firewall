@@ -28,6 +28,7 @@ import { installProcessingPipeline } from "./processing/index.js";
 import { startTrialMonitor } from "./jobs/trialMonitor.js";
 import { startAdminMonitor } from "./jobs/adminMonitor.js";
 import { startMissionResetJob } from "./jobs/missionReset.js";
+import { startInactivityMonitor } from "./jobs/inactivityMonitor.js";
 import { startExpiredGroupsMonitor } from "../server/services/expiredGroupService.js";
 import { fetchGroupsFromDb, fetchOwnerWalletBalance } from "../server/db/stateRepository.js";
 import { checkDatabaseHealth } from "../server/utils/health.js";
@@ -83,7 +84,16 @@ import {
   type OwnerSessionState,
   upsertGroup,
   listGroupsWithoutOwner,
-  fixGroupOwnership
+  fixGroupOwnership,
+  // Free/Premium system
+  getPendingGroupSetup,
+  removePendingGroupSetup,
+  finalizeGroupAsFree,
+  finalizeGroupAsPremium,
+  canUserAddFreeGroup,
+  getUserFreeGroupCount,
+  listFreeGroups,
+  type PendingGroupSetup,
 } from "./state.js";
 import { registerPromoStaticRoutes } from "../server/services/promoMediaStorage.js";
 import type { FirewallRuleConfig, RuleAction, RuleCondition, RuleEscalation } from "../shared/firewall.js";
@@ -193,7 +203,10 @@ const ACTIONS = {
   ownerFirewallToggle: "fw_owner_firewall_toggle",
   ownerFirewallDelete: "fw_owner_firewall_delete",
   ownerFirewallEdit: "fw_owner_firewall_edit",
-  ownerResetBot: "fw_owner_reset_bot"
+  ownerResetBot: "fw_owner_reset_bot",
+  ownerAdBanner: "fw_owner_ad_banner",
+  ownerAdBannerConfirm: "fw_owner_ad_banner_confirm",
+  ownerAdBannerCancel: "fw_owner_ad_banner_cancel"
 } as const;
 
 type ActionKey = keyof typeof ACTIONS;
@@ -241,6 +254,7 @@ if (!ownerUserId) {
 const panelAdminsProvider = () => listPanelAdmins();
 startTrialMonitor(bot, { ownerId: ownerUserId, getPanelAdmins: panelAdminsProvider });
 startAdminMonitor(bot, { ownerId: ownerUserId, getPanelAdmins: panelAdminsProvider });
+startInactivityMonitor(bot, { ownerId: ownerUserId, getPanelAdmins: panelAdminsProvider });
 startExpiredGroupsMonitor(bot);
 void startMissionResetJob();
 
@@ -400,6 +414,7 @@ function buildOwnerPanelKeyboard(): InlineKeyboard {
     [Markup.button.callback("🎁 Generate Credit Codes", actionId("ownerCreditCodes"))],
     [Markup.button.callback("⭐ Reconcile Stars", actionId("ownerReconcileStars"))],
     [Markup.button.callback("📢 Broadcast Messages", actionId("ownerBroadcast"))],
+    [Markup.button.callback("📣 Send Ad Banner (Free Groups)", actionId("ownerAdBanner"))],
     [Markup.button.callback("📊 Global Statistics", actionId("ownerStatistics"))],
     [Markup.button.callback("⚙️ Global Configuration", actionId("ownerSettings"))],
     [Markup.button.callback("🛡️ Firewall Rules", actionId("ownerFirewallMenu"))],
@@ -466,6 +481,24 @@ function buildOwnerBanKeyboard(): InlineKeyboard {
     [Markup.button.callback("Ban User", actionId("ownerBanAdd"))],
     [Markup.button.callback("Unban User", actionId("ownerBanRemove"))],
     [Markup.button.callback("Show Ban List", actionId("ownerBanList"))],
+    ownerNavigationRow()
+  ]);
+}
+
+function buildAdBannerConfirmKeyboard(): InlineKeyboard {
+  return Markup.inlineKeyboard([
+    [
+      Markup.button.callback("✅ Yes, Send to All", actionId("ownerAdBannerConfirm")),
+      Markup.button.callback("❌ Cancel", actionId("ownerAdBannerCancel"))
+    ],
+    ownerNavigationRow()
+  ]);
+}
+
+function buildOwnerAdminsKeyboard(): InlineKeyboard {
+  return Markup.inlineKeyboard([
+    [Markup.button.callback("➕ Add Admin", actionId("ownerAddAdmin"))],
+    [Markup.button.callback("➖ Remove Admin", actionId("ownerRemoveAdmin"))],
     ownerNavigationRow()
   ]);
 }
@@ -2240,6 +2273,236 @@ bot.action(actionId("ownerMainMenu"), async (ctx) => {
   await sendStartMenu(ctx);
 });
 
+// ============================================
+// AD BANNER BROADCAST (FREE GROUPS)
+// ============================================
+
+bot.action(actionId("ownerAdBanner"), async (ctx) => {
+  if (!(await ensureOwnerAccess(ctx))) {
+    return;
+  }
+
+  const freeGroups = listFreeGroups();
+  const groupCount = freeGroups.length;
+
+  if (groupCount === 0) {
+    await ctx.answerCbQuery("No free groups available to send ads.", { show_alert: true });
+    return;
+  }
+
+  setOwnerSession({ state: "awaitingAdBanner" });
+  await respondWithOwnerView(
+    ctx,
+    `📣 <b>Send Ad Banner to Free Groups</b>\n\n` +
+    `📊 <b>Target:</b> ${groupCount} free group${groupCount === 1 ? "" : "s"}\n\n` +
+    `Please send your promotional content:\n` +
+    `• 📝 <b>Text only</b> - Just send a text message\n` +
+    `• 🖼️ <b>Photo + Caption</b> - Send a photo with text\n` +
+    `• 🎬 <b>Video + Caption</b> - Send a video with text\n\n` +
+    `💡 This will be sent to all groups using the FREE plan.`,
+    buildOwnerNavigationKeyboard()
+  );
+});
+
+bot.action(actionId("ownerAdBannerConfirm"), async (ctx) => {
+  if (!(await ensureOwnerAccess(ctx))) {
+    return;
+  }
+
+  const session = readOwnerSessionState();
+  if (session.state !== "awaitingAdBannerConfirm") {
+    await ctx.answerCbQuery("No pending ad banner to send.", { show_alert: true });
+    return;
+  }
+
+  const pending = session.pending;
+  const freeGroups = listFreeGroups();
+  const groupCount = freeGroups.length;
+
+  if (groupCount === 0) {
+    resetOwnerSession();
+    await ctx.answerCbQuery("No free groups available.", { show_alert: true });
+    return;
+  }
+
+  await ctx.answerCbQuery("Sending ad banner...");
+  await ctx.editMessageText("📤 <b>Sending ad banner...</b>\n\nPlease wait...", { parse_mode: "HTML" });
+
+  let successCount = 0;
+  let failCount = 0;
+
+  for (const group of freeGroups) {
+    try {
+      if (pending.contentType === "photo" && pending.fileId) {
+        await ctx.telegram.sendPhoto(group.chatId, pending.fileId, {
+          caption: pending.content || undefined,
+          parse_mode: "HTML",
+        });
+      } else if (pending.contentType === "video" && pending.fileId) {
+        await ctx.telegram.sendVideo(group.chatId, pending.fileId, {
+          caption: pending.content || undefined,
+          parse_mode: "HTML",
+        });
+      } else {
+        await ctx.telegram.sendMessage(group.chatId, pending.content, {
+          parse_mode: "HTML",
+        });
+      }
+      successCount++;
+    } catch (error) {
+      failCount++;
+      logger.warn("failed to send ad banner to group", { chatId: group.chatId, error });
+    }
+    // Small delay to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+
+  resetOwnerSession();
+
+  await ctx.editMessageText(
+    `✅ <b>Ad Banner Sent!</b>\n\n` +
+    `📊 Results:\n` +
+    `• ✅ Sent successfully: ${successCount}\n` +
+    `• ❌ Failed: ${failCount}\n` +
+    `• 📊 Total: ${groupCount}`,
+    { parse_mode: "HTML", reply_markup: buildOwnerPanelKeyboard().reply_markup }
+  );
+
+  logger.info("ad banner broadcast completed", { successCount, failCount, totalGroups: groupCount });
+});
+
+bot.action(actionId("ownerAdBannerCancel"), async (ctx) => {
+  if (!(await ensureOwnerAccess(ctx))) {
+    return;
+  }
+
+  resetOwnerSession();
+  await ctx.answerCbQuery("Ad banner cancelled.");
+  await respondWithOwnerView(ctx, "❌ Ad banner broadcast cancelled.", buildOwnerPanelKeyboard());
+});
+
+// ============================================
+// FREE/PREMIUM GROUP SETUP CALLBACKS
+// ============================================
+
+// Handle "Free with Ads" button click
+bot.action(/^group_setup:free:(.+)$/, async (ctx) => {
+  const match = ctx.match;
+  const chatId = match[1];
+  const userId = ctx.from?.id?.toString();
+
+  if (!userId) {
+    await ctx.answerCbQuery("Unable to verify your identity.", { show_alert: true });
+    return;
+  }
+
+  const pendingSetup = getPendingGroupSetup(chatId);
+  if (!pendingSetup) {
+    await ctx.answerCbQuery("This setup request has expired. Please re-add the bot to the group.", { show_alert: true });
+    return;
+  }
+
+  // Verify the user is the one who added the bot
+  if (pendingSetup.userId !== userId) {
+    await ctx.answerCbQuery("Only the person who added the bot can make this choice.", { show_alert: true });
+    return;
+  }
+
+  // Check if user can add more free groups
+  if (!canUserAddFreeGroup(userId)) {
+    await ctx.answerCbQuery("You have reached the limit of 3 free groups. Please upgrade to Premium.", { show_alert: true });
+    return;
+  }
+
+  // Finalize as free group
+  const result = finalizeGroupAsFree(chatId, userId, pendingSetup.title);
+  
+  if (!result.success) {
+    await ctx.answerCbQuery(result.message, { show_alert: true });
+    return;
+  }
+
+  await ctx.answerCbQuery("Group added as Free!");
+
+  // Update the message
+  const freeCount = getUserFreeGroupCount(userId);
+  await ctx.editMessageText(
+    `✅ <b>Setup Complete!</b>\n\n` +
+    `<b>${pendingSetup.title}</b> has been added as a <b>FREE</b> group.\n\n` +
+    `📢 <i>Occasional promotional messages will be sent to this group.</i>\n\n` +
+    `Your free groups: ${freeCount}/3\n\n` +
+    `💡 You can upgrade to Premium anytime from the Mini App to remove ads.`,
+    { parse_mode: "HTML" }
+  );
+
+  // Send welcome message to the group
+  try {
+    await ctx.telegram.sendMessage(
+      chatId,
+      `🛡️ <b>Firewall Bot Activated!</b>\n\n` +
+      `This group is now protected with the <b>FREE</b> plan.\n` +
+      `All moderation features are active.\n\n` +
+      `💡 <i>The group admin can upgrade to Premium from the Mini App to remove promotional messages.</i>`,
+      { parse_mode: "HTML" }
+    );
+  } catch (error) {
+    logger.warn("failed to send activation message to group", { chatId, error });
+  }
+
+  logger.info("group finalized as free", { chatId, userId, title: pendingSetup.title });
+});
+
+// Handle "Get Premium" button click
+bot.action(/^group_setup:premium:(.+)$/, async (ctx) => {
+  const match = ctx.match;
+  const chatId = match[1];
+  const userId = ctx.from?.id?.toString();
+
+  if (!userId) {
+    await ctx.answerCbQuery("Unable to verify your identity.", { show_alert: true });
+    return;
+  }
+
+  const pendingSetup = getPendingGroupSetup(chatId);
+  if (!pendingSetup) {
+    await ctx.answerCbQuery("This setup request has expired. Please re-add the bot to the group.", { show_alert: true });
+    return;
+  }
+
+  // Verify the user is the one who added the bot
+  if (pendingSetup.userId !== userId) {
+    await ctx.answerCbQuery("Only the person who added the bot can make this choice.", { show_alert: true });
+    return;
+  }
+
+  await ctx.answerCbQuery("Redirecting to payment...");
+
+  // Update the message with payment instructions
+  await ctx.editMessageText(
+    `⭐ <b>Upgrade to Premium</b>\n\n` +
+    `Group: <b>${pendingSetup.title}</b>\n\n` +
+    `To complete the Premium setup:\n` +
+    `1. Open the Mini App below\n` +
+    `2. Go to "Renew Group"\n` +
+    `3. Select this group and complete the payment\n\n` +
+    `Once payment is complete, the bot will be fully activated without any ads!`,
+    {
+      parse_mode: "HTML",
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "🚀 Open Mini App", url: miniAppUrl }],
+          [{ text: "🆓 Use Free Instead", callback_data: `group_setup:free:${chatId}` }],
+        ],
+      },
+    }
+  );
+
+  // Temporarily activate the group (will be deactivated if payment not completed)
+  finalizeGroupAsPremium(chatId, userId, pendingSetup.title);
+
+  logger.info("user directed to premium payment", { chatId, userId, title: pendingSetup.title });
+});
+
 bot.on("pre_checkout_query", async (ctx) => {
   const query = ctx.update.pre_checkout_query;
   logger.info("received pre_checkout_query", { 
@@ -2420,34 +2683,98 @@ bot.on("photo", async (ctx) => {
     return;
   }
 
-  if (ownerSession.state !== "awaitingSliderPhoto") {
-    return;
-  }
-
   const photos = ctx.message.photo;
   if (!photos || photos.length === 0) {
-    await ctx.reply("Please send the slide as a standard photo message.", buildSliderNavigationKeyboard());
     return;
   }
 
   const bestMatch = photos[photos.length - 1];
-  if (bestMatch.width < REQUIRED_SLIDE_WIDTH || bestMatch.height < REQUIRED_SLIDE_HEIGHT) {
+
+  // Handle Ad Banner photo
+  if (ownerSession.state === "awaitingAdBanner") {
+    const caption = (ctx.message as any).caption ?? "";
+    const freeGroupsCount = listFreeGroups().length;
+
+    setOwnerSession({
+      state: "awaitingAdBannerConfirm",
+      pending: { 
+        content: caption, 
+        contentType: "photo", 
+        fileId: bestMatch.file_id 
+      }
+    });
+
     await ctx.reply(
-      `Image will be resized to ${REQUIRED_SLIDE_WIDTH}x${REQUIRED_SLIDE_HEIGHT}. Using a larger photo can improve quality.`,
-      buildSliderNavigationKeyboard(),
+      `⚠️ <b>Confirmation Required</b>\n\n` +
+      `You are about to send this photo banner to:\n` +
+      `📊 <b>${freeGroupsCount}</b> free group${freeGroupsCount === 1 ? "" : "s"}\n\n` +
+      `Are you sure you want to proceed?`,
+      { parse_mode: "HTML", reply_markup: buildAdBannerConfirmKeyboard().reply_markup }
     );
+    return;
   }
 
-  setOwnerSession({
-    state: "awaitingSliderLink",
-    pending: {
-      fileId: bestMatch.file_id,
-      width: bestMatch.width,
-      height: bestMatch.height
+  // Handle Slider photo
+  if (ownerSession.state === "awaitingSliderPhoto") {
+    if (bestMatch.width < REQUIRED_SLIDE_WIDTH || bestMatch.height < REQUIRED_SLIDE_HEIGHT) {
+      await ctx.reply(
+        `Image will be resized to ${REQUIRED_SLIDE_WIDTH}x${REQUIRED_SLIDE_HEIGHT}. Using a larger photo can improve quality.`,
+        buildSliderNavigationKeyboard(),
+      );
     }
-  });
 
-  await ctx.reply(ownerMessages.sliderAwaitLink, buildSliderNavigationKeyboard());
+    setOwnerSession({
+      state: "awaitingSliderLink",
+      pending: {
+        fileId: bestMatch.file_id,
+        width: bestMatch.width,
+        height: bestMatch.height
+      }
+    });
+
+    await ctx.reply(ownerMessages.sliderAwaitLink, buildSliderNavigationKeyboard());
+    return;
+  }
+});
+
+// Handle video messages for Ad Banner
+bot.on("video", async (ctx) => {
+  if (!isPrivateChat(ctx)) {
+    return;
+  }
+
+  if (!(await ensureOwnerAccess(ctx))) {
+    return;
+  }
+
+  const video = ctx.message.video;
+  if (!video) {
+    return;
+  }
+
+  // Handle Ad Banner video
+  if (ownerSession.state === "awaitingAdBanner") {
+    const caption = (ctx.message as any).caption ?? "";
+    const freeGroupsCount = listFreeGroups().length;
+
+    setOwnerSession({
+      state: "awaitingAdBannerConfirm",
+      pending: { 
+        content: caption, 
+        contentType: "video", 
+        fileId: video.file_id 
+      }
+    });
+
+    await ctx.reply(
+      `⚠️ <b>Confirmation Required</b>\n\n` +
+      `You are about to send this video banner to:\n` +
+      `📊 <b>${freeGroupsCount}</b> free group${freeGroupsCount === 1 ? "" : "s"}\n\n` +
+      `Are you sure you want to proceed?`,
+      { parse_mode: "HTML", reply_markup: buildAdBannerConfirmKeyboard().reply_markup }
+    );
+    return;
+  }
 });
 
 bot.on("text", async (ctx) => {
@@ -2579,6 +2906,26 @@ bot.on("text", async (ctx) => {
     await ctx.reply(
       `Credit decreased for ${record.title} (${record.chatId}).\nNew balance: ${record.creditBalance}`,
       buildOwnerNavigationKeyboard()
+      );
+      return;
+    }
+    case "awaitingAdBanner": {
+      if (text.length < 5) {
+        await ctx.reply("Please send a longer message or a photo with caption.", buildOwnerNavigationKeyboard());
+        return;
+      }
+
+      const freeGroupsCount = listFreeGroups().length;
+      setOwnerSession({
+        state: "awaitingAdBannerConfirm",
+        pending: { content: text, contentType: "text" }
+      });
+      await ctx.reply(
+        `⚠️ <b>Confirmation Required</b>\n\n` +
+        `You are about to send this ad banner to:\n` +
+        `📊 <b>${freeGroupsCount}</b> free group${freeGroupsCount === 1 ? "" : "s"}\n\n` +
+        `Are you sure you want to proceed?`,
+        { parse_mode: "HTML", reply_markup: buildAdBannerConfirmKeyboard().reply_markup }
       );
       return;
     }
@@ -2934,6 +3281,86 @@ Image: ${record.imageUrl}`,
       resetOwnerSession();
 
       await ctx.reply(`User ${userId} has been removed from the ban list.`, buildOwnerBanKeyboard());
+      return;
+    }
+    case "awaitingCreateCreditCode": {
+      // Parse format: days maxUses [expiryDays]
+      // Example: 30 5 or 30 5 90
+      const parts = text.trim().split(/\s+/);
+      if (parts.length < 2) {
+        await ctx.reply(
+          "❌ Invalid format.\n\nPlease send: <code>days maxUses [expiryDays]</code>\n\nExamples:\n• <code>30 5</code> - 30 days, 5 uses, no expiry\n• <code>30 5 90</code> - 30 days, 5 uses, expires in 90 days",
+          { parse_mode: "HTML", ...buildOwnerNavigationKeyboard() }
+        );
+        return;
+      }
+
+      const days = Number.parseInt(parts[0], 10);
+      const maxUses = Number.parseInt(parts[1], 10);
+      const expiryDays = parts[2] ? Number.parseInt(parts[2], 10) : undefined;
+
+      if (!Number.isFinite(days) || days <= 0 || days > 365) {
+        await ctx.reply("❌ Days must be between 1 and 365.", buildOwnerNavigationKeyboard());
+        return;
+      }
+
+      if (!Number.isFinite(maxUses) || maxUses <= 0 || maxUses > 1000) {
+        await ctx.reply("❌ Max uses must be between 1 and 1000.", buildOwnerNavigationKeyboard());
+        return;
+      }
+
+      if (expiryDays !== undefined && (!Number.isFinite(expiryDays) || expiryDays <= 0)) {
+        await ctx.reply("❌ Expiry days must be a positive number.", buildOwnerNavigationKeyboard());
+        return;
+      }
+
+      const { generateCreditCode } = await import("./state.js");
+      const creditCode = generateCreditCode(days, maxUses, expiryDays);
+      resetOwnerSession();
+
+      const expiryText = creditCode.expiresAt 
+        ? `Expires: ${new Date(creditCode.expiresAt).toLocaleDateString()}`
+        : "No expiry";
+
+      await ctx.reply(
+        `✅ <b>Credit Code Created!</b>\n\n` +
+        `📋 Code: <code>${creditCode.code}</code>\n` +
+        `📅 Days: ${creditCode.days}\n` +
+        `🔢 Max Uses: ${creditCode.maxUses}\n` +
+        `⏰ ${expiryText}\n\n` +
+        `Share this code with users to give them credit.`,
+        { parse_mode: "HTML", ...buildCreditCodesKeyboard() }
+      );
+      return;
+    }
+    case "awaitingDeleteCreditCode": {
+      const codeToDelete = text.trim();
+      
+      const { findCreditCode, deleteCreditCode } = await import("./state.js");
+      const found = findCreditCode(codeToDelete);
+      
+      if (!found) {
+        await ctx.reply(
+          `❌ Credit code not found: <code>${codeToDelete}</code>\n\nPlease check the code and try again.`,
+          { parse_mode: "HTML", ...buildCreditCodesKeyboard() }
+        );
+        return;
+      }
+
+      const deleted = deleteCreditCode(found.id);
+      resetOwnerSession();
+
+      if (deleted) {
+        await ctx.reply(
+          `✅ Credit code <code>${codeToDelete}</code> has been deleted.`,
+          { parse_mode: "HTML", ...buildCreditCodesKeyboard() }
+        );
+      } else {
+        await ctx.reply(
+          `❌ Failed to delete credit code. Please try again.`,
+          buildCreditCodesKeyboard()
+        );
+      }
       return;
     }
     default:

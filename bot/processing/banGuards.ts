@@ -14,7 +14,7 @@ import {
 import type { GroupChatContext, ProcessingAction } from "./types.js";
 import { ensureActions } from "./utils.js";
 import { logger } from "../../server/utils/logger.js";
-import { getState } from "../state.js";
+import { getState, hasCustomSchedule, hasVoteMute, hasExtraSilenceWindows, hasAutoWarning, hasAutoDelete } from "../state.js";
 import { renderTemplate } from "../templating.js";
 
 const databaseAvailable = Boolean(process.env.DATABASE_URL);
@@ -125,7 +125,7 @@ export async function evaluateBanGuards(ctx: GroupChatContext): Promise<Processi
 
   // Track silence state transitions for this chat
   const wasSilent = silenceStatus.get(chatId) ?? false;
-  const isSilent = shouldSilenceChat(silence, general?.timezone);
+  const isSilent = shouldSilenceChat(silence, general?.timezone, chatId);
   silenceStatus.set(chatId, isSilent);
 
   const transitionActions = await buildSilenceTransitionActions(ctx, silence, general, wasSilent, isSilent);
@@ -158,31 +158,31 @@ export async function evaluateBanGuards(ctx: GroupChatContext): Promise<Processi
     if (blockedLinks.length > 0) {
       triggered.push("banLinks");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banDomains", facts, timestampSeconds, () => {
     if (blockedLinks.length > 0) {
       triggered.push("banDomains");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banBots", facts, timestampSeconds, () => {
     if (facts.fromBot) {
       triggered.push("banBots");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banBotInviters", facts, timestampSeconds, () => {
     if (facts.viaBot && !facts.fromBot) {
       triggered.push("banBotInviters");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banTextPatterns", facts, timestampSeconds, () => {
     if (matchesTextPatterns(facts.text, settings)) {
       triggered.push("banTextPatterns");
     }
-  });
+  }, chatId);
   // Enforce Required keywords (whitelist) on text content:
   // If whitelist is non-empty and the text does NOT contain any of them, treat as violation.
   if (settings.whitelist && settings.whitelist.length > 0) {
@@ -198,163 +198,163 @@ export async function evaluateBanGuards(ctx: GroupChatContext): Promise<Processi
     if (facts.hasForward) {
       triggered.push("banForward");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banForwardChannels", facts, timestampSeconds, () => {
     if (facts.hasForwardChannel) {
       triggered.push("banForwardChannels");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banStickers", facts, timestampSeconds, () => {
     if (facts.hasSticker) {
       triggered.push("banStickers");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banPhotos", facts, timestampSeconds, () => {
     if (facts.hasPhoto) {
       triggered.push("banPhotos");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banVideos", facts, timestampSeconds, () => {
     if (facts.hasVideo || facts.hasVideoNote) {
       triggered.push("banVideos");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banVoice", facts, timestampSeconds, () => {
     if (facts.hasVoice) {
       triggered.push("banVoice");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banAudio", facts, timestampSeconds, () => {
     if (facts.hasAudio) {
       triggered.push("banAudio");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banFiles", facts, timestampSeconds, () => {
     if (facts.hasDocument || facts.hasAnimation) {
       triggered.push("banFiles");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banApps", facts, timestampSeconds, () => {
     if (facts.viaBot) {
       triggered.push("banApps");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banGif", facts, timestampSeconds, () => {
     if (facts.hasAnimation) {
       triggered.push("banGif");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banPolls", facts, timestampSeconds, () => {
     if (facts.hasPoll) {
       triggered.push("banPolls");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banInlineKeyboards", facts, timestampSeconds, () => {
     if (facts.hasInlineKeyboard) {
       triggered.push("banInlineKeyboards");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banGames", facts, timestampSeconds, () => {
     if (facts.hasGame) {
       triggered.push("banGames");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banSlashCommands", facts, timestampSeconds, () => {
     if (facts.hasBotCommand) {
       triggered.push("banSlashCommands");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banCaptionless", facts, timestampSeconds, () => {
     if (facts.hasCaptionlessMedia) {
       triggered.push("banCaptionless");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banUsernames", facts, timestampSeconds, () => {
     if (facts.hasUsername) {
       triggered.push("banUsernames");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banHashtags", facts, timestampSeconds, () => {
     if (facts.hasHashtag) {
       triggered.push("banHashtags");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banEmojis", facts, timestampSeconds, () => {
     if (facts.hasEmoji) {
       triggered.push("banEmojis");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banEmojiOnly", facts, timestampSeconds, () => {
     if (facts.isEmojiOnly) {
       triggered.push("banEmojiOnly");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banLocation", facts, timestampSeconds, () => {
     if (facts.hasLocation) {
       triggered.push("banLocation");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banPhones", facts, timestampSeconds, () => {
     if (facts.hasContact) {
       triggered.push("banPhones");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banLatin", facts, timestampSeconds, () => {
     if (facts.hasLatin) {
       triggered.push("banLatin");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banPersian", facts, timestampSeconds, () => {
     if (facts.hasPersian) {
       triggered.push("banPersian");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banCyrillic", facts, timestampSeconds, () => {
     if (facts.hasCyrillic) {
       triggered.push("banCyrillic");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banChinese", facts, timestampSeconds, () => {
     if (facts.hasChinese) {
       triggered.push("banChinese");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banUserReplies", facts, timestampSeconds, () => {
     if (facts.isReply) {
       triggered.push("banUserReplies");
     }
-  });
+  }, chatId);
 
   checkRule(settings, "banCrossReplies", facts, timestampSeconds, () => {
     if (facts.isCrossReply) {
       triggered.push("banCrossReplies");
     }
-  });
+  }, chatId);
 
   if (!triggered.length) {
     // Apply limit settings if ban rules not triggered
@@ -517,6 +517,7 @@ type ActiveSilenceWindow =
 function getActiveSilenceWindow(
   silence: SilenceSettingsRecord | null,
   timezone?: string,
+  chatId?: string,
 ): ActiveSilenceWindow | null {
   if (!silence) return null;
 
@@ -538,18 +539,23 @@ function getActiveSilenceWindow(
   if (inWindow(silence.window1)) {
     return { kind: "window", windowKey: "window1", start: silence.window1.start, end: silence.window1.end };
   }
-  if (inWindow(silence.window2)) {
-    return { kind: "window", windowKey: "window2", start: silence.window2.start, end: silence.window2.end };
-  }
-  if (inWindow(silence.window3)) {
-    return { kind: "window", windowKey: "window3", start: silence.window3.start, end: silence.window3.end };
+  
+  // PREMIUM FEATURE: Extra silence windows (window2, window3) only for Premium
+  // Free users only get window1
+  if (chatId && hasExtraSilenceWindows(chatId)) {
+    if (inWindow(silence.window2)) {
+      return { kind: "window", windowKey: "window2", start: silence.window2.start, end: silence.window2.end };
+    }
+    if (inWindow(silence.window3)) {
+      return { kind: "window", windowKey: "window3", start: silence.window3.start, end: silence.window3.end };
+    }
   }
 
   return null;
 }
 
-function shouldSilenceChat(silence: SilenceSettingsRecord | null, timezone?: string): boolean {
-  return getActiveSilenceWindow(silence, timezone) !== null;
+function shouldSilenceChat(silence: SilenceSettingsRecord | null, timezone?: string, chatId?: string): boolean {
+  return getActiveSilenceWindow(silence, timezone, chatId) !== null;
 }
 
 function getNextSilenceStart(silence: SilenceSettingsRecord | null): string | null {
@@ -602,7 +608,7 @@ async function buildSilenceTransitionActions(
 
   if (isSilent && !wasSilent) {
     // Quiet hours just started
-    const active = getActiveSilenceWindow(silence, general?.timezone);
+    const active = getActiveSilenceWindow(silence, general?.timezone, chatId);
     let starttime = "";
     let endtime = "";
     if (active && active.kind === "window") {
@@ -708,20 +714,25 @@ function checkRule(
   facts: MessageFacts,
   timestampSeconds: number,
   onActive: () => void,
+  chatId?: string,
 ): void {
   const rule = settings.rules[key];
-  if (!isRuleActive(rule, timestampSeconds)) {
+  if (!isRuleActive(rule, timestampSeconds, chatId)) {
     return;
   }
   onActive();
 }
 
-function isRuleActive(rule: BanRuleSetting | undefined, timestampSeconds: number): boolean {
+function isRuleActive(rule: BanRuleSetting | undefined, timestampSeconds: number, chatId?: string): boolean {
   if (!rule || !rule.enabled) {
     return false;
   }
 
-  if (!rule.schedule || rule.schedule.mode === "all") {
+  // PREMIUM FEATURE: Custom schedule is only for Premium
+  // Free users get "all time" mode regardless of schedule setting
+  const canUseSchedule = chatId ? hasCustomSchedule(chatId) : false;
+  
+  if (!rule.schedule || rule.schedule.mode === "all" || !canUseSchedule) {
     return true;
   }
 

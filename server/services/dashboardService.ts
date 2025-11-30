@@ -57,6 +57,23 @@ export type GroupStatusRemoved = {
 
 export type GroupStatus = GroupStatusActive | GroupStatusExpired | GroupStatusRemoved;
 
+export type SubscriptionType = 'free' | 'premium';
+
+export type PremiumFeatures = {
+  promoButton: boolean;
+  detailedWarnings: boolean;
+  advancedAnalytics: boolean;
+  customSchedule: boolean;
+  voteMute: boolean;
+  advancedCaptcha: boolean;
+  extraSilenceWindows: boolean;
+  extraMandatoryChannels: boolean;
+  webhook: boolean;
+  priorityProcessing: boolean;
+  autoWarning: boolean;
+  autoDelete: boolean;
+};
+
 export type ManagedGroup = {
   id: string;
   title: string;
@@ -65,6 +82,10 @@ export type ManagedGroup = {
   status: GroupStatus;
   canManage: boolean;
   inviteLink?: string | null;
+  // New fields for free/premium system
+  subscriptionType?: SubscriptionType;
+  adsEnabled?: boolean;
+  premiumFeatures?: PremiumFeatures;
 };
 
 export type StarsStatus = "active" | "expiring" | "expired";
@@ -568,12 +589,45 @@ function computeGroupStatus(
   };
 }
 
+const DEFAULT_FREE_FEATURES: PremiumFeatures = {
+  promoButton: false,
+  detailedWarnings: false,
+  advancedAnalytics: false,
+  customSchedule: false,
+  voteMute: false,
+  advancedCaptcha: false,
+  extraSilenceWindows: false,
+  extraMandatoryChannels: false,
+  webhook: false,
+  priorityProcessing: false,
+  autoWarning: false,
+  autoDelete: false,
+};
+
+const DEFAULT_PREMIUM_FEATURES: PremiumFeatures = {
+  promoButton: true,
+  detailedWarnings: true,
+  advancedAnalytics: true,
+  customSchedule: true,
+  voteMute: true,
+  advancedCaptcha: true,
+  extraSilenceWindows: true,
+  extraMandatoryChannels: true,
+  webhook: true,
+  priorityProcessing: true,
+  autoWarning: true,
+  autoDelete: true,
+};
+
 export function buildManagedGroup(
   record: GroupRecord,
   starsEntry?: ResolvedStarsEntry,
 ): ManagedGroup {
   const entry =
     starsEntry ?? normalizeStarsStateEntry(getStarsState().groups[record.chatId]) ?? undefined;
+  const subscriptionType = (record as any).subscriptionType ?? 'free';
+  const defaultFeatures = subscriptionType === 'premium' ? DEFAULT_PREMIUM_FEATURES : DEFAULT_FREE_FEATURES;
+  
   return {
     id: record.chatId,
     title: record.title,
@@ -582,6 +636,13 @@ export function buildManagedGroup(
     status: computeGroupStatus(record, entry),
     canManage: record.managed,
     inviteLink: record.inviteLink ?? undefined,
+    // New fields for free/premium system
+    subscriptionType,
+    adsEnabled: (record as any).adsEnabled ?? true,
+    premiumFeatures: {
+      ...defaultFeatures,
+      ...((record as any).premiumFeatures ?? {}),
+    },
   };
 }
 

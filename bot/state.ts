@@ -128,6 +128,68 @@ export type PanelSettings = {
   infoCommands: string;
 };
 
+export type SubscriptionType = 'free' | 'premium';
+
+/**
+ * Premium features that can be enabled/disabled per group
+ */
+export type PremiumFeatures = {
+  // دکمه شیشه‌ای زیر پیام‌های ربات
+  promoButton: boolean;
+  // پیام اخطار با توضیح کامل‌تر (Free هم دلیل دارد ولی Premium واضح‌تر)
+  detailedWarnings: boolean;
+  // آمار پیشرفته گروه
+  advancedAnalytics: boolean;
+  // زمان‌بندی سفارشی برای فیلترها
+  customSchedule: boolean;
+  // Vote Mute - رأی برای سکوت
+  voteMute: boolean;
+  // کپچای پیشرفته (تصویری و ریاضی)
+  advancedCaptcha: boolean;
+  // پنجره‌های سکوت اضافی (window2, window3)
+  extraSilenceWindows: boolean;
+  // کانال‌های اجباری اضافی (تا 3 تا)
+  extraMandatoryChannels: boolean;
+  // Webhook اختصاصی
+  webhook: boolean;
+  // اولویت پردازش (سرعت بالاتر)
+  priorityProcessing: boolean;
+  // اخطار خودکار با آستانه
+  autoWarning: boolean;
+  // حذف خودکار پیام‌های ربات
+  autoDelete: boolean;
+};
+
+export const DEFAULT_FREE_FEATURES: PremiumFeatures = {
+  promoButton: false,
+  detailedWarnings: false,
+  advancedAnalytics: false,
+  customSchedule: false,
+  voteMute: false,
+  advancedCaptcha: false,
+  extraSilenceWindows: false,
+  extraMandatoryChannels: false,
+  webhook: false,
+  priorityProcessing: false,
+  autoWarning: false,
+  autoDelete: false,
+};
+
+export const DEFAULT_PREMIUM_FEATURES: PremiumFeatures = {
+  promoButton: true,
+  detailedWarnings: true,
+  advancedAnalytics: true,
+  customSchedule: true,
+  voteMute: true,
+  advancedCaptcha: true,
+  extraSilenceWindows: true,
+  extraMandatoryChannels: true,
+  webhook: true,
+  priorityProcessing: true,
+  autoWarning: true,
+  autoDelete: true,
+};
+
 export type GroupRecord = {
   chatId: string;
   title: string;
@@ -146,6 +208,20 @@ export type GroupRecord = {
   status: string | null;
   statusUpdatedAt: string | null;
   dbId: string | null;
+  // New fields for free/premium system
+  subscriptionType: SubscriptionType;
+  lastActivityAt: string | null;
+  adsEnabled: boolean;
+  // Premium features
+  premiumFeatures: PremiumFeatures;
+};
+
+export type PendingGroupSetup = {
+  chatId: string;
+  title: string;
+  userId: string;
+  messageId?: number;
+  createdAt: string;
 };
 
 export type BroadcastRecord = {
@@ -205,6 +281,7 @@ export type OwnerSessionState =
   | { state: "awaitingSettingsFreeDays" }
   | { state: "awaitingSettingsStars" }
   | { state: "awaitingSettingsWelcomeMessages" }
+  | { state: "awaitingSettingsOnboardingMessages" }
   | { state: "awaitingSettingsGpidHelp" }
   | { state: "awaitingSettingsLabels" }
   | { state: "awaitingSettingsChannelText" }
@@ -213,14 +290,27 @@ export type OwnerSessionState =
   | { state: "awaitingSettingsChannelUrl" }
   | { state: "awaitingBanAdd" }
   | { state: "awaitingBanRemove" }
+  | { state: "awaitingBanUserId" }
+  | { state: "awaitingUnbanUserId" }
   | { state: "awaitingFirewallCreate" }
+  | { state: "awaitingFirewallRuleCreate" }
   | { state: "awaitingFirewallEdit"; ruleId: string }
+  | { state: "awaitingFirewallRuleEdit"; pending: { ruleId: string; chatId: string } }
   | { state: "awaitingSliderAdd" }
-  | { state: "awaitingSliderLink"; slideId: string }
+  | { state: "awaitingSliderPhoto" }
+  | { state: "awaitingSliderRemoval" }
+  | { state: "awaitingSliderLink"; pending: { fileId: string; width: number; height: number } }
   | { state: "awaitingDailyTaskChannel" }
+  | { state: "awaitingDailyTaskLink" }
+  | { state: "awaitingDailyTaskButton"; pending: { channelLink: string } }
+  | { state: "awaitingDailyTaskDescription"; pending: { channelLink: string; buttonLabel: string } }
+  | { state: "awaitingDailyTaskXp"; pending: { channelLink: string; buttonLabel: string; description: string } }
   | { state: "awaitingCreateCreditCode" }
   | { state: "awaitingDeleteCreditCode" }
-  | { state: "awaitingResetConfirm" };
+  | { state: "awaitingResetConfirm"; pending?: { groupCount: number } }
+  | { state: "awaitingResetPassword" }
+  | { state: "awaitingAdBanner" }
+  | { state: "awaitingAdBannerConfirm"; pending: { content: string; contentType: "text" | "photo" | "video"; fileId?: string } };
 
 export type PendingOnboardingMessage = {
   text: string;
@@ -239,6 +329,9 @@ export type BotState = {
   stars: StarsState;
   ownerSession: OwnerSessionState;
   pendingOnboarding: Record<string, PendingOnboardingMessage[]>;
+  // New fields for free/premium system
+  pendingGroupSetups: Record<string, PendingGroupSetup>;
+  userFreeGroups: Record<string, string[]>;
 };
 
 const defaultOwnerSession: OwnerSessionState = { state: "idle" };
@@ -272,6 +365,8 @@ const defaultState: BotState = {
   },
   ownerSession: defaultOwnerSession,
   pendingOnboarding: {},
+  pendingGroupSetups: {},
+  userFreeGroups: {},
 };
 
 class StateValidationError extends Error {
@@ -808,7 +903,7 @@ function normalizeOwnerSession(input: unknown): OwnerSessionState {
         const typed = pending as { ruleId: string; chatId: string | null | undefined };
         return {
           state: "awaitingFirewallRuleEdit",
-          pending: { ruleId: typed.ruleId, chatId: typed.chatId ?? null },
+          pending: { ruleId: typed.ruleId, chatId: typed.chatId ?? "" },
         };
       }
       return { state: "idle" };
@@ -872,6 +967,15 @@ function readStateFromDisk(): BotState {
             status: typeof value?.status === "string" ? value.status : null,
             statusUpdatedAt: typeof value?.statusUpdatedAt === "string" ? value.statusUpdatedAt : null,
             dbId: typeof value?.dbId === "string" ? value.dbId : null,
+            // New fields for free/premium system
+            subscriptionType: (value as any)?.subscriptionType === "premium" ? "premium" : "free",
+            lastActivityAt: typeof (value as any)?.lastActivityAt === "string" ? (value as any).lastActivityAt : null,
+            adsEnabled: (value as any)?.adsEnabled !== false,
+            // Premium features
+            premiumFeatures: {
+              ...((value as any)?.subscriptionType === "premium" ? DEFAULT_PREMIUM_FEATURES : DEFAULT_FREE_FEATURES),
+              ...((value as any)?.premiumFeatures ?? {}),
+            },
           },
         ];
       })
@@ -974,6 +1078,15 @@ function readStateFromDisk(): BotState {
               return [chatId, filtered];
             }),
           )
+        : {},
+    creditCodes: Array.isArray((parsed as any).creditCodes) ? (parsed as any).creditCodes : [],
+    pendingGroupSetups:
+      typeof (parsed as any).pendingGroupSetups === "object" && (parsed as any).pendingGroupSetups !== null
+        ? (parsed as any).pendingGroupSetups
+        : {},
+    userFreeGroups:
+      typeof (parsed as any).userFreeGroups === "object" && (parsed as any).userFreeGroups !== null
+        ? (parsed as any).userFreeGroups
         : {},
   };
     validateBotState(candidate);
@@ -1403,6 +1516,15 @@ function upsertGroupInDraft(draft: BotState, record: UpsertGroupInput): GroupRec
       adminIds: normalizedAdminIds ?? [],
       status: record.status === undefined ? existing.status : record.status ?? null,
       dbId: record.dbId === undefined ? existing.dbId : record.dbId ?? null,
+      // New fields for free/premium system
+      subscriptionType: (record as any).subscriptionType === "premium" ? "premium" : existing.subscriptionType,
+      lastActivityAt: (record as any).lastActivityAt !== undefined ? (record as any).lastActivityAt : existing.lastActivityAt,
+      adsEnabled: (record as any).adsEnabled !== undefined ? (record as any).adsEnabled : existing.adsEnabled,
+      // Premium features
+      premiumFeatures: {
+        ...existing.premiumFeatures,
+        ...((record as any).premiumFeatures ?? {}),
+      },
     };
     draft.groups[id] = updated;
     return updated;
@@ -1439,6 +1561,12 @@ function upsertGroupInDraft(draft: BotState, record: UpsertGroupInput): GroupRec
     status: record.status ?? null,
     statusUpdatedAt: record.statusUpdatedAt ?? null,
     dbId: record.dbId ?? null,
+    // New fields for free/premium system
+    subscriptionType: (record as any).subscriptionType === "premium" ? "premium" : "free",
+    lastActivityAt: (record as any).lastActivityAt ?? null,
+    adsEnabled: (record as any).adsEnabled !== false,
+    // Premium features
+    premiumFeatures: (record as any).subscriptionType === "premium" ? { ...DEFAULT_PREMIUM_FEATURES } : { ...DEFAULT_FREE_FEATURES },
   };
   draft.groups[id] = created;
   return created;
@@ -2251,4 +2379,364 @@ export function toggleCreditCodeStatus(codeId: string): boolean {
   });
 
   return true;
+}
+
+// ============================================
+// FREE/PREMIUM GROUP SYSTEM FUNCTIONS
+// ============================================
+
+const MAX_FREE_GROUPS_PER_USER = 3;
+
+/**
+ * Get the number of free groups a user currently has
+ */
+export function getUserFreeGroupCount(userId: string): number {
+  const userGroups = state.userFreeGroups[userId];
+  if (!Array.isArray(userGroups)) {
+    return 0;
+  }
+  // Filter out groups that no longer exist or are now premium
+  return userGroups.filter(chatId => {
+    const group = state.groups[chatId];
+    return group && group.subscriptionType === "free";
+  }).length;
+}
+
+/**
+ * Check if user can add another free group
+ */
+export function canUserAddFreeGroup(userId: string): boolean {
+  return getUserFreeGroupCount(userId) < MAX_FREE_GROUPS_PER_USER;
+}
+
+/**
+ * Add a free group for a user
+ */
+export function addUserFreeGroup(userId: string, chatId: string): { success: boolean; message: string } {
+  if (!canUserAddFreeGroup(userId)) {
+    return {
+      success: false,
+      message: `You have reached the maximum limit of ${MAX_FREE_GROUPS_PER_USER} free groups. Please upgrade to Premium or remove an existing free group.`,
+    };
+  }
+
+  state = withState((draft) => {
+    if (!draft.userFreeGroups[userId]) {
+      draft.userFreeGroups[userId] = [];
+    }
+    if (!draft.userFreeGroups[userId].includes(chatId)) {
+      draft.userFreeGroups[userId].push(chatId);
+    }
+    return draft;
+  });
+
+  return { success: true, message: "Free group added successfully." };
+}
+
+/**
+ * Remove a free group from a user's list
+ */
+export function removeUserFreeGroup(userId: string, chatId: string): void {
+  state = withState((draft) => {
+    const userGroups = draft.userFreeGroups[userId];
+    if (Array.isArray(userGroups)) {
+      draft.userFreeGroups[userId] = userGroups.filter(id => id !== chatId);
+    }
+    return draft;
+  });
+}
+
+/**
+ * Create a pending group setup (waiting for user to choose free/premium)
+ */
+export function createPendingGroupSetup(chatId: string, title: string, userId: string, messageId?: number): PendingGroupSetup {
+  const setup: PendingGroupSetup = {
+    chatId,
+    title,
+    userId,
+    messageId,
+    createdAt: new Date().toISOString(),
+  };
+
+  state = withState((draft) => {
+    draft.pendingGroupSetups[chatId] = setup;
+    return draft;
+  });
+
+  return setup;
+}
+
+/**
+ * Get a pending group setup
+ */
+export function getPendingGroupSetup(chatId: string): PendingGroupSetup | null {
+  return state.pendingGroupSetups[chatId] ?? null;
+}
+
+/**
+ * Remove a pending group setup
+ */
+export function removePendingGroupSetup(chatId: string): void {
+  state = withState((draft) => {
+    delete draft.pendingGroupSetups[chatId];
+    return draft;
+  });
+}
+
+/**
+ * Finalize group setup as free
+ */
+export function finalizeGroupAsFree(chatId: string, userId: string, title: string): { success: boolean; message: string; group?: GroupRecord } {
+  const canAdd = canUserAddFreeGroup(userId);
+  if (!canAdd) {
+    return {
+      success: false,
+      message: `You have reached the maximum limit of ${MAX_FREE_GROUPS_PER_USER} free groups. Please upgrade to Premium or remove an existing free group.`,
+    };
+  }
+
+  // Add to user's free groups list
+  addUserFreeGroup(userId, chatId);
+
+  // Create or update the group as free
+  const group = upsertGroup({
+    chatId,
+    title,
+    managed: true,
+    ownerId: userId,
+    subscriptionType: "free",
+    lastActivityAt: new Date().toISOString(),
+    adsEnabled: true,
+  } as any);
+
+  // Remove from pending setups
+  removePendingGroupSetup(chatId);
+
+  return {
+    success: true,
+    message: "Group added as free with ads enabled. You can upgrade to Premium anytime!",
+    group,
+  };
+}
+
+/**
+ * Finalize group setup as premium (needs payment)
+ */
+export function finalizeGroupAsPremium(chatId: string, userId: string, title: string): { success: boolean; group?: GroupRecord } {
+  // Create or update the group as premium
+  const group = upsertGroup({
+    chatId,
+    title,
+    managed: true,
+    ownerId: userId,
+    subscriptionType: "premium",
+    lastActivityAt: new Date().toISOString(),
+    adsEnabled: false,
+  } as any);
+
+  // Remove from pending setups
+  removePendingGroupSetup(chatId);
+
+  return { success: true, group };
+}
+
+/**
+ * Upgrade a free group to premium
+ */
+export function upgradeGroupToPremium(chatId: string): GroupRecord | null {
+  const group = state.groups[chatId];
+  if (!group) {
+    return null;
+  }
+
+  // Remove from user's free groups list
+  if (group.ownerId) {
+    removeUserFreeGroup(group.ownerId, chatId);
+  }
+
+  // Update the group to premium
+  return upsertGroup({
+    chatId,
+    subscriptionType: "premium",
+    adsEnabled: false,
+  } as any);
+}
+
+/**
+ * Record activity for a group (to prevent auto-leave)
+ */
+export function recordGroupActivity(chatId: string): void {
+  const group = state.groups[chatId];
+  if (!group) {
+    return;
+  }
+
+  state = withState((draft) => {
+    const g = draft.groups[chatId];
+    if (g) {
+      g.lastActivityAt = new Date().toISOString();
+    }
+    return draft;
+  });
+}
+
+/**
+ * Get all free groups (for broadcasting ads)
+ */
+export function listFreeGroups(): GroupRecord[] {
+  return Object.values(state.groups).filter(
+    group => group.subscriptionType === "free" && group.adsEnabled && group.managed
+  );
+}
+
+/**
+ * Get inactive groups (no activity for specified days)
+ */
+export function listInactiveGroups(inactiveDays: number = 3): GroupRecord[] {
+  const cutoffMs = Date.now() - inactiveDays * 24 * 60 * 60 * 1000;
+  
+  return Object.values(state.groups).filter(group => {
+    if (!group.managed) {
+      return false;
+    }
+    
+    const lastActivity = group.lastActivityAt ? new Date(group.lastActivityAt).getTime() : 0;
+    const createdAt = new Date(group.createdAt).getTime();
+    const lastActiveTime = Math.max(lastActivity, createdAt);
+    
+    return lastActiveTime < cutoffMs;
+  });
+}
+
+/**
+ * Get all pending group setups
+ */
+export function listPendingGroupSetups(): PendingGroupSetup[] {
+  return Object.values(state.pendingGroupSetups);
+}
+
+// ============================================
+// PREMIUM FEATURES HELPERS
+// ============================================
+
+/**
+ * Check if a specific premium feature is enabled for a group
+ */
+export function hasFeature(chatId: string, feature: keyof PremiumFeatures): boolean {
+  const group = state.groups[chatId];
+  if (!group) {
+    return false;
+  }
+  return group.premiumFeatures?.[feature] ?? false;
+}
+
+/**
+ * Get all premium features for a group
+ */
+export function getGroupFeatures(chatId: string): PremiumFeatures {
+  const group = state.groups[chatId];
+  if (!group) {
+    return { ...DEFAULT_FREE_FEATURES };
+  }
+  return group.premiumFeatures ?? (group.subscriptionType === "premium" ? { ...DEFAULT_PREMIUM_FEATURES } : { ...DEFAULT_FREE_FEATURES });
+}
+
+/**
+ * Check if group has promo button feature (glass button under messages)
+ */
+export function hasPromoButton(chatId: string): boolean {
+  return hasFeature(chatId, "promoButton");
+}
+
+/**
+ * Check if group has detailed warnings feature
+ */
+export function hasDetailedWarnings(chatId: string): boolean {
+  return hasFeature(chatId, "detailedWarnings");
+}
+
+/**
+ * Check if group has advanced analytics feature
+ */
+export function hasAdvancedAnalytics(chatId: string): boolean {
+  return hasFeature(chatId, "advancedAnalytics");
+}
+
+/**
+ * Check if group has custom schedule feature (for filters)
+ */
+export function hasCustomSchedule(chatId: string): boolean {
+  return hasFeature(chatId, "customSchedule");
+}
+
+/**
+ * Check if group has vote mute feature
+ */
+export function hasVoteMute(chatId: string): boolean {
+  return hasFeature(chatId, "voteMute");
+}
+
+/**
+ * Check if group has advanced captcha feature (image/math)
+ */
+export function hasAdvancedCaptcha(chatId: string): boolean {
+  return hasFeature(chatId, "advancedCaptcha");
+}
+
+/**
+ * Check if group has extra silence windows (window2, window3)
+ */
+export function hasExtraSilenceWindows(chatId: string): boolean {
+  return hasFeature(chatId, "extraSilenceWindows");
+}
+
+/**
+ * Check if group has extra mandatory channels (up to 3)
+ */
+export function hasExtraMandatoryChannels(chatId: string): boolean {
+  return hasFeature(chatId, "extraMandatoryChannels");
+}
+
+/**
+ * Check if group has webhook feature
+ */
+export function hasWebhook(chatId: string): boolean {
+  return hasFeature(chatId, "webhook");
+}
+
+/**
+ * Check if group has priority processing (faster)
+ */
+export function hasPriorityProcessing(chatId: string): boolean {
+  return hasFeature(chatId, "priorityProcessing");
+}
+
+/**
+ * Check if group has auto warning feature
+ */
+export function hasAutoWarning(chatId: string): boolean {
+  return hasFeature(chatId, "autoWarning");
+}
+
+/**
+ * Check if group has auto delete feature
+ */
+export function hasAutoDelete(chatId: string): boolean {
+  return hasFeature(chatId, "autoDelete");
+}
+
+/**
+ * Check if group is premium
+ */
+export function isGroupPremium(chatId: string): boolean {
+  const group = state.groups[chatId];
+  return group?.subscriptionType === "premium";
+}
+
+/**
+ * Get max mandatory channels allowed for a group
+ * Free: 1, Premium: 3
+ */
+export function getMaxMandatoryChannels(chatId: string): number {
+  return hasExtraMandatoryChannels(chatId) ? 3 : 1;
 }

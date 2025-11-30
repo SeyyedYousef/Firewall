@@ -21,6 +21,7 @@ import {
 } from "@/features/dashboard/api.ts";
 import type { ManagedGroup, MandatoryMembershipSettings } from "@/features/dashboard/types.ts";
 import { classNames } from "@/css/classnames.ts";
+import { PremiumBadge } from "@/components/PremiumLock";
 
 import styles from "./GroupMandatoryMembershipPage.module.css";
 
@@ -446,6 +447,11 @@ export function GroupMandatoryMembershipPage() {
                 value={channelsInput}
                 onChange={handleChannelsChange}
               />
+              {group?.subscriptionType !== 'premium' && mandatoryChannels.length >= 1 && (
+                <Text weight="2" className={styles.premiumNotice}>
+                  <PremiumBadge /> Free plan: 1 channel max. Upgrade for up to 3 channels.
+                </Text>
+              )}
               <Text
                 weight="2"
                 className={classNames(styles.summaryText, mandatoryChannels.length === 0 && styles.summaryMuted)}

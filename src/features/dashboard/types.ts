@@ -18,6 +18,59 @@ export type GroupStatusRemoved = {
 
 export type GroupStatus = GroupStatusActive | GroupStatusExpired | GroupStatusRemoved;
 
+export type SubscriptionType = 'free' | 'premium';
+
+export interface PremiumFeatures {
+  promoButton: boolean;
+  detailedWarnings: boolean;
+  advancedAnalytics: boolean;
+  customSchedule: boolean;
+  voteMute: boolean;
+  advancedCaptcha: boolean;
+  extraSilenceWindows: boolean;
+  extraMandatoryChannels: boolean;
+  webhook: boolean;
+  priorityProcessing: boolean;
+  autoWarning: boolean;
+  autoDelete: boolean;
+}
+
+/**
+ * List of premium feature keys for UI display
+ */
+export const PREMIUM_FEATURE_KEYS: (keyof PremiumFeatures)[] = [
+  'customSchedule',
+  'voteMute',
+  'advancedCaptcha',
+  'extraSilenceWindows',
+  'extraMandatoryChannels',
+  'promoButton',
+  'detailedWarnings',
+  'advancedAnalytics',
+  'webhook',
+  'priorityProcessing',
+  'autoWarning',
+  'autoDelete',
+];
+
+/**
+ * Premium feature labels for UI
+ */
+export const PREMIUM_FEATURE_LABELS: Record<keyof PremiumFeatures, string> = {
+  promoButton: 'Promo Button',
+  detailedWarnings: 'Detailed Warnings',
+  advancedAnalytics: 'Advanced Analytics',
+  customSchedule: 'Custom Schedule',
+  voteMute: 'Vote Mute',
+  advancedCaptcha: 'Advanced Captcha',
+  extraSilenceWindows: 'Extra Silence Windows',
+  extraMandatoryChannels: 'Extra Channels (up to 3)',
+  webhook: 'Custom Webhook',
+  priorityProcessing: 'Priority Processing',
+  autoWarning: 'Auto Warning',
+  autoDelete: 'Auto Delete Messages',
+};
+
 export interface ManagedGroup {
   id: string;
   title: string;
@@ -26,6 +79,10 @@ export interface ManagedGroup {
   status: GroupStatus;
   canManage: boolean;
   inviteLink?: string | null;
+  // New fields for free/premium system
+  subscriptionType?: SubscriptionType;
+  adsEnabled?: boolean;
+  premiumFeatures?: PremiumFeatures;
 }
 
 export interface DashboardInsights {

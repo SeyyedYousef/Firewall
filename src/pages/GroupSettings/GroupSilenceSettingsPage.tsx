@@ -21,6 +21,7 @@ import {
 } from "@/features/dashboard/api.ts";
 import type { ManagedGroup, SilenceSettings, SilenceWindowSetting } from "@/features/dashboard/types.ts";
 import { classNames } from "@/css/classnames.ts";
+import { PremiumLock, PremiumLockIcon } from "@/components/PremiumLock";
 
 import styles from "./GroupSilenceSettingsPage.module.css";
 
@@ -385,12 +386,17 @@ export function GroupSilenceSettingsPage() {
               ? definition.summaryActive(windowSetting.start, windowSetting.end)
               : definition.summaryInactive;
 
-            return (
+            // PREMIUM FEATURE: window2 and window3 are premium-only
+            const isPremiumWindow = definition.key === "window2" || definition.key === "window3";
+            const isPremium = group?.subscriptionType === 'premium';
+            
+            const cardContent = (
               <Card key={definition.key} className={cardClass}>
                 <div className={styles.cardHeader}>
                   <div>
                     <Title level="3" className={styles.cardTitle}>
                       {definition.title}
+                      {isPremiumWindow && <PremiumLockIcon />}
                     </Title>
                     <Text weight="2" className={styles.cardHint}>
                       {definition.hint}
@@ -440,6 +446,22 @@ export function GroupSilenceSettingsPage() {
                 )}
               </Card>
             );
+
+            // Wrap premium windows with PremiumLock
+            if (isPremiumWindow && !isPremium) {
+              return (
+                <PremiumLock
+                  key={definition.key}
+                  isLocked={true}
+                  message="Extra quiet periods are a Premium feature. Upgrade to add more scheduled silence windows."
+                  onUpgradeClick={() => navigate(`/groups/${groupId}/upgrade`)}
+                >
+                  {cardContent}
+                </PremiumLock>
+              );
+            }
+
+            return cardContent;
           })}
         </div>
       </main>

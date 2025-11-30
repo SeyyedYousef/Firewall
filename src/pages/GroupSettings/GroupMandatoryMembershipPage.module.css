@@ -229,6 +229,19 @@
   bottom: 24px;
 }
 
+.premiumNotice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 8px;
+  color: #ffd700;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
 @media (min-width: 768px) {
   .body {
     padding: 32px 40px 140px;

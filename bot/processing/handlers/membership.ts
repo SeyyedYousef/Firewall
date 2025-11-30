@@ -12,6 +12,10 @@ import {
   grantTrialForGroup,
   markAdminPermission,
   upsertGroup,
+  createPendingGroupSetup,
+  canUserAddFreeGroup,
+  getUserFreeGroupCount,
+  recordGroupActivity,
 } from "../../state.js";
 import { recordInvite } from "./mandatoryMembership.js";
 
@@ -291,8 +295,8 @@ async function buildBotJoinActions(ctx: GroupChatContext): Promise<ProcessingAct
   }
 
   const chatId = ctx.chat.id.toString();
-  const settings = getPanelSettings();
-  const freeTrialDays = Number.isFinite(settings.freeTrialDays) && settings.freeTrialDays > 0 ? settings.freeTrialDays : 15;
+  const userId = ctx.from?.id?.toString() ?? null;
+  const groupTitle = (ctx.chat && "title" in ctx.chat ? ctx.chat.title : undefined) ?? `Group ${chatId}`;
 
   // Get current member count
   let membersCount = 0;
@@ -307,23 +311,20 @@ async function buildBotJoinActions(ctx: GroupChatContext): Promise<ProcessingAct
     }
   }
 
+  // Create pending group setup (waiting for user to choose free/premium)
+  if (userId) {
+    createPendingGroupSetup(chatId, groupTitle, userId);
+  }
+
+  // Update group info but don't activate yet (managed: false until user chooses)
   upsertGroup({
     chatId,
-    title: (ctx.chat && "title" in ctx.chat ? ctx.chat.title : undefined) ?? undefined,
-    managed: true,
+    title: groupTitle,
+    managed: false, // Will be set to true after user chooses
     adminRestricted: !hasAdminPermissions,
     adminWarningSentAt: hasAdminPermissions ? null : new Date().toISOString(),
-    creditDelta: freeTrialDays,
     membersCount: membersCount > 0 ? membersCount : undefined,
-    ownerId: ctx.from?.id?.toString() ?? null,
-  });
-
-  const trial = grantTrialForGroup({
-    groupId: chatId,
-    days: freeTrialDays,
-    title: (ctx.chat && "title" in ctx.chat ? ctx.chat.title : undefined) ?? undefined,
-    managed: true,
-    membersCount: membersCount > 0 ? membersCount : undefined,
+    ownerId: userId,
   });
 
   markAdminPermission(chatId, hasAdminPermissions, {
@@ -334,17 +335,90 @@ async function buildBotJoinActions(ctx: GroupChatContext): Promise<ProcessingAct
     ctx.processing.onboardingSent = true;
   }
 
-  const threadId = typeof ctx.message?.message_thread_id === "number" ? ctx.message.message_thread_id : undefined;
-
   const actions: ProcessingAction[] = [
     {
       type: "log",
       level: "info",
-      message: "bot added to group",
-      details: { chatId, trialExpiresAt: trial.expiresAt, trialDays: trial.appliedDays },
+      message: "bot added to group - awaiting subscription choice",
+      details: { chatId, userId, groupTitle },
     },
-    ...buildOnboardingActions(ctx),
   ];
+
+  // Send private message to user asking them to choose subscription type
+  if (userId) {
+    const freeGroupCount = getUserFreeGroupCount(userId);
+    const canAddFree = canUserAddFreeGroup(userId);
+    
+    const escapeHtml = (text: string) => text.replace(/[&<>"']/g, (char) => {
+      switch (char) {
+        case '&': return '&amp;';
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '"': return '&quot;';
+        case "'": return '&#39;';
+        default: return char;
+      }
+    });
+
+    const messageLines = [
+      `🎉 <b>Congratulations!</b>`,
+      ``,
+      `Firewall Bot has been added to <b>${escapeHtml(groupTitle)}</b>.`,
+      `Please choose your subscription type:`,
+      ``,
+      `🆓 <b>FREE</b> (with ads)`,
+      `   • All features included`,
+      `   • Occasional promotional messages`,
+      ``,
+      `⭐ <b>PREMIUM</b> (ad-free)`,
+      `   • All features included`,
+      `   • No advertisements ever`,
+      ``,
+      `💡 <i>You can upgrade to Premium anytime!</i>`,
+    ];
+
+    if (!canAddFree) {
+      messageLines.push(``);
+      messageLines.push(`⚠️ <b>Note:</b> You have reached the limit of 3 free groups.`);
+      messageLines.push(`To add this group for free, please upgrade an existing group to Premium first.`);
+    }
+
+    try {
+      await ctx.telegram.sendMessage(
+        userId,
+        messageLines.join('\n'),
+        {
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: '🆓 Free with Ads', callback_data: `group_setup:free:${chatId}` },
+                { text: '⭐ Get Premium', callback_data: `group_setup:premium:${chatId}` },
+              ],
+            ],
+          },
+        }
+      );
+      actions.push({
+        type: "log",
+        level: "info",
+        message: "subscription choice message sent to user",
+        details: { userId, chatId },
+      });
+    } catch (error) {
+      logger.warn("failed to send subscription choice message to user", {
+        userId,
+        chatId,
+        error,
+      });
+      // If we can't message the user, send a message to the group instead
+      actions.push({
+        type: "send_message",
+        text: `👋 Hello! To activate Firewall Bot, please start a chat with the bot and choose your subscription type.\n\n💡 Tip: Click @${ctx.botInfo.username} and press Start.`,
+        parseMode: "HTML",
+      });
+    }
+  }
 
   return ensureActions(actions);
 }

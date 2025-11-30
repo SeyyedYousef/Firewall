@@ -489,6 +489,12 @@ export function DashboardPage() {
                           <h3 className={styles.groupName}>{group.title}</h3>
                           <div className={styles.groupMetaRow}>
                             <span className={badgeClassName}>{badge.label}</span>
+                            {group.subscriptionType === 'free' && (
+                              <span className={styles.subscriptionBadgeFree}>🆓 Free</span>
+                            )}
+                            {group.subscriptionType === 'premium' && (
+                              <span className={styles.subscriptionBadgePremium}>⭐ Premium</span>
+                            )}
                           </div>
                         </div>
                       </div>

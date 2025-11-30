@@ -3,6 +3,7 @@ import type { GroupChatContext, ProcessingAction } from "../types.js";
 import { ensureActions, isGroupChat } from "../utils.js";
 import { logger } from "../../../server/utils/logger.js";
 import { loadGeneralSettingsByChatId } from "../../../server/db/groupSettingsRepository.js";
+import { hasVoteMute } from "../../state.js";
 
 const databaseAvailable = Boolean(process.env.DATABASE_URL);
 
@@ -51,10 +52,21 @@ async function handleVoteMuteCommand(ctx: GroupChatContext): Promise<ProcessingA
     return [];
   }
 
+  // PREMIUM FEATURE: Vote mute is only available for Premium groups
+  const chatIdStr = chatId.toString();
+  if (!hasVoteMute(chatIdStr)) {
+    return [{
+      type: "send_message",
+      text: "⭐ Vote mute is a Premium feature.\n\nUpgrade to Premium to use this feature!",
+      parseMode: "HTML",
+      autoDeleteSeconds: 10,
+    }];
+  }
+
   // Check if vote mute is enabled
   if (databaseAvailable) {
     try {
-      const generalSettings = await loadGeneralSettingsByChatId(chatId.toString());
+      const generalSettings = await loadGeneralSettingsByChatId(chatIdStr);
       if (!generalSettings.voteMuteEnabled) {
         return [{
           type: "send_message",
