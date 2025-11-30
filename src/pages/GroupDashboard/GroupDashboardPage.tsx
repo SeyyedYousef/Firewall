@@ -268,10 +268,9 @@ export function GroupDashboardPage() {
 
   if (loading && !group) {
     return (
-      <Placeholder
-        header={TEXT.loadingHeader}
-        description={TEXT.loadingDescription}
-      />
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
+        <div style={{ width: 24, height: 24, border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      </div>
     );
   }
 
@@ -290,10 +289,9 @@ export function GroupDashboardPage() {
 
   if (!group || !metrics) {
     return (
-      <Placeholder
-        header='Group unavailable'
-        description='This group could not be loaded. Please return to My Groups.'
-      />
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
+        <div style={{ width: 24, height: 24, border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      </div>
     );
   }
 

@@ -59,7 +59,6 @@ const SORT_OPTIONS = [
 type FilterId = typeof FILTERS[number]['id'];
 type SortId = typeof SORT_OPTIONS[number]['id'];
 
-const EXPIRING_THRESHOLD_DAYS = 5;
 const FAR_FUTURE_ORDER = 1_000_000;
 const titleCollator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
 
@@ -69,16 +68,6 @@ function membersLabel(count: number): string {
 
 function totalLabel(total: number): string {
   return formatNumber(total) + ' total';
-}
-
-function statusLabel(group: ManagedGroup): string {
-  if (group.status.kind === 'active') {
-    return TEXT.statusActive;
-  }
-  if (group.status.kind === 'expired') {
-    return TEXT.statusExpired;
-  }
-  return TEXT.statusRemoved;
 }
 
 function getDaysLeft(group: ManagedGroup): number | null {
@@ -115,8 +104,6 @@ function initialsFromTitle(title: string): string {
   return letters.join('');
 }
 
-type BadgeTone = 'badgeGreen' | 'badgeAmber' | 'badgeRed' | 'badgeMuted';
-
 type WidgetTone = 'widgetTonePrimary' | 'widgetToneWarning' | 'widgetToneSuccess' | 'widgetToneInfo';
 
 type WidgetConfig = {
@@ -125,29 +112,6 @@ type WidgetConfig = {
   value: string;
   tone: WidgetTone;
 };
-
-function resolveCreditBadge(group: ManagedGroup): { label: string; tone: BadgeTone } {
-  // Free groups are always green
-  if (group.subscriptionType !== 'premium') {
-    return { label: '🆓 Free Plan', tone: 'badgeGreen' };
-  }
-  
-  // Premium groups show subscription status
-  if (group.status.kind === 'active') {
-    const daysLeft = typeof group.status.daysLeft === 'number' ? group.status.daysLeft : 0;
-    if (daysLeft > 10) {
-      return { label: `⭐ ${daysLeft} days left`, tone: 'badgeGreen' };
-    }
-    if (daysLeft > EXPIRING_THRESHOLD_DAYS) {
-      return { label: `⭐ ${daysLeft} days left`, tone: 'badgeAmber' };
-    }
-    return { label: `⭐ ${daysLeft} days left`, tone: 'badgeRed' };
-  }
-  if (group.status.kind === 'expired') {
-    return { label: '⭐ Premium expired', tone: 'badgeRed' };
-  }
-  return { label: TEXT.removedLabel, tone: 'badgeMuted' };
-}
 
 type DashboardSummary = {
   total: number;
@@ -284,10 +248,6 @@ export function DashboardPage() {
     navigate(`/groups/${group.id}`, { state: { group } });
   };
 
-  const openAnalytics = (group: ManagedGroup) => {
-    console.info('[telemetry] analytics_requested', group.id);
-    navigate(`/groups/${group.id}/analytics`, { state: { group } });
-  };
 
   // Show empty state prominently at top when no groups
   if (!loading && isEmpty) {
@@ -438,150 +398,59 @@ export function DashboardPage() {
 
           {!loading && filteredGroups.length > 0 && (
             <div className={styles.groupList}>
-              {filteredGroups.map((group, index) => {
-                const badge = resolveCreditBadge(group);
-                const badgeClassName = [styles.badge, styles[badge.tone]].join(' ');
-                const status = statusLabel(group);
+              {filteredGroups.map((group) => {
                 const isPremium = group.subscriptionType === 'premium';
-                const daysLeft = getDaysLeft(group);
-                
-                // Only premium groups need renewal
-                const isRenewable = isPremium && (group.status.kind === 'expired' || (daysLeft !== null && daysLeft <= 7));
-                
-                // Determine next action based on subscription type
-                let nextAction = 'All good ✓';
-                if (group.status.kind === 'removed') {
-                  nextAction = 'Restore access';
-                } else if (!isPremium) {
-                  // Free groups don't expire - show upgrade option
-                  nextAction = 'Upgrade to Premium';
-                } else if (group.status.kind === 'expired') {
-                  nextAction = 'Renew subscription';
-                } else if (group.status.kind === 'active') {
-                  if (daysLeft !== null) {
-                    if (daysLeft <= 0) {
-                      nextAction = 'Renew subscription';
-                    } else if (daysLeft <= EXPIRING_THRESHOLD_DAYS) {
-                      nextAction = daysLeft === 1 ? 'Renew tomorrow' : `Renew in ${daysLeft} days`;
-                    } else {
-                      nextAction = 'All good ✓';
-                    }
-                  }
-                }
-                const cardClassName = [
-                  styles.groupCard,
-                  isPremium ? styles.groupCardPremium : styles.groupCardFree
-                ].join(' ');
+                const isRemoved = group.status.kind === 'removed';
                 
                 return (
                   <article 
                     key={group.id} 
-                    className={cardClassName}
-                    style={{ animationDelay: `${index * 0.05}s` }}
+                    className={`${styles.groupCard} ${isRemoved ? styles.groupCardRemoved : ''}`}
                   >
-                    {/* Premium/Free indicator strip */}
-                    <div className={isPremium ? styles.planStripPremium : styles.planStripFree}>
-                      {isPremium ? '⭐ Premium Plan' : '🆓 Free Plan'}
+                    <div className={styles.groupHeader}>
+                      <Avatar
+                        size={40}
+                        src={group.photoUrl ?? undefined}
+                        acronym={group.photoUrl ? undefined : initialsFromTitle(group.title)}
+                        alt={group.title}
+                      />
+                      <div className={styles.groupInfo}>
+                        <h3 className={styles.groupName}>{group.title}</h3>
+                        <span className={styles.groupMeta}>{membersLabel(group.membersCount)}</span>
+                      </div>
+                      <span className={`${styles.badge} ${isPremium ? styles.badgePremium : styles.badgeFree}`}>
+                        {isPremium ? '⭐' : '🆓'}
+                      </span>
                     </div>
 
-                    <header className={styles.groupHeader}>
-                      <div className={styles.groupIdentity}>
-                        <Avatar
-                          size={48}
-                          src={group.photoUrl ?? undefined}
-                          acronym={group.photoUrl ? undefined : (initialsFromTitle(group.title) ?? undefined)}
-                          alt={group.title}
-                        />
-                        <div className={styles.groupMeta}>
-                          <h3 className={styles.groupName}>{group.title}</h3>
-                          <div className={styles.groupMetaRow}>
-                            <span className={badgeClassName}>{badge.label}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </header>
-
-                    {(group.status.kind === 'expired' || group.status.kind === 'removed') && (
-                      <div className={styles.warningBanner}>
-                        <span className={styles.warningIcon}>⚠️</span>
-                        <p className={styles.warningText}>
-                          {group.status.kind === 'expired'
-                            ? 'Credits expired! Recharge within 7 days to keep settings.'
-                            : 'Bot was removed. Re-add within 7 days to preserve config.'}
-                        </p>
-                      </div>
+                    {isRemoved && (
+                      <p className={styles.removalHint}>Bot removed. Re-add to restore protection.</p>
                     )}
-
-                    {/* Free plan upgrade prompt */}
-                    {!isPremium && group.status.kind === 'active' && (
-                      <div className={styles.upgradeBanner}>
-                        <span className={styles.upgradeIcon}>✨</span>
-                        <p className={styles.upgradeText}>
-                          Unlock advanced features with Premium
-                        </p>
-                      </div>
-                    )}
-
-                    <div className={styles.groupDetails}>
-                      <div className={styles.detailItem}>
-                        <span className={styles.detailLabel}>{TEXT.detailNextAction}</span>
-                        <span className={styles.detailValue}>{nextAction}</span>
-                      </div>
-                      <div className={styles.detailItem}>
-                        <span className={styles.detailLabel}>{TEXT.detailStatus}</span>
-                        <span className={styles.detailValue}>{status}</span>
-                      </div>
-                      <div className={styles.detailItem}>
-                        <span className={styles.detailLabel}>{TEXT.detailMembers}</span>
-                        <span className={styles.detailValue}>{membersLabel(group.membersCount)}</span>
-                      </div>
-                    </div>
 
                     <div className={styles.groupActions}>
-                      {isRenewable && (
+                      <button
+                        type='button'
+                        className={`${styles.ctaButton} ${styles.ctaButtonPrimary}`}
+                        onClick={() => {
+                          hapticFeedback.impactOccurred('light');
+                          openGroup(group);
+                        }}
+                        disabled={isRemoved}
+                      >
+                        Open Dashboard
+                      </button>
+                      {!isPremium && (
                         <button
                           type='button'
-                          className={`${styles.ctaButton} ${styles.ctaButtonPrimary}`}
-                          onClick={() => {
-                             hapticFeedback.impactOccurred('light');
-                             openGroup(group);
-                          }}
-                        >
-                          ⭐ Get Premium
-                        </button>
-                      )}
-                      {!isPremium && !isRenewable && (
-                        <button
-                          type='button'
-                          className={`${styles.ctaButton} ${styles.ctaButtonUpgrade}`}
+                          className={styles.ctaButton}
                           onClick={() => {
                             hapticFeedback.impactOccurred('light');
                             navigate('/stars', { state: { focusGroupId: group.id } });
                           }}
                         >
-                          ⭐ Upgrade
+                          Upgrade
                         </button>
                       )}
-                      <button
-                        type='button'
-                        className={styles.ctaButton}
-                        onClick={() => {
-                          hapticFeedback.impactOccurred('light');
-                          openGroup(group);
-                        }}
-                      >
-                        ⚙️ {TEXT.manage}
-                      </button>
-                      <button
-                        type='button'
-                        className={`${styles.ctaButton} ${styles.ctaButtonSecondary}`}
-                        onClick={() => {
-                          hapticFeedback.impactOccurred('light');
-                          openAnalytics(group);
-                        }}
-                      >
-                        📊 {TEXT.analytics}
-                      </button>
                     </div>
                   </article>
                 );

@@ -56,9 +56,9 @@ const TEXT = {
   snackbarPurchase: (group: string, days: number) => `Credit extended for ${group} by ${days} days`,
   snackbarGift: (group: string, days: number) => `You extended ${group} by ${days} days`,
   badge: {
-    active: 'Active',
-    expiring: 'Expiring soon',
-    expired: 'Expired',
+    active: '⭐ Premium',
+    expiring: '⭐ Premium',
+    expired: '🆓 Free',
   },
   invoice: {
     prompt: 'Complete the payment in Telegram to finish checkout.',
@@ -301,7 +301,9 @@ export function StarsPage() {
   if (loading) {
     return (
       <div className={styles.page} dir='ltr'>
-        <Placeholder header={TEXT.loading} />
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+          <div className={styles.spinner} />
+        </div>
       </div>
     );
   }

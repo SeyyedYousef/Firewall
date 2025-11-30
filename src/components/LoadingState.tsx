@@ -1,4 +1,4 @@
-import { Placeholder, Spinner } from '@telegram-apps/telegram-ui';
+import { Spinner } from '@telegram-apps/telegram-ui';
 
 interface LoadingStateProps {
   message?: string;
@@ -7,43 +7,20 @@ interface LoadingStateProps {
 }
 
 export function LoadingState({ 
-  message = 'Loading...', 
-  size = 'm',
+  size = 's',
   fullScreen = false 
 }: LoadingStateProps) {
-  if (fullScreen) {
-    return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        padding: '20px'
-      }}>
-        <Spinner size={size} />
-        {message && (
-          <p style={{ marginTop: '16px', opacity: 0.7 }}>
-            {message}
-          </p>
-        )}
-      </div>
-    );
-  }
-
+  // Minimal loading indicator - just a spinner, no text
   return (
-    <Placeholder
-      description={
-        <div style={{ textAlign: 'center' }}>
-          <Spinner size={size} />
-          {message && (
-            <p style={{ marginTop: '16px', opacity: 0.7 }}>
-              {message}
-            </p>
-          )}
-        </div>
-      }
-    />
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: fullScreen ? '100vh' : '120px',
+      padding: '20px'
+    }}>
+      <Spinner size={size} />
+    </div>
   );
 }
 

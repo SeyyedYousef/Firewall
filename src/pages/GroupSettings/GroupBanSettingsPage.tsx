@@ -39,12 +39,16 @@ type ScheduleSectionProps = {
   title: string;
   value: TimeRangeSetting;
   disabled?: boolean;
+  isPremium?: boolean;
   onModeChange: (mode: TimeRangeMode) => void;
   onStartChange: (time: string) => void;
   onEndChange: (time: string) => void;
 };
 
-function ScheduleSection({ title, value, disabled, onModeChange, onStartChange, onEndChange }: ScheduleSectionProps) {
+function ScheduleSection({ title, value, disabled, isPremium = true, onModeChange, onStartChange, onEndChange }: ScheduleSectionProps) {
+  // Custom scheduling is Premium-only
+  const canUseCustom = isPremium;
+  
   return (
     <div className={styles.scheduleBlock} aria-disabled={disabled}>
       <Text weight="2" className={styles.fieldLabel}>
@@ -53,15 +57,17 @@ function ScheduleSection({ title, value, disabled, onModeChange, onStartChange, 
       <div className={styles.fieldControl}>
         <select
           className={styles.select}
-          value={value.mode}
+          value={!canUseCustom && value.mode === "custom" ? "all" : value.mode}
           disabled={disabled}
           onChange={(event) => onModeChange(event.target.value as TimeRangeMode)}
         >
           <option value="all">Active at all hours</option>
-          <option value="custom">Only during specific hours</option>
+          <option value="custom" disabled={!canUseCustom}>
+            {canUseCustom ? "Only during specific hours" : "Only during specific hours ⭐ Premium"}
+          </option>
         </select>
       </div>
-      {value.mode === "custom" && (
+      {value.mode === "custom" && canUseCustom && (
         <div className={styles.timeRange}>
           <label className={styles.timeItem}>
             <span>From</span>
@@ -484,6 +490,7 @@ export function GroupBanSettingsPage() {
                         <ScheduleSection
                           title="Execution window"
                           value={ruleSetting.schedule}
+                          isPremium={group?.subscriptionType === 'premium'}
                           onModeChange={(mode) =>
                             updateRuleSchedule(rule.key, { ...ruleSetting.schedule, mode })
                           }

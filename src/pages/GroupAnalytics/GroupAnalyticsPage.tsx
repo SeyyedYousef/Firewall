@@ -90,12 +90,12 @@ const WEEK_START_DAY = 6;
 const CHART_HEIGHT = 260;
 const LOCALE = "en-US";
 
-const RANGE_OPTIONS: Array<{ key: RangePreset; label: string; days?: number }> = [
+const RANGE_OPTIONS: Array<{ key: RangePreset; label: string; days?: number; premium?: boolean }> = [
   { key: "today", label: "Today", days: 1 },
   { key: "7d", label: `${toPersianDigits(7)} days`, days: 7 },
   { key: "30d", label: `${toPersianDigits(30)} days`, days: 30 },
-  { key: "90d", label: `${toPersianDigits(90)} days`, days: 90 },
-  { key: "custom", label: "Custom" },
+  { key: "90d", label: `${toPersianDigits(90)} days ⭐`, days: 90, premium: true },
+  { key: "custom", label: "Custom ⭐", premium: true },
 ];
 
 const MESSAGE_TYPE_LABELS: Record<AnalyticsMessageType, string> = {
@@ -1206,16 +1206,21 @@ export function GroupAnalyticsPage() {
       <div className={styles.filterRow}>
         <Text weight="2">Date range</Text>
         <div className={styles.rangeButtons}>
-          {RANGE_OPTIONS.map((option) => (
-            <Button
-              key={option.key}
-              mode={rangePreset === option.key ? "filled" : "outline"}
-              size="s"
-              onClick={() => setRangePreset(option.key)}
-            >
-              {option.label}
-            </Button>
-          ))}
+          {RANGE_OPTIONS.map((option) => {
+            const isPremium = group?.subscriptionType === 'premium';
+            const isLocked = option.premium && !isPremium;
+            return (
+              <Button
+                key={option.key}
+                mode={rangePreset === option.key ? "filled" : "outline"}
+                size="s"
+                disabled={isLocked}
+                onClick={() => !isLocked && setRangePreset(option.key)}
+              >
+                {option.label}
+              </Button>
+            );
+          })}
         </div>
         {rangePreset === "custom" && (
           <div className={styles.dateInputs}>
