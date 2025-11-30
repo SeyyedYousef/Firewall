@@ -14,7 +14,7 @@ type MissionCategory = "daily" | "weekly" | "monthly" | "general";
 
 type MissionIconKey =
   | "check"
-  | "renew"
+  | "stars"
   | "settings"
   | "chat"
   | "target"
@@ -22,7 +22,6 @@ type MissionIconKey =
   | "invite"
   | "shield"
   | "uptime"
-  | "stars"
   | "brain"
   | "trophy"
   | "link"
@@ -156,7 +155,7 @@ const MISSIONS: Record<MissionCategory, Mission[]> = {
     {
       id: "rookie-badge-progress",
       title: "Wear the Rookie badge",
-      description: "Equip the 🌟 Rookie badge in the marketplace to lock in your weekly reward.",
+      description: "Equip the 🌟 Rookie badge from the XP Store to lock in your weekly reward.",
       xp: 70,
       icon: "trophy",
     },
@@ -186,7 +185,7 @@ const MISSIONS: Record<MissionCategory, Mission[]> = {
     {
       id: "master-badge-progress",
       title: "Wear the Master badge",
-      description: "Equip the 🎯 Master badge from the marketplace to collect this reward.",
+      description: "Equip the 🎯 Master badge from the XP Store to collect this reward.",
       xp: 180,
       icon: "trophy",
     },
@@ -347,7 +346,7 @@ const REFERRAL_XP = 100;
 
 const ICON_PALETTE: Record<MissionIconKey, { primary: string; secondary: string }> = {
   check: { primary: "var(--app-color-accent-cyan)", secondary: "rgba(30, 162, 255, 0.28)" },
-  renew: { primary: "#38bdf8", secondary: "rgba(56, 189, 248, 0.28)" },
+  stars: { primary: "#fbbf24", secondary: "rgba(251, 191, 36, 0.28)" },
   settings: { primary: "#c084fc", secondary: "rgba(192, 132, 252, 0.24)" },
   chat: { primary: "#f97316", secondary: "rgba(249, 115, 22, 0.24)" },
   target: { primary: "#facc15", secondary: "rgba(250, 204, 21, 0.24)" },
@@ -355,7 +354,6 @@ const ICON_PALETTE: Record<MissionIconKey, { primary: string; secondary: string 
   invite: { primary: "#38ef7d", secondary: "rgba(56, 239, 125, 0.24)" },
   shield: { primary: "#5eead4", secondary: "rgba(94, 234, 212, 0.24)" },
   uptime: { primary: "#60a5fa", secondary: "rgba(96, 165, 250, 0.24)" },
-  stars: { primary: "#fbbf24", secondary: "rgba(251, 191, 36, 0.24)" },
   brain: { primary: "#a855f7", secondary: "rgba(168, 85, 247, 0.24)" },
   trophy: { primary: "#facc43", secondary: "rgba(250, 204, 67, 0.24)" },
   link: { primary: "#0ea5e9", secondary: "rgba(14, 165, 233, 0.24)" },
@@ -390,8 +388,8 @@ const TEXT = {
   monthlyBonusHint: "Lock in all monthly goals to collect the +1000 XP mastery bonus.",
   openStore: "Open XP store",
   copyReferral: "Copy invite link",
-  storeTitle: "XP Marketplace",
-  storeSubtitle: "Spend your XP on uptime bundles and exclusive badges.",
+  storeTitle: "XP Store",
+  storeSubtitle: "Spend your XP on Premium upgrades and exclusive badges.",
   storeRedeemLabel: "Redeem",
   storeRedeem: (title: string) => `Redeemed ${title}!`,
   storeInsufficient: "Not enough XP to redeem that reward yet.",

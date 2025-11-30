@@ -378,8 +378,8 @@ export function ProfilePage() {
             <div className={styles.actionsGrid}>
               {[
                 { key: "missions", label: "Open missions", hint: "Prioritize next objectives", to: "/missions" },
-                { key: "rewards", label: "Claim rewards", hint: "Spend collected XP", to: "/missions" },
-                { key: "activity", label: "Activity log", hint: "Purchases & escalations", to: "/stars" },
+                { key: "rewards", label: "XP Store", hint: "Get Premium upgrades & badges", to: "/missions" },
+                { key: "activity", label: "Activity log", hint: "Premium purchases & actions", to: "/stars" },
                 { key: "groups", label: "Manage groups", hint: "Jump to dashboard", to: "/groups" },
                 { key: "analytics", label: "Review analytics", hint: "Week-over-week trends", to: "/groups" },
                 { key: "giveaway", label: "Launch giveaway", hint: "Boost community energy", to: "/giveaway/create" },
@@ -418,7 +418,7 @@ export function ProfilePage() {
           <section className={styles.section}>
             <header className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>{TEXT.activityTitle}</h2>
-              <Text className={styles.sectionHint}>Signals from your latest missions, renewals, and automations.</Text>
+              <Text className={styles.sectionHint}>Signals from your latest missions, Premium purchases, and bot actions.</Text>
             </header>
             <div className={styles.activityList}>
               {activityItems.length > 0 ? (

@@ -817,15 +817,14 @@
 }
 
 .iconStub[data-kind="check"]::after { content: "C"; }
-.iconStub[data-kind="renew"]::after { content: "R"; }
-.iconStub[data-kind="settings"]::after { content: "S"; }
+.iconStub[data-kind="stars"]::after { content: "S"; }
+.iconStub[data-kind="settings"]::after { content: "T"; }
 .iconStub[data-kind="chat"]::after { content: "M"; }
 .iconStub[data-kind="target"]::after { content: "T"; }
 .iconStub[data-kind="gift"]::after { content: "G"; }
 .iconStub[data-kind="invite"]::after { content: "I"; }
 .iconStub[data-kind="shield"]::after { content: "D"; }
 .iconStub[data-kind="uptime"]::after { content: "U"; }
-.iconStub[data-kind="stars"]::after { content: "*"; }
 .iconStub[data-kind="brain"]::after { content: "B"; }
 .iconStub[data-kind="trophy"]::after { content: "#"; }
 .iconStub[data-kind="link"]::after { content: "L"; }
