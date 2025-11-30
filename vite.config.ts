@@ -27,6 +27,19 @@ export default defineConfig({
   ],
   build: {
     target: 'esnext',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Core vendor libraries
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-telegram': ['@telegram-apps/sdk-react', '@telegram-apps/telegram-ui'],
+          'vendor-ton': ['@tonconnect/ui-react'],
+          // Heavy libraries loaded on demand
+          'vendor-lottie': ['lottie-web'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 600,
   },
   publicDir: './public',
   server: {
