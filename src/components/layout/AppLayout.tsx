@@ -15,7 +15,7 @@ type TabDefinition = {
 
 const tabs: TabDefinition[] = [
   { key: 'groups', path: '/groups', label: 'My Groups', icon: (active) => <GroupsIcon active={active}/> },
-  { key: 'stars', path: '/stars', label: 'Renew Group', icon: (active) => <RenewIcon active={active}/> },
+  { key: 'stars', path: '/stars', label: 'Get Premium', icon: (active) => <RenewIcon active={active}/> },
   { key: 'missions', path: '/missions', label: 'Missions', icon: (active) => <MissionIcon active={active}/> },
   { key: 'profile', path: '/profile', label: 'Profile', icon: (active) => <UserIcon active={active}/> },
 ];

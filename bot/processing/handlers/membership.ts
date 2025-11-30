@@ -12,8 +12,7 @@ import {
   grantTrialForGroup,
   markAdminPermission,
   upsertGroup,
-  createPendingGroupSetup,
-  canUserAddFreeGroup,
+  addUserFreeGroup,
   getUserFreeGroupCount,
   recordGroupActivity,
 } from "../../state.js";
@@ -311,21 +310,22 @@ async function buildBotJoinActions(ctx: GroupChatContext): Promise<ProcessingAct
     }
   }
 
-  // Create pending group setup (waiting for user to choose free/premium)
-  if (userId) {
-    createPendingGroupSetup(chatId, groupTitle, userId);
-  }
-
-  // Update group info but don't activate yet (managed: false until user chooses)
+  // AUTO-ACTIVATE as FREE by default (no choice needed)
+  // Update group info and activate immediately
   upsertGroup({
     chatId,
     title: groupTitle,
-    managed: false, // Will be set to true after user chooses
+    managed: true, // Immediately active as FREE
     adminRestricted: !hasAdminPermissions,
     adminWarningSentAt: hasAdminPermissions ? null : new Date().toISOString(),
     membersCount: membersCount > 0 ? membersCount : undefined,
     ownerId: userId,
   });
+
+  // Register as free group for this user
+  if (userId) {
+    addUserFreeGroup(userId, chatId);
+  }
 
   markAdminPermission(chatId, hasAdminPermissions, {
     warningDate: hasAdminPermissions ? null : new Date(),
@@ -339,16 +339,17 @@ async function buildBotJoinActions(ctx: GroupChatContext): Promise<ProcessingAct
     {
       type: "log",
       level: "info",
-      message: "bot added to group - awaiting subscription choice",
+      message: "bot added to group - auto-activated as FREE",
       details: { chatId, userId, groupTitle },
     },
   ];
 
-  // Send private message to user asking them to choose subscription type
+  // Send onboarding messages to the group
+  const onboardingActions = buildOnboardingActions(ctx);
+  actions.push(...onboardingActions);
+
+  // Send a single comprehensive private message to the user who added the bot
   if (userId) {
-    const freeGroupCount = getUserFreeGroupCount(userId);
-    const canAddFree = canUserAddFreeGroup(userId);
-    
     const escapeHtml = (text: string) => text.replace(/[&<>"']/g, (char) => {
       switch (char) {
         case '&': return '&amp;';
@@ -360,63 +361,82 @@ async function buildBotJoinActions(ctx: GroupChatContext): Promise<ProcessingAct
       }
     });
 
-    const messageLines = [
-      `🎉 <b>Congratulations!</b>`,
-      ``,
-      `Firewall Bot has been added to <b>${escapeHtml(groupTitle)}</b>.`,
-      `Please choose your subscription type:`,
-      ``,
-      `🆓 <b>FREE</b> (with ads)`,
-      `   • All features included`,
-      `   • Occasional promotional messages`,
-      ``,
-      `⭐ <b>PREMIUM</b> (ad-free)`,
-      `   • All features included`,
-      `   • No advertisements ever`,
-      ``,
-      `💡 <i>You can upgrade to Premium anytime!</i>`,
-    ];
+    const freeGroupCount = getUserFreeGroupCount(userId);
 
-    if (!canAddFree) {
-      messageLines.push(``);
-      messageLines.push(`⚠️ <b>Note:</b> You have reached the limit of 3 free groups.`);
-      messageLines.push(`To add this group for free, please upgrade an existing group to Premium first.`);
-    }
+    const privateMessage = [
+      `✅ <b>Successfully Added!</b>`,
+      ``,
+      `Firewall Bot is now protecting <b>${escapeHtml(groupTitle)}</b>`,
+      ``,
+      `━━━━━━━━━━━━━━━━━`,
+      `📋 <b>Current Status:</b> 🆓 Free Plan`,
+      `━━━━━━━━━━━━━━━━━`,
+      ``,
+      `<b>🆓 Free Plan Features:</b>`,
+      `• Anti-spam protection`,
+      `• User warnings & bans`,
+      `• Welcome messages`,
+      `• Basic moderation tools`,
+      `• Occasional promotional messages`,
+      ``,
+      `<b>⭐ Premium Plan Features:</b>`,
+      `• Everything in Free, plus:`,
+      `• Vote mute system`,
+      `• Auto-warning penalties`,
+      `• Multiple silence windows`,
+      `• Up to 3 mandatory channels`,
+      `• Advanced analytics`,
+      `• <b>No advertisements</b>`,
+      ``,
+      `━━━━━━━━━━━━━━━━━`,
+      `💎 Want to unlock all features?`,
+      `Go to <b>Get Premium</b> in the Mini App`,
+      `to upgrade your group!`,
+      `━━━━━━━━━━━━━━━━━`,
+      ``,
+      `📊 Your free groups: ${freeGroupCount}/3`,
+    ].join('\n');
 
     try {
-      await ctx.telegram.sendMessage(
-        userId,
-        messageLines.join('\n'),
-        {
-          parse_mode: 'HTML',
-          reply_markup: {
+      const miniAppUrl = process.env.MINI_APP_URL;
+      const keyboard = miniAppUrl 
+        ? {
             inline_keyboard: [
-              [
-                { text: '🆓 Free with Ads', callback_data: `group_setup:free:${chatId}` },
-                { text: '⭐ Get Premium', callback_data: `group_setup:premium:${chatId}` },
-              ],
+              [{ text: '🚀 Open Mini App', url: miniAppUrl }],
+              [{ text: '⭐ Get Premium', url: miniAppUrl }],
             ],
-          },
-        }
-      );
+          }
+        : undefined;
+
+      await ctx.telegram.sendMessage(userId, privateMessage, {
+        parse_mode: 'HTML',
+        reply_markup: keyboard,
+      });
+
       actions.push({
         type: "log",
         level: "info",
-        message: "subscription choice message sent to user",
+        message: "welcome message sent to user",
         details: { userId, chatId },
       });
     } catch (error) {
-      logger.warn("failed to send subscription choice message to user", {
+      logger.warn("failed to send welcome message to user (they may not have started the bot)", {
         userId,
         chatId,
         error,
       });
-      // If we can't message the user, send a message to the group instead
-      actions.push({
-        type: "send_message",
-        text: `👋 Hello! To activate Firewall Bot, please start a chat with the bot and choose your subscription type.\n\n💡 Tip: Click @${ctx.botInfo.username} and press Start.`,
-        parseMode: "HTML",
-      });
+    }
+  }
+
+  // Persist to database
+  if (databaseAvailable && userId) {
+    try {
+      const { setGroupStatus, setGroupOwner } = await import("../../../server/db/mutateRepository.js");
+      await setGroupStatus(chatId, "active", { title: groupTitle });
+      await setGroupOwner(chatId, userId, { title: groupTitle });
+      logger.info("group auto-activated as free in database", { chatId, userId });
+    } catch (error) {
+      logger.warn("failed to persist free group to database", { chatId, error });
     }
   }
 

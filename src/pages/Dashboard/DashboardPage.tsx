@@ -19,8 +19,8 @@ const TEXT = {
   errorHeader: 'Unable to load groups',
   errorDescription: 'Please try again in a moment.',
   retry: 'Retry',
-  expiringSectionTitle: 'Renewal radar',
-  expiredLabel: 'Credits expired',
+  expiringSectionTitle: 'Attention needed',
+  expiredLabel: 'Plan expired',
   removedLabel: 'Removed from group',
   manage: 'Open dashboard',
   analytics: 'View stats',
@@ -33,7 +33,7 @@ const TEXT = {
   sortExpiration: 'Soonest expiry',
   sortAlphabetical: 'Alphabetical',
   sortMembers: 'Members',
-  overviewDescription: 'Quick snapshot of your groups - keep an eye on renewals, activity, and growth at a glance.',
+  overviewDescription: 'Quick snapshot of your groups - monitor activity, growth, and subscription status.',
   sectionDescription: 'Use filters to spotlight the groups that need your attention.',
   statusActive: 'Active',
   statusExpired: 'Expired',
@@ -46,6 +46,8 @@ const TEXT = {
 const FILTERS = [
   { id: 'all', label: TEXT.filterAll },
   { id: 'active', label: TEXT.filterActive },
+  { id: 'premium', label: '⭐ Premium' },
+  { id: 'free', label: '🆓 Free' },
   { id: 'expiring', label: TEXT.filterExpiring },
   { id: 'expired', label: TEXT.filterExpired },
   { id: 'removed', label: TEXT.filterRemoved },
@@ -221,12 +223,22 @@ export function DashboardPage() {
     const counts: Record<FilterId, number> = {
       all: groups.length,
       active: 0,
+      premium: 0,
+      free: 0,
       expiring: 0,
       expired: 0,
       removed: 0,
     };
 
     groups.forEach((group) => {
+      // Count by subscription type
+      if (group.subscriptionType === 'premium') {
+        counts.premium += 1;
+      } else {
+        counts.free += 1;
+      }
+
+      // Count by status
       if (group.status.kind === 'active') {
         counts.active += 1;
         if (isExpiringSoonGroup(group)) {
@@ -250,6 +262,10 @@ export function DashboardPage() {
       switch (activeFilter) {
         case 'active':
           return group.status.kind === 'active';
+        case 'premium':
+          return group.subscriptionType === 'premium';
+        case 'free':
+          return group.subscriptionType !== 'premium';
         case 'expiring':
           return isExpiringSoonGroup(group);
         case 'expired':
@@ -301,6 +317,15 @@ export function DashboardPage() {
     console.info('[telemetry] analytics_requested', group.id);
     navigate(`/groups/${group.id}/analytics`, { state: { group } });
   };
+
+  // Show empty state prominently at top when no groups
+  if (!loading && isEmpty) {
+    return (
+      <div className={styles.page} dir='ltr'>
+        <EmptyState inviteUrl={dashboardConfig.inviteLink || ''} />
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page} dir='ltr'>
@@ -436,12 +461,6 @@ export function DashboardPage() {
             </div>
           )}
 
-          {!loading && isEmpty && (
-            <div className={styles.emptyState}>
-              <EmptyState inviteUrl={dashboardConfig.inviteLink || ''} />
-            </div>
-          )}
-
           {!loading && noMatches && (
             <Placeholder header='No groups found' description='Try adjusting your filters or keywords.' />
           )}
@@ -459,24 +478,35 @@ export function DashboardPage() {
                 if (group.status.kind === 'removed') {
                   nextAction = 'Restore access';
                 } else if (group.status.kind === 'expired') {
-                  nextAction = 'Renew now';
+                  nextAction = 'Upgrade now';
                 } else if (group.status.kind === 'active') {
                   if (daysLeft !== null) {
                     if (daysLeft <= 0) {
-                      nextAction = 'Renew now';
+                      nextAction = 'Upgrade now';
                     } else if (daysLeft <= EXPIRING_THRESHOLD_DAYS) {
-                      nextAction = daysLeft === 1 ? 'Renew within a day' : `Renew within ${daysLeft} days`;
+                      nextAction = daysLeft === 1 ? 'Extend within a day' : `Extend within ${daysLeft} days`;
                     } else {
                       nextAction = `${daysLeft} days remaining`;
                     }
                   }
                 }
+                const isPremium = group.subscriptionType === 'premium';
+                const cardClassName = [
+                  styles.groupCard,
+                  isPremium ? styles.groupCardPremium : styles.groupCardFree
+                ].join(' ');
+                
                 return (
                   <article 
                     key={group.id} 
-                    className={styles.groupCard}
+                    className={cardClassName}
                     style={{ animationDelay: `${index * 0.05}s` }}
                   >
+                    {/* Premium/Free indicator strip */}
+                    <div className={isPremium ? styles.planStripPremium : styles.planStripFree}>
+                      {isPremium ? '⭐ Premium Plan' : '🆓 Free Plan'}
+                    </div>
+
                     <header className={styles.groupHeader}>
                       <div className={styles.groupIdentity}>
                         <Avatar
@@ -489,12 +519,6 @@ export function DashboardPage() {
                           <h3 className={styles.groupName}>{group.title}</h3>
                           <div className={styles.groupMetaRow}>
                             <span className={badgeClassName}>{badge.label}</span>
-                            {group.subscriptionType === 'free' && (
-                              <span className={styles.subscriptionBadgeFree}>🆓 Free</span>
-                            )}
-                            {group.subscriptionType === 'premium' && (
-                              <span className={styles.subscriptionBadgePremium}>⭐ Premium</span>
-                            )}
                           </div>
                         </div>
                       </div>
@@ -502,11 +526,21 @@ export function DashboardPage() {
 
                     {(group.status.kind === 'expired' || group.status.kind === 'removed') && (
                       <div className={styles.warningBanner}>
-                        <span className={styles.warningIcon}>!</span>
+                        <span className={styles.warningIcon}>⚠️</span>
                         <p className={styles.warningText}>
                           {group.status.kind === 'expired'
-                            ? 'This group\'s credits have expired. Recharge within 7 days to keep your settings.'
-                            : 'Firewall Bot was removed from this group. Re-add it within 7 days to preserve the configuration.'}
+                            ? 'Credits expired! Recharge within 7 days to keep settings.'
+                            : 'Bot was removed. Re-add within 7 days to preserve config.'}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Free plan upgrade prompt */}
+                    {!isPremium && group.status.kind === 'active' && (
+                      <div className={styles.upgradeBanner}>
+                        <span className={styles.upgradeIcon}>✨</span>
+                        <p className={styles.upgradeText}>
+                          Unlock advanced features with Premium
                         </p>
                       </div>
                     )}
@@ -533,10 +567,22 @@ export function DashboardPage() {
                           className={`${styles.ctaButton} ${styles.ctaButtonPrimary}`}
                           onClick={() => {
                              hapticFeedback.impactOccurred('light');
-                             openGroup(group); // Usually renew is inside manage, or we could add a specific renew route
+                             openGroup(group);
                           }}
                         >
-                          Renew subscription
+                          ⭐ Get Premium
+                        </button>
+                      )}
+                      {!isPremium && !isRenewable && (
+                        <button
+                          type='button'
+                          className={`${styles.ctaButton} ${styles.ctaButtonUpgrade}`}
+                          onClick={() => {
+                            hapticFeedback.impactOccurred('light');
+                            navigate(`/groups/${group.id}/renew`);
+                          }}
+                        >
+                          ⭐ Upgrade
                         </button>
                       )}
                       <button
@@ -547,7 +593,7 @@ export function DashboardPage() {
                           openGroup(group);
                         }}
                       >
-                        {TEXT.manage}
+                        ⚙️ {TEXT.manage}
                       </button>
                       <button
                         type='button'
@@ -557,7 +603,7 @@ export function DashboardPage() {
                           openAnalytics(group);
                         }}
                       >
-                        {TEXT.analytics}
+                        📊 {TEXT.analytics}
                       </button>
                     </div>
                   </article>

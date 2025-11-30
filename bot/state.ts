@@ -17,9 +17,9 @@ const LOCK_RETRY_DELAY_MS = 40;
 const LOCK_STALE_THRESHOLD_MS = 30_000;
 
 export const DEFAULT_ONBOARDING_MESSAGES: readonly string[] = [
-  "<b>Firewall Bot</b> just joined to keep your community safe with smart moderation, security locks, and automated actions.",
-  "Your free trial is now active for <b>{trial_days}</b> days. Use the owner panel to explore every feature during this period.",
-  "Please promote <b>Firewall Bot</b> to Administrator with permissions to manage chat, delete messages, ban users, and manage video chats so it can enforce the rules.",
+  "🛡️ <b>Firewall Bot is now active!</b>\n\nYour group is protected with smart moderation, security locks, and automated actions.",
+  "⚙️ <b>Setup Required:</b>\nPlease promote Firewall Bot to <b>Administrator</b> with permissions to:\n• Delete messages\n• Ban users\n• Manage chat",
+  "💡 <b>Pro Tip:</b> For better performance and to avoid conflicts, consider removing other moderation bots from this group.",
 ];
 export const EMPTY_PROMO_ANALYTICS = Object.freeze({
   impressions: 0,

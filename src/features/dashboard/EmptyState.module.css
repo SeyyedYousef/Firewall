@@ -1,29 +1,47 @@
 @import url('../../css/theme.css');
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
 }
 
 .wrapper {
   display: flex;
   justify-content: center;
-  align-items: center;
-  padding: var(--app-spacing-xl) 0;
+  align-items: flex-start;
+  padding: var(--app-spacing-md) 0;
   animation: fadeIn 0.6s ease-out;
 }
 
-.placeholder {
+.container {
   width: 100%;
-  border-radius: var(--app-radius-md);
-  background: radial-gradient(circle at top, rgba(30, 162, 255, 0.12) 0%, rgba(8, 12, 22, 0.92) 60%);
-  box-shadow: var(--app-shadow-ambient);
-  padding: 0 var(--app-spacing-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--app-spacing-md);
+  padding: var(--app-spacing-lg);
+  border-radius: 24px;
+  background: linear-gradient(135deg, 
+    rgba(30, 162, 255, 0.12) 0%,
+    rgba(59, 130, 246, 0.08) 30%,
+    rgba(13, 20, 36, 0.95) 70%
+  );
+  border: 1px solid rgba(30, 162, 255, 0.2);
+  box-shadow: 
+    0 10px 40px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(30, 162, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .animationContainer {
-  width: 220px;
-  margin: 0 auto var(--app-spacing-md);
+  width: 180px;
+  height: 180px;
+  animation: float 3s ease-in-out infinite;
 }
 
 .loader {
@@ -37,20 +55,84 @@
 }
 
 @keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--app-spacing-sm);
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #ffffff 0%, rgba(30, 162, 255, 0.9) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .description {
   text-align: center;
-  color: var(--app-color-text-secondary);
+  color: rgba(245, 247, 255, 0.75);
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 320px;
+}
+
+.features {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--app-spacing-sm);
+  margin-top: var(--app-spacing-xs);
+}
+
+.featureItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: rgba(30, 162, 255, 0.15);
+  border: 1px solid rgba(30, 162, 255, 0.25);
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.featureIcon {
+  font-size: 16px;
 }
 
 .cta {
   margin-top: var(--app-spacing-sm);
+  background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%) !important;
+  border-radius: 14px !important;
+  font-weight: 700 !important;
+  font-size: 15px !important;
+  box-shadow: 
+    0 8px 24px rgba(0, 122, 255, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  transition: all 0.3s ease !important;
+}
+
+.cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 12px 32px rgba(0, 122, 255, 0.5),
+    0 0 40px rgba(0, 122, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+}
+
+.hint {
+  font-size: 12px;
+  color: rgba(245, 247, 255, 0.5);
+  text-align: center;
 }
 
