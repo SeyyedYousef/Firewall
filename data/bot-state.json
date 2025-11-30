@@ -23,13 +23,13 @@
     }
   },
   "settings": {
-    "freeTrialDays": 15,
+    "freeTrialDays": 0,
     "monthlyStars": 10,
     "welcomeMessages": [],
     "onboardingMessages": [
-      "<b>Firewall Bot</b> just joined to keep your community safe with smart moderation, security locks, and automated actions.",
-      "Your free trial is now active for <b>{trial_days}</b> days. Use the owner panel to explore every feature during this period.",
-      "Please promote <b>Firewall Bot</b> to Administrator with permissions to manage chat, delete messages, ban users, and manage video chats so it can enforce the rules."
+      "🛡️ <b>Firewall Bot is now active!</b>\n\nYour group is protected with smart moderation, security locks, and automated actions.",
+      "⚙️ <b>Setup Required:</b>\nPlease promote Firewall Bot to <b>Administrator</b> with permissions to:\n• Delete messages\n• Ban users\n• Manage chat",
+      "💡 <b>Pro Tip:</b> For better performance and to avoid conflicts, consider removing other moderation bots from this group."
     ],
     "gpidHelpText": "Share the group ID or forward a message so the bot can detect it automatically.",
     "buttonLabels": {

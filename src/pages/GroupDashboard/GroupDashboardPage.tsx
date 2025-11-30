@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Avatar, Button, IconButton, Placeholder, Snackbar, Switch } from '@telegram-apps/telegram-ui';
+import { Avatar, Button, IconButton, Placeholder, Snackbar } from '@telegram-apps/telegram-ui';
 
 import { GroupMenuDrawer } from '@/features/dashboard/GroupMenuDrawer.tsx';
-import { fetchGroupDetails, updateGroupLockStatus } from '@/features/dashboard/api.ts';
-import type { GroupBotAction, GroupDetail, GroupWarning, ManagedGroup } from '@/features/dashboard/types.ts';
-import { formatNumber, formatSignedPercent } from '@/utils/format.ts';
+import { fetchGroupDetails } from '@/features/dashboard/api.ts';
+import type { GroupDetail, GroupWarning, ManagedGroup } from '@/features/dashboard/types.ts';
+import { formatNumber } from '@/utils/format.ts';
 
 import styles from './GroupDashboardPage.module.css';
 
@@ -18,23 +18,16 @@ const TEXT = {
   errorDescription: 'Please try again or return to My Groups.',
   retry: 'Retry',
   heroSubline: 'Quick overview',
-  lockTitle: 'Lock group',
-  analyticsTitle: 'Analytics',
-  settingsTitle: 'Open settings',
-  menuActionTitle: 'Open quick menu',
-  warningsTitle: 'Recent warnings',
-  warningsHint: 'Last automated interventions',
-  warningsEmpty: 'No warnings in the last 7 days.',
-  actionsTitle: 'Latest bot actions',
-  actionsHint: 'Firewall automation log',
-  actionsEmpty: 'No automated actions recorded in the last 7 days.',
+  settingsTitle: 'Settings',
+  menuActionTitle: 'Quick menu',
+  warningsTitle: 'Recent Activity',
+  warningsHint: 'Bot actions and interventions',
+  warningsEmpty: 'No activity in the last 7 days.',
   removedTitle: 'Bot is not an admin here',
   removedDescription: 'Re-add the bot to restore automations and protections.',
-  toastLockEnabled: 'Group locked. Members cannot send messages.',
-  toastLockDisabled: 'Group unlocked. Members can chat again.',
   quickMenu: 'Open modules',
-  menuGuidance: 'Tap the menu button to open settings and choose the section you need.',
-  viewMore: 'View all warnings',
+  menuGuidance: 'Tap menu to configure settings.',
+  viewMore: 'View all',
 };
 
 type LocationState = {
@@ -81,8 +74,15 @@ function resolveCreditBadge(group: ManagedGroup, remainingMs: number, isExpired:
   if (group.status.kind === 'removed') {
     return { label: 'Removed', className: styles.statusBadgeDanger || '' };
   }
+  
+  // Free groups don't expire
+  if (group.subscriptionType !== 'premium') {
+    return { label: '🆓 Free Plan', className: styles.statusBadge || '' };
+  }
+  
+  // Premium group expired
   if (isExpired || group.status.kind === 'expired') {
-    return { label: 'Expired', className: styles.statusBadgeDanger || '' };
+    return { label: '⭐ Premium Expired', className: styles.statusBadgeDanger || '' };
   }
 
   const daysLeft = group.status.kind === 'active'
@@ -92,12 +92,12 @@ function resolveCreditBadge(group: ManagedGroup, remainingMs: number, isExpired:
     : Math.max(0, Math.ceil(remainingMs / DAY_MS));
 
   if (daysLeft <= 5) {
-    return { label: `Expiring in ${daysLeft} days`, className: styles.statusBadgeDanger || '' };
+    return { label: `⭐ Premium: ${daysLeft} days`, className: styles.statusBadgeDanger || '' };
   }
   if (daysLeft <= 10) {
-    return { label: `Expiring in ${daysLeft} days`, className: styles.statusBadgeWarning || '' };
+    return { label: `⭐ Premium: ${daysLeft} days`, className: styles.statusBadgeWarning || '' };
   }
-  return { label: `Credit: ${daysLeft} days left`, className: styles.statusBadge || '' };
+  return { label: `⭐ Premium: ${daysLeft} days`, className: styles.statusBadge || '' };
 }
 
 function trendClass(direction: 'up' | 'down' | 'flat'): string {
@@ -120,7 +120,6 @@ export function GroupDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [locked, setLocked] = useState(false);
   const [toast, setToast] = useState('');
 
   useEffect(() => {
@@ -185,7 +184,6 @@ export function GroupDashboardPage() {
   const group = detail?.group ?? state.group;
   const metrics = detail?.metrics;
   const warnings = detail?.warnings ?? [];
-  const actions = detail?.botActions ?? [];
 
   const creditBadge = group && metrics
     ? resolveCreditBadge(group, metrics.remainingMs, metrics.isExpired)
@@ -195,49 +193,31 @@ export function GroupDashboardPage() {
     if (!metrics) {
       return [];
     }
-    const membersDelta = formatSignedPercent(metrics.membersTrend.direction, metrics.membersTrend.percent);
-    const messagesDelta = formatSignedPercent(metrics.messagesTrend.direction, metrics.messagesTrend.percent);
-    const newcomersDelta = formatSignedPercent(metrics.newMembersTrend.direction, metrics.newMembersTrend.percent);
 
     return [
       {
         key: 'members',
-        label: 'Members',
+        label: 'Total Members',
         value: formatNumber(metrics.membersTotal),
-        delta: `${membersDelta} vs yesterday`,
-        tone: trendClass(metrics.membersTrend.direction),
+        delta: metrics.newMembersToday > 0 ? `+${metrics.newMembersToday} today` : 'No change today',
+        tone: trendClass(metrics.newMembersToday > 0 ? 'up' : 'flat'),
       },
       {
         key: 'messages',
-        label: "Today's messages",
+        label: "Today's Messages",
         value: formatNumber(metrics.messagesToday),
-        delta: `${messagesDelta} vs yesterday`,
-        tone: trendClass(metrics.messagesTrend.direction),
+        delta: metrics.messagesToday > 0 ? 'Active chat' : 'Quiet day',
+        tone: trendClass(metrics.messagesToday > 0 ? 'up' : 'flat'),
       },
       {
         key: 'newMembers',
-        label: 'New members',
+        label: 'New Members Today',
         value: formatNumber(metrics.newMembersToday),
-        delta: `${newcomersDelta} vs yesterday`,
-        tone: trendClass(metrics.newMembersTrend.direction),
+        delta: metrics.newMembersToday > 0 ? 'Growing' : 'Stable',
+        tone: trendClass(metrics.newMembersToday > 0 ? 'up' : 'flat'),
       },
     ];
   }, [metrics]);
-
-  const toggleLock = async (next?: boolean) => {
-    if (!groupId) {
-      return;
-    }
-    const nextState = typeof next === 'boolean' ? next : !locked;
-    try {
-      await updateGroupLockStatus(groupId, nextState);
-      setLocked(nextState);
-      setToast(nextState ? TEXT.toastLockEnabled : TEXT.toastLockDisabled);
-    } catch (error) {
-      console.error('[Lock] Failed:', error);
-      setToast('Failed to update lock status');
-    }
-  };
 
   const handleOpenMenu = () => {
     if (!groupId) {
@@ -253,14 +233,6 @@ export function GroupDashboardPage() {
     }
 
     navigate(`/groups/${groupId}/settings/general`, { state: { group } });
-  };
-
-  const handleAnalytics = () => {
-    if (!groupId) {
-      return;
-    }
-
-    navigate(`/groups/${groupId}/analytics`, { state: { group } });
   };
 
   const handleRetry = useCallback(() => {
@@ -377,41 +349,17 @@ export function GroupDashboardPage() {
         <div className={styles.quickActions}>
           <button
             type='button'
-            className={`${styles.actionButton} ${styles.actionToggle}`}
-            onClick={() => {
-              void toggleLock();
-            }}
+            className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
+            onClick={handleOpenSettings}
           >
-            <span>{TEXT.lockTitle}</span>
-            <Switch
-              checked={locked}
-              onChange={(event) => {
-                event.stopPropagation();
-                void toggleLock(event.target.checked);
-              }}
-              onClick={(event) => event.stopPropagation()}
-            />
+            ⚙️ {TEXT.settingsTitle}
           </button>
           <button
             type='button'
             className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
             onClick={handleOpenMenu}
           >
-            {TEXT.menuActionTitle}
-          </button>
-          <button
-            type='button'
-            className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
-            onClick={handleAnalytics}
-          >
-            {TEXT.analyticsTitle}
-          </button>
-          <button
-            type='button'
-            className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
-            onClick={handleOpenSettings}
-          >
-            {TEXT.settingsTitle}
+            📋 {TEXT.menuActionTitle}
           </button>
         </div>
       </section>
@@ -447,30 +395,6 @@ export function GroupDashboardPage() {
         )}
       </section>
 
-      <section className={styles.section}>
-        <header className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>{TEXT.actionsTitle}</h2>
-          <span className={styles.sectionHint}>{TEXT.actionsHint}</span>
-        </header>
-        {actions.length === 0 && (
-          <div className={styles.emptyItem}>{TEXT.actionsEmpty}</div>
-        )}
-        {actions.length > 0 && (
-          <div className={styles.list}>
-            {actions.slice(0, 5).map((action: GroupBotAction) => (
-              <div key={action.id} className={styles.listItem}>
-                <div className={styles.listItemContent}>
-                  <p className={styles.listItemTitle}>{action.action}</p>
-                  <p className={styles.listItemSubtitle}>
-                    {action.target ? `Target: ${action.target}` : 'System action'}
-                  </p>
-                </div>
-                <span className={styles.listTimestamp}>{formatRelative(action.timestamp)}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
 
       <GroupMenuDrawer
         open={menuOpen}

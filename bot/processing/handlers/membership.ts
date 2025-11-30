@@ -398,19 +398,8 @@ async function buildBotJoinActions(ctx: GroupChatContext): Promise<ProcessingAct
     ].join('\n');
 
     try {
-      const miniAppUrl = process.env.MINI_APP_URL;
-      const keyboard = miniAppUrl 
-        ? {
-            inline_keyboard: [
-              [{ text: '🚀 Open Mini App', url: miniAppUrl }],
-              [{ text: '⭐ Get Premium', url: miniAppUrl }],
-            ],
-          }
-        : undefined;
-
       await ctx.telegram.sendMessage(userId, privateMessage, {
         parse_mode: 'HTML',
-        reply_markup: keyboard,
       });
 
       actions.push({

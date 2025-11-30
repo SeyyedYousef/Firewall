@@ -48,9 +48,6 @@ const FILTERS = [
   { id: 'active', label: TEXT.filterActive },
   { id: 'premium', label: '⭐ Premium' },
   { id: 'free', label: '🆓 Free' },
-  { id: 'expiring', label: TEXT.filterExpiring },
-  { id: 'expired', label: TEXT.filterExpired },
-  { id: 'removed', label: TEXT.filterRemoved },
 ] as const;
 
 const SORT_OPTIONS = [
@@ -68,13 +65,6 @@ const titleCollator = new Intl.Collator(undefined, { sensitivity: 'base', numeri
 
 function membersLabel(count: number): string {
   return formatNumber(count) + ' members';
-}
-
-function expiringLabel(days: number): string {
-  if (days <= 0) {
-    return 'Expiring today';
-  }
-  return 'Expiring in ' + days + ' days';
 }
 
 function totalLabel(total: number): string {
@@ -100,14 +90,6 @@ function getDaysLeft(group: ManagedGroup): number | null {
     return 0;
   }
   return null;
-}
-
-function isExpiringSoonGroup(group: ManagedGroup): boolean {
-  if (group.status.kind !== 'active') {
-    return false;
-  }
-  const daysLeft = getDaysLeft(group);
-  return daysLeft !== null && daysLeft <= EXPIRING_THRESHOLD_DAYS;
 }
 
 function getExpirationSortValue(group: ManagedGroup): number {
@@ -145,19 +127,24 @@ type WidgetConfig = {
 };
 
 function resolveCreditBadge(group: ManagedGroup): { label: string; tone: BadgeTone } {
+  // Free groups are always green
+  if (group.subscriptionType !== 'premium') {
+    return { label: '🆓 Free Plan', tone: 'badgeGreen' };
+  }
+  
+  // Premium groups show subscription status
   if (group.status.kind === 'active') {
     const daysLeft = typeof group.status.daysLeft === 'number' ? group.status.daysLeft : 0;
-    const label = expiringLabel(daysLeft);
     if (daysLeft > 10) {
-      return { label, tone: 'badgeGreen' };
+      return { label: `⭐ ${daysLeft} days left`, tone: 'badgeGreen' };
     }
     if (daysLeft > EXPIRING_THRESHOLD_DAYS) {
-      return { label, tone: 'badgeAmber' };
+      return { label: `⭐ ${daysLeft} days left`, tone: 'badgeAmber' };
     }
-    return { label, tone: 'badgeRed' };
+    return { label: `⭐ ${daysLeft} days left`, tone: 'badgeRed' };
   }
   if (group.status.kind === 'expired') {
-    return { label: TEXT.expiredLabel, tone: 'badgeRed' };
+    return { label: '⭐ Premium expired', tone: 'badgeRed' };
   }
   return { label: TEXT.removedLabel, tone: 'badgeMuted' };
 }
@@ -169,18 +156,18 @@ type DashboardSummary = {
   removed: number;
 };
 
-function buildWidgets(insights: DashboardInsights, summary: DashboardSummary): WidgetConfig[] {
+function buildWidgets(insights: DashboardInsights, _summary: DashboardSummary, premiumCount: number, freeCount: number): WidgetConfig[] {
   return [
     {
-      id: 'expiring',
-      label: 'Expiring soon',
-      value: formatNumber(insights.expiringSoon),
+      id: 'premiumGroups',
+      label: '⭐ Premium',
+      value: formatNumber(premiumCount),
       tone: 'widgetToneWarning',
     },
     {
-      id: 'activeGroups',
-      label: 'Active groups',
-      value: formatNumber(summary.active),
+      id: 'freeGroups',
+      label: '🆓 Free',
+      value: formatNumber(freeCount),
       tone: 'widgetToneInfo',
     },
     {
@@ -225,9 +212,6 @@ export function DashboardPage() {
       active: 0,
       premium: 0,
       free: 0,
-      expiring: 0,
-      expired: 0,
-      removed: 0,
     };
 
     groups.forEach((group) => {
@@ -241,13 +225,6 @@ export function DashboardPage() {
       // Count by status
       if (group.status.kind === 'active') {
         counts.active += 1;
-        if (isExpiringSoonGroup(group)) {
-          counts.expiring += 1;
-        }
-      } else if (group.status.kind === 'expired') {
-        counts.expired += 1;
-      } else if (group.status.kind === 'removed') {
-        counts.removed += 1;
       }
     });
 
@@ -266,12 +243,6 @@ export function DashboardPage() {
           return group.subscriptionType === 'premium';
         case 'free':
           return group.subscriptionType !== 'premium';
-        case 'expiring':
-          return isExpiringSoonGroup(group);
-        case 'expired':
-          return group.status.kind === 'expired';
-        case 'removed':
-          return group.status.kind === 'removed';
         default:
           return true;
       }
@@ -303,7 +274,7 @@ export function DashboardPage() {
   const isEmpty = !loading && groups.length === 0;
   const noMatches = !loading && groups.length > 0 && filteredGroups.length === 0;
 
-  const widgets = useMemo(() => buildWidgets(insights, summary), [insights, summary]);
+  const widgets = useMemo(() => buildWidgets(insights, summary, filterCounts.premium, filterCounts.free), [insights, summary, filterCounts.premium, filterCounts.free]);
 
   const topWidgets = widgets.slice(0, 2);
   const bottomWidgets = widgets.slice(2, 4);
@@ -471,26 +442,32 @@ export function DashboardPage() {
                 const badge = resolveCreditBadge(group);
                 const badgeClassName = [styles.badge, styles[badge.tone]].join(' ');
                 const status = statusLabel(group);
+                const isPremium = group.subscriptionType === 'premium';
                 const daysLeft = getDaysLeft(group);
-                const isRenewable = group.status.kind === 'expired' || (daysLeft !== null && daysLeft <= 7);
                 
-                let nextAction = 'On track';
+                // Only premium groups need renewal
+                const isRenewable = isPremium && (group.status.kind === 'expired' || (daysLeft !== null && daysLeft <= 7));
+                
+                // Determine next action based on subscription type
+                let nextAction = 'All good ✓';
                 if (group.status.kind === 'removed') {
                   nextAction = 'Restore access';
+                } else if (!isPremium) {
+                  // Free groups don't expire - show upgrade option
+                  nextAction = 'Upgrade to Premium';
                 } else if (group.status.kind === 'expired') {
-                  nextAction = 'Upgrade now';
+                  nextAction = 'Renew subscription';
                 } else if (group.status.kind === 'active') {
                   if (daysLeft !== null) {
                     if (daysLeft <= 0) {
-                      nextAction = 'Upgrade now';
+                      nextAction = 'Renew subscription';
                     } else if (daysLeft <= EXPIRING_THRESHOLD_DAYS) {
-                      nextAction = daysLeft === 1 ? 'Extend within a day' : `Extend within ${daysLeft} days`;
+                      nextAction = daysLeft === 1 ? 'Renew tomorrow' : `Renew in ${daysLeft} days`;
                     } else {
-                      nextAction = `${daysLeft} days remaining`;
+                      nextAction = 'All good ✓';
                     }
                   }
                 }
-                const isPremium = group.subscriptionType === 'premium';
                 const cardClassName = [
                   styles.groupCard,
                   isPremium ? styles.groupCardPremium : styles.groupCardFree
@@ -579,7 +556,7 @@ export function DashboardPage() {
                           className={`${styles.ctaButton} ${styles.ctaButtonUpgrade}`}
                           onClick={() => {
                             hapticFeedback.impactOccurred('light');
-                            navigate(`/groups/${group.id}/renew`);
+                            navigate('/stars', { state: { focusGroupId: group.id } });
                           }}
                         >
                           ⭐ Upgrade

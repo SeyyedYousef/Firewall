@@ -341,7 +341,7 @@ const defaultState: BotState = {
   bannedUserIds: [],
   groups: {},
   settings: {
-    freeTrialDays: 15,
+    freeTrialDays: 0,
     monthlyStars: 10,
     welcomeMessages: [],
     onboardingMessages: Array.from(DEFAULT_ONBOARDING_MESSAGES),

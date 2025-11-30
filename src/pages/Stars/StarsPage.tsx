@@ -94,7 +94,7 @@ export function StarsPage() {
   const [overview, setOverview] = useState<StarsOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [mode, setMode] = useState<TargetMode>(() => (focusGroupIdFromState ? 'my-groups' : 'other'));
+  const [mode, setMode] = useState<TargetMode>('my-groups');
   const [selectedManagedId, setSelectedManagedId] = useState<string | null>(null);
   const [selectedExternal, setSelectedExternal] = useState<ManagedGroup | null>(null);
   const [searchQuery, setSearchQuery] = useState('');

@@ -133,11 +133,11 @@ const MISSIONS: Record<MissionCategory, Mission[]> = {
   ],
   weekly: [
     {
-      id: "renew-weekly",
-      title: "Renew one group credit",
-      description: "Extend uptime for any managed group by at least one week.",
+      id: "upgrade-weekly",
+      title: "Upgrade a group to Premium",
+      description: "Purchase Premium for any managed group to unlock all features.",
       xp: 70,
-      icon: "renew",
+      icon: "stars",
     },
     {
       id: "complete-daily-3",
@@ -172,7 +172,7 @@ const MISSIONS: Record<MissionCategory, Mission[]> = {
     {
       id: "monthly-referrals",
       title: "Activate three referrals",
-      description: "Bring three new teams that finish their first Stars top-up during the month.",
+      description: "Bring three new teams that upgrade their first group to Premium.",
       xp: 180,
       icon: "invite",
     },
