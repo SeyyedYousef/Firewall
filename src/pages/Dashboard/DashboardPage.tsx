@@ -4,7 +4,6 @@ import { hapticFeedback } from '@telegram-apps/sdk-react';
 import { Avatar, Button, Input, Placeholder, Text } from '@telegram-apps/telegram-ui';
 
 import { dashboardConfig } from '@/config/dashboard.ts';
-import { GroupCardSkeleton } from '@/features/dashboard/GroupCardSkeleton.tsx';
 import { PromoSlider } from '@/features/dashboard/PromoSlider.tsx';
 import { useDashboardData } from '@/features/dashboard/useDashboardData.ts';
 import type { DashboardInsights, ManagedGroup } from '@/features/dashboard/types.ts';
@@ -153,7 +152,6 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const {
     groups,
-    loading,
     error,
     refresh,
     insights,
@@ -235,8 +233,8 @@ export function DashboardPage() {
   }, [groups, normalizedQuery, activeFilter, sortMode]);
 
   const shouldShowSearch = groups.length > 6;
-  const isEmpty = !loading && groups.length === 0;
-  const noMatches = !loading && groups.length > 0 && filteredGroups.length === 0;
+  const isEmpty = groups.length === 0;
+  const noMatches = groups.length > 0 && filteredGroups.length === 0;
 
   const widgets = useMemo(() => buildWidgets(insights, summary, filterCounts.premium, filterCounts.free), [insights, summary, filterCounts.premium, filterCounts.free]);
 
@@ -250,7 +248,7 @@ export function DashboardPage() {
 
 
   // Show empty state prominently at top when no groups
-  if (!loading && isEmpty) {
+  if (isEmpty) {
     return (
       <div className={styles.page} dir='ltr'>
         <EmptyState inviteUrl={dashboardConfig.inviteLink || ''} />
@@ -384,29 +382,27 @@ export function DashboardPage() {
             </div>
           </div>
 
-          {loading && (
-            <div className={styles.loaderList}>
-              {Array.from({ length: 4 }).map((_, index) => (
-                <GroupCardSkeleton key={index} />
-              ))}
-            </div>
-          )}
-
-          {!loading && noMatches && (
+          {noMatches && (
             <Placeholder header='No groups found' description='Try adjusting your filters or keywords.' />
           )}
 
-          {!loading && filteredGroups.length > 0 && (
+          {filteredGroups.length > 0 && (
             <div className={styles.groupList}>
               {filteredGroups.map((group) => {
                 const isPremium = group.subscriptionType === 'premium';
                 const isRemoved = group.status.kind === 'removed';
+                const statusText = group.status.kind === 'active' 
+                  ? (isPremium ? 'Protected' : 'Basic protection')
+                  : group.status.kind === 'expired' 
+                    ? 'Expired' 
+                    : 'Inactive';
                 
                 return (
                   <article 
                     key={group.id} 
-                    className={`${styles.groupCard} ${isRemoved ? styles.groupCardRemoved : ''}`}
+                    className={`${styles.groupCard} ${isRemoved ? styles.groupCardRemoved : ''} ${isPremium ? styles.groupCardPremium : ''}`}
                   >
+                    {/* Header */}
                     <div className={styles.groupHeader}>
                       <Avatar
                         size={40}
@@ -416,39 +412,57 @@ export function DashboardPage() {
                       />
                       <div className={styles.groupInfo}>
                         <h3 className={styles.groupName}>{group.title}</h3>
-                        <span className={styles.groupMeta}>{membersLabel(group.membersCount)}</span>
+                        <div className={styles.groupMetaRow}>
+                          <span className={styles.groupMeta}>{membersLabel(group.membersCount)}</span>
+                          <span className={styles.groupMetaDot}>•</span>
+                          <span className={`${styles.groupStatus} ${isRemoved ? styles.groupStatusRemoved : ''}`}>
+                            {statusText}
+                          </span>
+                        </div>
                       </div>
-                      <span className={`${styles.badge} ${isPremium ? styles.badgePremium : styles.badgeFree}`}>
-                        {isPremium ? '⭐' : '🆓'}
-                      </span>
                     </div>
 
+                    {/* Plan badge */}
+                    <div className={styles.planRow}>
+                      <span className={`${styles.planBadge} ${isPremium ? styles.planBadgePremium : styles.planBadgeFree}`}>
+                        {isPremium ? '⭐ Premium' : '🆓 Free'}
+                      </span>
+                      {!isPremium && !isRemoved && (
+                        <span className={styles.upgradeHint}>Upgrade for full protection</span>
+                      )}
+                    </div>
+
+                    {/* Warning for removed */}
                     {isRemoved && (
-                      <p className={styles.removalHint}>Bot removed. Re-add to restore protection.</p>
+                      <div className={styles.warningRow}>
+                        <span className={styles.warningIcon}>⚠️</span>
+                        <span className={styles.warningText}>Bot removed. Re-add to restore.</span>
+                      </div>
                     )}
 
+                    {/* Actions */}
                     <div className={styles.groupActions}>
                       <button
                         type='button'
-                        className={`${styles.ctaButton} ${styles.ctaButtonPrimary}`}
+                        className={styles.ctaButtonPrimary}
                         onClick={() => {
                           hapticFeedback.impactOccurred('light');
                           openGroup(group);
                         }}
                         disabled={isRemoved}
                       >
-                        Open Dashboard
+                        ⚙️ Manage
                       </button>
-                      {!isPremium && (
+                      {!isPremium && !isRemoved && (
                         <button
                           type='button'
-                          className={styles.ctaButton}
+                          className={styles.ctaButtonUpgrade}
                           onClick={() => {
                             hapticFeedback.impactOccurred('light');
                             navigate('/stars', { state: { focusGroupId: group.id } });
                           }}
                         >
-                          Upgrade
+                          ⭐ Upgrade
                         </button>
                       )}
                     </div>

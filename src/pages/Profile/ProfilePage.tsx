@@ -109,7 +109,7 @@ function buildProgressTracks(profile: UserProfileSummary | null, missions: Profi
 export function ProfilePage() {
   const navigate = useNavigate();
   const owner = useOwnerProfile();
-  const { profile, missions, achievements, completions, loading, checkIn } = useUserProfile();
+  const { profile, missions, achievements, completions, checkIn } = useUserProfile();
 
   const displayName = profile?.displayName ?? owner.displayName ?? "Firewall Commander";
   const username = profile?.username ?? owner.username ?? null;
@@ -251,16 +251,6 @@ export function ProfilePage() {
       onToggle: (value: boolean) => handlePreferenceChange('autoEscalate', value),
     },
   ];
-
-  if (loading && !profile) {
-    return (
-      <div className={styles.page} dir="ltr">
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-          <div style={{ width: 24, height: 24, border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={styles.page} dir="ltr">

@@ -91,7 +91,6 @@ export function GroupMandatoryMembershipPage() {
   const [group, setGroup] = useState<ManagedGroup | null>(state.group ?? null);
   const [settings, setSettings] = useState<MandatoryMembershipSettings | null>(null);
   const [channelsInput, setChannelsInput] = useState("");
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -108,7 +107,6 @@ export function GroupMandatoryMembershipPage() {
 
     const load = async () => {
       try {
-        setLoading(true);
         const [mandatory, detail] = await Promise.all([
           fetchGroupMandatoryMembershipSettings(groupId),
           fetchGroupDetails(groupId),
@@ -126,10 +124,6 @@ export function GroupMandatoryMembershipPage() {
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err : new Error(String(err)));
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
         }
       }
     };
@@ -271,14 +265,6 @@ export function GroupMandatoryMembershipPage() {
   }, [settings]);
 
   const hasErrors = invalidChannels.length > 0;
-
-  if (loading && !settings) {
-    return (
-      <div className={styles.loadingState} dir="ltr">
-        <Text weight="2">{TEXT.loading}</Text>
-      </div>
-    );
-  }
 
   if (error) {
     return (

@@ -12,10 +12,10 @@ import styles from './GroupDashboardPage.module.css';
 const DAY_MS = 86_400_000;
 
 const TEXT = {
-  loadingHeader: 'Loading group',
-  loadingDescription: 'Fetching the latest stats...',
   errorHeader: 'Failed to load group',
   errorDescription: 'Please try again or return to My Groups.',
+  unavailableHeader: 'Group unavailable',
+  unavailableDescription: 'Could not load group data. Please try again.',
   retry: 'Retry',
   heroSubline: 'Quick overview',
   settingsTitle: 'Settings',
@@ -117,7 +117,6 @@ export function GroupDashboardPage() {
   const state = (location.state ?? {}) as LocationState;
 
   const [detail, setDetail] = useState<GroupDetail | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState('');
@@ -131,7 +130,6 @@ export function GroupDashboardPage() {
 
     const load = async () => {
       try {
-        setLoading(true);
         const data = await fetchGroupDetails(groupId);
         if (cancelled) {
           return;
@@ -141,10 +139,6 @@ export function GroupDashboardPage() {
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err : new Error(String(err)));
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
         }
       }
     };
@@ -241,7 +235,6 @@ export function GroupDashboardPage() {
     }
     setDetail(null);
     setError(null);
-    setLoading(true);
     void fetchGroupDetails(groupId)
       .then((data) => {
         setDetail(data);
@@ -249,9 +242,6 @@ export function GroupDashboardPage() {
       })
       .catch((err) => {
         setError(err instanceof Error ? err : new Error(String(err)));
-      })
-      .finally(() => {
-        setLoading(false);
       });
   }, [groupId]);
 
@@ -263,14 +253,6 @@ export function GroupDashboardPage() {
         header={TEXT.errorHeader}
         description='Group identifier is missing.'
       />
-    );
-  }
-
-  if (loading && !group) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-        <div style={{ width: 24, height: 24, border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-      </div>
     );
   }
 
@@ -289,9 +271,14 @@ export function GroupDashboardPage() {
 
   if (!group || !metrics) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-        <div style={{ width: 24, height: 24, border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-      </div>
+      <Placeholder
+        header={TEXT.unavailableHeader}
+        description={TEXT.unavailableDescription}
+      >
+        <Button mode='filled' onClick={handleRetry}>
+          {TEXT.retry}
+        </Button>
+      </Placeholder>
     );
   }
 

@@ -1597,10 +1597,28 @@ bot.action(actionId("commands"), async (ctx) => {
   const custom = settings.commands?.trim();
   const message = custom && custom.length > 0 ? custom : content.messages.commands;
 
-  const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("\u{1F519} Back", actionId("managementBack"))]
-  ]);
-  await replyOrEditRoot(ctx, message, keyboard);
+  // Check if message is too long (Telegram limit is ~4096 chars)
+  // If so, send extended commands as multiple messages
+  if (message.length > 3800) {
+    const { EXTENDED_COMMANDS } = await import("./content.js");
+    
+    // Send first message with edit
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback("\u{1F519} Back", actionId("managementBack"))]
+    ]);
+    await replyOrEditRoot(ctx, EXTENDED_COMMANDS[0], keyboard);
+    
+    // Send remaining messages as new messages with small delay
+    for (let i = 1; i < EXTENDED_COMMANDS.length; i++) {
+      await new Promise(resolve => setTimeout(resolve, 500)); // Avoid rate limit
+      await ctx.reply(EXTENDED_COMMANDS[i], { parse_mode: "HTML" });
+    }
+  } else {
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback("\u{1F519} Back", actionId("managementBack"))]
+    ]);
+    await replyOrEditRoot(ctx, message, keyboard);
+  }
 });
 
 bot.action(actionId("info"), async (ctx) => {

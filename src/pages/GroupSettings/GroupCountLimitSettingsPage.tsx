@@ -88,7 +88,6 @@ export function GroupCountLimitSettingsPage() {
 
   const [group, setGroup] = useState<ManagedGroup | null>(state.group ?? null);
   const [settings, setSettings] = useState<CountLimitSettings | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -103,7 +102,6 @@ export function GroupCountLimitSettingsPage() {
 
     const load = async () => {
       try {
-        setLoading(true);
         const [limits, detail] = await Promise.all([
           fetchGroupCountLimitSettings(groupId),
           fetchGroupDetails(groupId),
@@ -113,15 +111,10 @@ export function GroupCountLimitSettingsPage() {
         }
         setSettings(limits);
         setGroup(detail.group);
-        setDirty(false);
         setError(null);
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err : new Error(String(err)));
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
         }
       }
     };
@@ -217,14 +210,6 @@ export function GroupCountLimitSettingsPage() {
       setSaving(false);
     }
   }, [groupId, settings]);
-
-  if (loading && !settings) {
-    return (
-      <div className={styles.loadingState} dir="ltr">
-        <Text weight="2">{TEXT.loading}</Text>
-      </div>
-    );
-  }
 
   if (error) {
     return (

@@ -18,6 +18,7 @@ import { fetchGroupDetails, fetchGroupGeneralSettings, updateGroupGeneralSetting
 import { PremiumLock, PremiumLockIcon } from "@/components/PremiumLock";
 import type {
   AutoWarningPenalty,
+  CaptchaType,
   GroupGeneralSettings,
   ManagedGroup,
   TimeRangeMode,
@@ -147,7 +148,6 @@ export function GroupGeneralSettingsPage() {
 
   const [group, setGroup] = useState<ManagedGroup | null>(state.group ?? null);
   const [settings, setSettings] = useState<GroupGeneralSettings | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
@@ -194,7 +194,6 @@ export function GroupGeneralSettingsPage() {
 
     const load = async () => {
       try {
-        setLoading(true);
         const [general, detail] = await Promise.all([
           fetchGroupGeneralSettings(groupId),
           fetchGroupDetails(groupId),
@@ -209,10 +208,6 @@ export function GroupGeneralSettingsPage() {
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err : new Error(String(err)));
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
         }
       }
     };
@@ -330,14 +325,6 @@ export function GroupGeneralSettingsPage() {
           Back
         </Button>
       </Placeholder>
-    );
-  }
-
-  if (loading && !settings) {
-    return (
-      <div className={styles.loadingState}>
-        <Text weight="2">Loading settings...</Text>
-      </div>
     );
   }
 
@@ -712,6 +699,135 @@ export function GroupGeneralSettingsPage() {
                 />
               </div>
             )}
+          </Card>
+        </PremiumLock>
+
+        {/* CAPTCHA TYPE - Premium Feature */}
+        <PremiumLock
+          isLocked={group?.subscriptionType !== 'premium'}
+          message="Advanced captcha types (Math & Image) are Premium features. Upgrade to use stronger verification."
+          onUpgradeClick={() => navigate(`/stars`, { state: { focusGroupId: groupId } })}
+        >
+          <Card className={styles.card}>
+            <div className={styles.cardHeader}>
+              <div>
+                <Title level="3" className={styles.cardTitle}>
+                  Captcha verification <PremiumLockIcon />
+                </Title>
+                <Text weight="2" className={styles.cardHint}>
+                  Choose how new members verify they are human.
+                </Text>
+              </div>
+            </div>
+            <div className={styles.field}>
+              <Text weight="2" className={styles.fieldLabel}>Captcha type</Text>
+              <select
+                className={styles.select}
+                value={settings.captchaType}
+                onChange={(event) => {
+                  const value = event.target.value as CaptchaType;
+                  setSettings({ ...settings, captchaType: value });
+                  setDirty(true);
+                }}
+              >
+                <option value="none">Disabled</option>
+                <option value="button">Button click (Free)</option>
+                <option value="math" disabled={group?.subscriptionType !== 'premium'}>
+                  Math challenge ⭐ Premium
+                </option>
+                <option value="image" disabled={group?.subscriptionType !== 'premium'}>
+                  Image captcha ⭐ Premium
+                </option>
+              </select>
+              <Text weight="2" className={styles.fieldHint}>
+                {settings.captchaType === 'none' && 'No verification required for new members.'}
+                {settings.captchaType === 'button' && 'New members must click a button to verify.'}
+                {settings.captchaType === 'math' && 'New members must solve a simple math problem.'}
+                {settings.captchaType === 'image' && 'New members must identify images correctly.'}
+              </Text>
+            </div>
+          </Card>
+        </PremiumLock>
+
+        {/* WEBHOOK - Premium Feature */}
+        <PremiumLock
+          isLocked={group?.subscriptionType !== 'premium'}
+          message="Custom webhooks are a Premium feature. Upgrade to receive real-time notifications."
+          onUpgradeClick={() => navigate(`/stars`, { state: { focusGroupId: groupId } })}
+        >
+          <Card className={styles.card}>
+            <div className={styles.cardHeader}>
+              <div>
+                <Title level="3" className={styles.cardTitle}>
+                  Custom webhook <PremiumLockIcon />
+                </Title>
+                <Text weight="2" className={styles.cardHint}>
+                  Receive real-time notifications to your server.
+                </Text>
+              </div>
+              <Switch
+                checked={settings.webhookConfig.enabled}
+                onChange={(event) => {
+                  setSettings({
+                    ...settings,
+                    webhookConfig: { ...settings.webhookConfig, enabled: event.target.checked }
+                  });
+                  setDirty(true);
+                }}
+              />
+            </div>
+            {settings.webhookConfig.enabled && (
+              <div className={styles.field}>
+                <Text weight="2" className={styles.fieldLabel}>Webhook URL</Text>
+                <Input
+                  type="url"
+                  placeholder="https://your-server.com/webhook"
+                  value={settings.webhookConfig.url}
+                  onChange={(event) => {
+                    setSettings({
+                      ...settings,
+                      webhookConfig: { ...settings.webhookConfig, url: event.target.value }
+                    });
+                    setDirty(true);
+                  }}
+                />
+                <Text weight="2" className={styles.fieldHint}>
+                  Events: warnings, bans, mutes, and member joins will be sent to this URL.
+                </Text>
+              </div>
+            )}
+          </Card>
+        </PremiumLock>
+
+        {/* PRIORITY PROCESSING - Premium Feature */}
+        <PremiumLock
+          isLocked={group?.subscriptionType !== 'premium'}
+          message="Priority processing is a Premium feature. Upgrade for faster message handling."
+          onUpgradeClick={() => navigate(`/stars`, { state: { focusGroupId: groupId } })}
+        >
+          <Card className={styles.card}>
+            <div className={styles.cardHeader}>
+              <div>
+                <Title level="3" className={styles.cardTitle}>
+                  Priority processing <PremiumLockIcon />
+                </Title>
+                <Text weight="2" className={styles.cardHint}>
+                  Your group's messages are processed with higher priority.
+                </Text>
+              </div>
+              <Switch
+                checked={settings.priorityProcessing}
+                onChange={(event) => {
+                  setSettings({ ...settings, priorityProcessing: event.target.checked });
+                  setDirty(true);
+                }}
+              />
+            </div>
+            <Text weight="2" className={styles.fieldHint}>
+              {settings.priorityProcessing
+                ? '✅ Priority processing is active. Your messages are handled faster.'
+                : 'Enable to get faster message processing and reduced latency.'}
+            </Text>
           </Card>
         </PremiumLock>
       </main>

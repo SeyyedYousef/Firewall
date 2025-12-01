@@ -514,6 +514,14 @@ function createGeneralSettings(id: string): GroupGeneralSettings {
       schedule: createTimeRange("all"),
     },
     defaultPenalty: "delete",
+    // Premium features
+    captchaType: 'button',
+    webhookConfig: {
+      enabled: false,
+      url: '',
+      events: ['warning', 'ban', 'mute'],
+    },
+    priorityProcessing: false,
   };
 }
 

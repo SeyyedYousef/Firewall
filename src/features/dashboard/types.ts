@@ -204,6 +204,14 @@ export interface AutoWarningConfig {
   schedule: TimeRangeSetting;
 }
 
+export type CaptchaType = 'none' | 'button' | 'math' | 'image';
+
+export interface WebhookConfig {
+  enabled: boolean;
+  url: string;
+  events: string[];
+}
+
 export interface GroupGeneralSettings {
   timezone: string;
   welcomeEnabled: boolean;
@@ -226,6 +234,10 @@ export interface GroupGeneralSettings {
   autoWarningEnabled: boolean;
   autoWarning: AutoWarningConfig;
   defaultPenalty: AutoWarningPenalty;
+  // Premium features
+  captchaType: CaptchaType;
+  webhookConfig: WebhookConfig;
+  priorityProcessing: boolean;
 }
 
 export const BAN_RULE_KEYS = [

@@ -521,42 +521,156 @@
   opacity: 1;
 }
 
+/* Group Card Header */
 .groupHeader {
   display: flex;
-  justify-content: flex-start;
   align-items: center;
-  gap: var(--app-spacing-sm);
+  gap: 12px;
 }
 
-.groupIdentity {
-  display: flex;
-  align-items: center;
-  gap: var(--app-spacing-sm);
+.groupInfo {
   flex: 1;
   min-width: 0;
-}
-
-.groupMeta {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  align-items: flex-start;
-  text-align: left;
-  min-width: 0;
 }
 
 .groupName {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
-  word-break: break-word;
+  color: var(--tg-theme-text-color, #fff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .groupMetaRow {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--app-spacing-xs);
   align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.groupMeta {
+  color: var(--tg-theme-hint-color, #8e8e93);
+}
+
+.groupMetaDot {
+  color: var(--tg-theme-hint-color, #8e8e93);
+  opacity: 0.5;
+}
+
+.groupStatus {
+  color: #4ade80;
+  font-weight: 500;
+}
+
+.groupStatusRemoved {
+  color: #f87171;
+}
+
+/* Plan Row */
+.planRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.planBadge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.planBadgePremium {
+  background: rgba(255, 215, 0, 0.15);
+  color: #ffd700;
+}
+
+.planBadgeFree {
+  background: rgba(150, 150, 150, 0.15);
+  color: #a0a0a0;
+}
+
+.upgradeHint {
+  font-size: 11px;
+  color: var(--tg-theme-hint-color, #8e8e93);
+  opacity: 0.8;
+}
+
+/* Warning Row */
+.warningRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  border-radius: 8px;
+}
+
+.warningIcon {
+  font-size: 14px;
+}
+
+.warningText {
+  font-size: 12px;
+  color: #f87171;
+}
+
+/* Group Actions */
+.groupActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.ctaButtonPrimary {
+  flex: 1;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ctaButtonPrimary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+}
+
+.ctaButtonPrimary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ctaButtonUpgrade {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(218, 165, 32, 0.15) 100%);
+  color: #ffd700;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ctaButtonUpgrade:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.25);
+  border-color: rgba(255, 215, 0, 0.5);
 }
 
 .badge {

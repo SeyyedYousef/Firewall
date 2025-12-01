@@ -9,6 +9,7 @@ import { chatMemberHandler } from "./chatMember.js";
 import { mandatoryMembershipHandler } from "./mandatoryMembership.js";
 import { voteMuteHandler } from "./voteMute.js";
 import { creditCodeRedemptionHandler } from "./creditCodeRedemption.js";
+import { textCommandsHandler } from "./textCommands.js";
 
 export const handlers: UpdateHandler[] = [
   myChatMemberHandler,
@@ -19,6 +20,7 @@ export const handlers: UpdateHandler[] = [
   creditCodeRedemptionHandler, // Add credit code redemption system
   serviceHandler,
   specialContentHandler,
+  textCommandsHandler, // Process admin text commands before regular text messages
   mediaHandler,
   textMessageHandler,
 ];

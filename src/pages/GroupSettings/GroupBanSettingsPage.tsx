@@ -205,7 +205,6 @@ export function GroupBanSettingsPage() {
 
   const [group, setGroup] = useState<ManagedGroup | null>(state.group ?? null);
   const [settings, setSettings] = useState<GroupBanSettings | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
@@ -233,7 +232,6 @@ export function GroupBanSettingsPage() {
 
     const load = async () => {
       try {
-        setLoading(true);
         const [banSettings, detail] = await Promise.all([
           fetchGroupBanSettings(groupId),
           fetchGroupDetails(groupId),
@@ -243,15 +241,10 @@ export function GroupBanSettingsPage() {
         }
         setSettings(banSettings);
         setGroup(detail.group);
-        setDirty(false);
         setError(null);
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err : new Error(String(err)));
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
         }
       }
     };
@@ -397,14 +390,6 @@ export function GroupBanSettingsPage() {
           Back
         </Button>
       </Placeholder>
-    );
-  }
-
-  if (loading && !settings) {
-    return (
-      <div className={styles.loadingState}>
-        <Text weight="2">Loading rules...</Text>
-      </div>
     );
   }
 
