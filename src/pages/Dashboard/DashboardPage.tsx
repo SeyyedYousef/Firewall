@@ -152,6 +152,7 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const {
     groups,
+    loading,
     error,
     refresh,
     insights,
@@ -246,6 +247,17 @@ export function DashboardPage() {
     navigate(`/groups/${group.id}`, { state: { group } });
   };
 
+
+  // Show loading spinner while fetching data
+  if (loading) {
+    return (
+      <div className={styles.page} dir='ltr'>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
+          <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        </div>
+      </div>
+    );
+  }
 
   // Show empty state prominently at top when no groups
   if (isEmpty) {

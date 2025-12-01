@@ -92,6 +92,7 @@ export function StarsPage() {
     (location.state as { focusGroupId?: string } | null | undefined)?.focusGroupId ?? null;
 
   const [overview, setOverview] = useState<StarsOverview | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [mode, setMode] = useState<TargetMode>('my-groups');
   const [selectedManagedId, setSelectedManagedId] = useState<string | null>(null);
@@ -105,6 +106,7 @@ export function StarsPage() {
 
   const loadData = useCallback(
     async (options?: { silent?: boolean }) => {
+      if (!options?.silent) setLoading(true);
       try {
         const overviewData = await fetchStarsOverview();
         setOverview(overviewData);
@@ -121,6 +123,8 @@ export function StarsPage() {
         } else {
           setError(err instanceof Error ? err : new Error(String(err)));
         }
+      } finally {
+        if (!options?.silent) setLoading(false);
       }
     },
     [setSnackbar],
@@ -289,6 +293,16 @@ export function StarsPage() {
       setProcessing(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className={styles.page} dir='ltr'>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
+          <div className={styles.spinner} />
+        </div>
+      </div>
+    );
+  }
 
   if (error || !overview) {
     return (

@@ -137,6 +137,7 @@ export function GroupCustomTextsPage() {
 
   const [group, setGroup] = useState<ManagedGroup | null>(state.group ?? null);
   const [settings, setSettings] = useState<CustomTextSettings | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -152,6 +153,7 @@ export function GroupCustomTextsPage() {
     let cancelled = false;
 
     const load = async () => {
+      setLoading(true);
       try {
         const [texts, detail] = await Promise.all([
           fetchGroupCustomTextSettings(groupId),
@@ -167,6 +169,8 @@ export function GroupCustomTextsPage() {
         if (!cancelled) {
           setError(err instanceof Error ? err : new Error(String(err)));
         }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
 
@@ -357,6 +361,14 @@ const promoButtonError = useMemo(() => {
       setSaving(false);
     }
   }, [groupId, settings, hasErrors]);
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
+        <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      </div>
+    );
+  }
 
   if (error) {
     return (

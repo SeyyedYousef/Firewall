@@ -9,194 +9,133 @@ import { logger } from "../server/utils/logger.js";
  * Each element is a separate message to be sent sequentially
  */
 export const EXTENDED_COMMANDS: readonly string[] = [
-  // Message 1: Overview and User Moderation
-  `📚 <b>Firewall Command Reference</b>
+  // Message 1: Intro & Basic Locks
+  `🔷 <b>Robot Configuration via Text Commands</b>
 
-Use <code>!</code> or <code>.</code> prefix for all commands.
-<i>Example: <code>!ban</code> or <code>.mute</code></i>
+<b>🔷 Basic Explanation</b>
+❗️ All admin commands must start with <code>!</code> or <code>.</code>
+❗️ Commands should be sent as normal text messages in the group.
 
-━━━━━━━━━━━━━━━━━━━━
+<b>🔷 User Moderation</b>
+Reply to a user's message to execute these actions:
+• <code>!ban 1</code> — Ban for 1 hour
+• <code>!mute 24</code> — Mute for 24 hours
+• <code>!unmute</code> — Unban/Unmute
+• <code>!kick</code> — Kick user
+• <code>!reset</code> — Reset warnings
+💡 1 = 1 hour. 1000 = Permanent.
 
-<b>👤 USER MODERATION</b>
+<b>🔷 Credit</b>
+• <code>!charge</code> — Renew credit
+• <code>!credit</code> — Check expiration
 
-<code>!ban [hours]</code>
-Ban a user. Reply to their message.
-<i>Example: <code>!ban 24</code> = 24 hours</i>
+<b>🔷 Lock Types (Part 1)</b>
+Enable/Disable restrictions:
+• <code>!lock link</code> / <code>!unlock link</code> — Telegram links
+• <code>!lock username</code> / <code>!unlock username</code> — @usernames
+• <code>!lock site</code> / <code>!unlock site</code> — Web links
+• <code>!lock porn</code> / <code>!unlock porn</code> — NSFW content
+• <code>!lock hashtag</code> / <code>!unlock hashtag</code> — #hashtags
+• <code>!lock text</code> / <code>!unlock text</code> — Text messages
+• <code>!lock forward</code> / <code>!unlock forward</code> — Forwards
+• <code>!lock channelforward</code> — Channel forwards
+• <code>!lock photo</code> — Photos
+• <code>!lock video</code> — Videos
+• <code>!lock sticker</code> — Stickers
+• <code>!lock location</code> — Locations
+• <code>!lock phone</code> — Phone numbers
+• <code>!lock voice</code> — Voice notes
+• <code>!lock file</code> — Files
+• <code>!lock app</code> — Applications/Software
+• <code>!lock gif</code> — GIFs
+• <code>!lock poll</code> — Polls
+• <code>!lock slash</code> — Bot commands`,
 
-<code>!mute [hours]</code>
-Mute a user. Reply to their message.
-<i>Example: <code>!mute 2</code> = 2 hours</i>
+  // Message 2: More Locks & Limits
+  `<b>🔷 Lock Types (Part 2)</b>
+• <code>!lock captionless</code> — Media without caption
+• <code>!lock emojionly</code> — Emoji-only messages
+• <code>!lock emoji</code> — Messages with emoji
+• <code>!lock game</code> — Games
+• <code>!lock english</code> — English text
+• <code>!lock persian</code> — Persian/Arabic text
+• <code>!lock reply</code> — User replies
+• <code>!lock crossreply</code> — Replies to other chats
 
-<code>!unmute</code>
-Remove all restrictions from a user.
+<b>🔷 Whitelist</b>
+Exempt users from all rules:
+• <code>!whitelist</code> — Add (Reply)
+• <code>!unwhitelist</code> — Remove (Reply)
+• <code>!clearwhitelist</code> — Clear all
 
-<code>!reset</code>
-Reset user's warning count to zero.
+<b>🔷 Message Limits</b>
+Limit user activity:
+• <code>!msglimit 5</code> — Max 5 messages
+• <code>!msgwindow 60</code> — Per 60 minutes
+• <code>!duplicate 3</code> — Max 3 duplicate messages
+• <code>!dupwindow 60</code> — Per 60 minutes
+• <code>!minwords 3</code> — Min words per message`,
 
-<code>!kick</code>
-Kick user from group (can rejoin).`,
+  // Message 3: Membership & Control
+  `<b>🔷 Word Limits</b>
+• <code>!maxwords 10</code> — Max words per message
 
-  // Message 2: Content Locks
-  `<b>🔒 CONTENT LOCKS</b>
+<b>🔷 Mandatory Membership</b>
+Require users to invite others:
+• <code>!invite 5</code> — Must invite 5 users
+• <code>!invite off</code> — Disable
 
-<code>!lock [type]</code> — Enable restriction
-<code>!unlock [type]</code> — Disable restriction
+Require channel membership:
+• <code>!join @channel</code> — Must join channel
+• <code>!channel off</code> — Disable
 
-<b>Available lock types:</b>
+<b>🔷 Bots & Spam</b>
+• <code>!lock bot</code> — Auto-ban added bots
+• <code>!lock botinviter</code> — Ban bot inviters
 
-<b>Links & URLs:</b>
-• <code>link</code> — Telegram links
-• <code>url</code> / <code>site</code> — External URLs
-• <code>mention</code> / <code>id</code> — @usernames
+<b>🔷 Quiet Hours</b>
+Silence group at specific times:
+• <code>!silence1 from 23:00 to 08:00</code>
+• <code>!silence1 off</code>
+• <code>!silence2 ...</code> (Premium)
+• <code>!silence3 ...</code> (Premium)
+• <code>!clearsilence</code> — Remove all
 
-<b>Media:</b>
-• <code>photo</code> — Images
-• <code>video</code> — Videos
-• <code>sticker</code> — Stickers
-• <code>gif</code> — Animations
-• <code>voice</code> — Voice messages
-• <code>audio</code> — Audio files
-• <code>file</code> — Documents
+<b>🔷 Group Lock</b>
+Manual emergency lock:
+• <code>!lockgroup</code> — Lock group
+• <code>!unlockgroup</code> — Unlock group`,
 
-<b>Content:</b>
-• <code>forward</code> — Forwarded messages
-• <code>poll</code> — Polls
-• <code>game</code> — Games
-• <code>bot</code> — Bot messages
-• <code>inline</code> — Inline keyboards
-• <code>slash</code> — /commands
+  // Message 4: Filter & Settings
+  `<b>🔷 Word Filter</b>
+• <code>!filter word</code> — Filter a word
+• <code>!unfilter word</code> — Unfilter a word
+• <code>!filters</code> — Show list
 
-<b>Text:</b>
-• <code>hashtag</code> — #hashtags
-• <code>emoji</code> — Emojis
-• <code>emojionly</code> — Emoji-only messages
-• <code>nocaption</code> — Media without caption
+<b>🔷 Cleanup</b>
+• <code>!purge 100</code> — Delete last 100 messages
 
-<b>Languages:</b>
-• <code>english</code> — Latin text
-• <code>persian</code> — Persian/Arabic
-• <code>russian</code> — Cyrillic
-• <code>chinese</code> — Chinese`,
+<b>🔷 Settings</b>
+• <code>!welcome on</code> / <code>off</code> — Welcome messages
+• <code>!warn on</code> / <code>off</code> — Warning messages
+• <code>!autowarn on</code> / <code>off</code> — Auto-warning
+• <code>!warnthreshold 3</code> — Max warnings
+• <code>!warnretention 2</code> — Days to keep warns
+• <code>!autodelete on</code> / <code>off</code> — Auto-delete bot messages
+• <code>!autodeletedelay 2</code> — Delay in minutes
+• <code>!joinleave on</code> — Hide join/leave messages
+• <code>!joinleave off</code> — Show join/leave messages
+• <code>!adminlock on</code> / <code>off</code> — Apply rules to admins`,
 
-  // Message 3: Filters and Quiet Hours
-  `<b>📝 WORD FILTER</b>
+  // Message 5: Public & Panel
+  `<b>🔷 Public Commands</b>
+• <code>!publiccmds lock</code> — Disable public commands
+• <code>!publiccmds unlock</code> — Enable public commands
 
-<code>!filter [word]</code>
-Add word to blacklist.
-<i>Example: <code>!filter spam</code></i>
+<b>🔷 Management Panel</b>
+For advanced settings, statistics, and easier configuration, use the Mini App:
 
-<code>!unfilter [word]</code>
-Remove word from blacklist.
-
-<code>!filters</code>
-Show all filtered words.
-
-━━━━━━━━━━━━━━━━━━━━
-
-<b>🌙 QUIET HOURS</b>
-
-Set times when only admins can message.
-
-<code>!silence1 from HH:MM to HH:MM</code>
-<i>Example: <code>!silence1 from 23:00 to 08:00</code></i>
-
-<code>!silence1 off</code>
-Disable quiet hours.
-
-<code>!silence2</code> / <code>!silence3</code>
-Additional quiet windows (Premium).
-
-<code>!clearsilence</code>
-Disable all quiet windows.`,
-
-  // Message 4: Settings and Limits
-  `<b>⚙️ SETTINGS</b>
-
-<code>!welcome on/off</code>
-Toggle welcome messages.
-
-<code>!warning on/off</code>
-Toggle violation warnings.
-
-<code>!autowarning on/off</code>
-Toggle automatic warning system.
-
-<code>!warnthreshold [count]</code>
-Set max warnings before action.
-<i>Example: <code>!warnthreshold 3</code></i>
-
-<code>!autodelete on/off</code>
-Toggle auto-delete bot messages.
-
-<code>!autodeletedelay [seconds]</code>
-Set auto-delete delay.
-
-<code>!joinleave on/off</code>
-Toggle join/leave message removal.
-
-━━━━━━━━━━━━━━━━━━━━
-
-<b>📊 MESSAGE LIMITS</b>
-
-<code>!msglimit [count]</code>
-Max messages per time window.
-<i>Example: <code>!msglimit 5</code></i>
-
-<code>!msgwindow [minutes]</code>
-Time window for rate limit.
-
-<code>!duplicate [count]</code>
-Max duplicate messages allowed.
-
-<code>!minwords [count]</code>
-Minimum words per message.
-
-<code>!maxwords [count]</code>
-Maximum words per message.`,
-
-  // Message 5: Group Control and Whitelist
-  `<b>🛡️ GROUP CONTROL</b>
-
-<code>!lockgroup</code>
-Emergency lock — only admins can send.
-
-<code>!unlockgroup</code>
-Remove emergency lock.
-
-<code>!purge [count]</code>
-Delete recent messages.
-<i>Example: <code>!purge 50</code></i>
-
-━━━━━━━━━━━━━━━━━━━━
-
-<b>👥 WHITELIST</b>
-
-Whitelisted users bypass all restrictions.
-
-<code>!whitelist</code>
-Add user to whitelist (reply).
-
-<code>!unwhitelist</code>
-Remove user from whitelist (reply).
-
-<code>!clearwhitelist</code>
-Remove all users from whitelist.
-
-━━━━━━━━━━━━━━━━━━━━
-
-<b>👥 MANDATORY MEMBERSHIP</b>
-
-<code>!invite [count]</code>
-Require users to invite others.
-<i>Example: <code>!invite 3</code></i>
-
-<code>!join @channel</code>
-Require channel membership.
-<i>Example: <code>!join @mychannel</code></i>
-
-━━━━━━━━━━━━━━━━━━━━
-
-💡 <b>Pro Tip:</b> Use the Mini App for visual controls and advanced settings!`,
+Click the <b>Dashboard</b> button below to open the full management panel!`,
 ];
 
 export interface BotContent {

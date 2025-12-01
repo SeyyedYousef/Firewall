@@ -117,6 +117,7 @@ export function GroupDashboardPage() {
   const state = (location.state ?? {}) as LocationState;
 
   const [detail, setDetail] = useState<GroupDetail | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState('');
@@ -129,6 +130,7 @@ export function GroupDashboardPage() {
     let intervalId: number | undefined;
 
     const load = async () => {
+      setLoading(true);
       try {
         const data = await fetchGroupDetails(groupId);
         if (cancelled) {
@@ -140,6 +142,8 @@ export function GroupDashboardPage() {
         if (!cancelled) {
           setError(err instanceof Error ? err : new Error(String(err)));
         }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
 
@@ -253,6 +257,14 @@ export function GroupDashboardPage() {
         header={TEXT.errorHeader}
         description='Group identifier is missing.'
       />
+    );
+  }
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
+        <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      </div>
     );
   }
 

@@ -148,6 +148,7 @@ export function GroupGeneralSettingsPage() {
 
   const [group, setGroup] = useState<ManagedGroup | null>(state.group ?? null);
   const [settings, setSettings] = useState<GroupGeneralSettings | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
@@ -193,6 +194,7 @@ export function GroupGeneralSettingsPage() {
     let cancelled = false;
 
     const load = async () => {
+      setLoading(true);
       try {
         const [general, detail] = await Promise.all([
           fetchGroupGeneralSettings(groupId),
@@ -201,7 +203,14 @@ export function GroupGeneralSettingsPage() {
         if (cancelled) {
           return;
         }
-        setSettings(general);
+        // Ensure new premium fields have defaults
+        const safeSettings: GroupGeneralSettings = {
+          ...general,
+          captchaType: general.captchaType ?? 'button',
+          webhookConfig: general.webhookConfig ?? { enabled: false, url: '', events: [] },
+          priorityProcessing: general.priorityProcessing ?? false,
+        };
+        setSettings(safeSettings);
         setGroup(detail.group);
         setDirty(false);
         setError(null);
@@ -209,6 +218,8 @@ export function GroupGeneralSettingsPage() {
         if (!cancelled) {
           setError(err instanceof Error ? err : new Error(String(err)));
         }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
 
@@ -325,6 +336,14 @@ export function GroupGeneralSettingsPage() {
           Back
         </Button>
       </Placeholder>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
+        <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      </div>
     );
   }
 

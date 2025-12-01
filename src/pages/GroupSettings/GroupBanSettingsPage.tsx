@@ -205,6 +205,7 @@ export function GroupBanSettingsPage() {
 
   const [group, setGroup] = useState<ManagedGroup | null>(state.group ?? null);
   const [settings, setSettings] = useState<GroupBanSettings | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
@@ -231,6 +232,7 @@ export function GroupBanSettingsPage() {
     let cancelled = false;
 
     const load = async () => {
+      setLoading(true);
       try {
         const [banSettings, detail] = await Promise.all([
           fetchGroupBanSettings(groupId),
@@ -246,6 +248,8 @@ export function GroupBanSettingsPage() {
         if (!cancelled) {
           setError(err instanceof Error ? err : new Error(String(err)));
         }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
 
@@ -390,6 +394,14 @@ export function GroupBanSettingsPage() {
           Back
         </Button>
       </Placeholder>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
+        <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      </div>
     );
   }
 
