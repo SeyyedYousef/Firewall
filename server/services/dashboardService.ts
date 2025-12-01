@@ -304,26 +304,17 @@ function filterGroupsForUser(
   });
 
   const filtered = sanitized.filter((record) => {
-    // Show groups where user is the owner
+    // Allow the group owner to see/manage the group
     if (record.ownerId && record.ownerId === normalizedId) {
       return true;
     }
-    
-    // TEMPORARY FIX: Also show groups where user is in adminIds for legacy groups
-    // This helps with groups created before ownerId was properly set
-    if (record.adminIds?.includes(normalizedId)) {
-      // Note: being an admin is NOT enough to see the group in the dashboard list
-      // Regular users should only see groups they own. Panel admins use includeAll.
-      return false;
+
+    // Also allow managing admins (e.g. the admin who added the bot) to see/manage the group
+    if (Array.isArray(record.adminIds) && record.adminIds.includes(normalizedId)) {
+      return true;
     }
-    
-    // For legacy groups without proper owner info, show managed groups
-    // This is a fallback for groups created before the ownership fix
-    if (!record.ownerId && record.managed) {
-      // Do not expose legacy groups to arbitrary users; require explicit ownership
-      return false;
-    }
-    
+
+    // Do not expose other groups
     return false;
   });
 

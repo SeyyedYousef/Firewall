@@ -1593,46 +1593,17 @@ bot.action(actionId("channel"), async (ctx) => {
 
 bot.action(actionId("commands"), async (ctx) => {
   await ctx.answerCbQuery();
-  const settings = getPanelSettings();
-  const custom = settings.commands?.trim();
-  
-  // If no custom text is set, use the extended multi-message commands
-  if (!custom) {
-    const { EXTENDED_COMMANDS } = await import("./content.js");
-    
-    // Send first message with edit
-    const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback("\u{1F519} Back", actionId("managementBack"))]
-    ]);
-    await replyOrEditRoot(ctx, EXTENDED_COMMANDS[0], keyboard);
-    
-    // Send remaining messages as new messages with small delay
-    for (let i = 1; i < EXTENDED_COMMANDS.length; i++) {
-      await new Promise(resolve => setTimeout(resolve, 500)); // Avoid rate limit
-      await ctx.reply(EXTENDED_COMMANDS[i], { parse_mode: "HTML" });
-    }
-    return;
-  }
+  const { EXTENDED_COMMANDS } = await import("./content.js");
 
-  // If custom text is set, use it (handling length limit if needed)
-  const message = custom;
-  if (message.length > 3800) {
-    // Split custom message if too long
-    const parts = message.match(/.{1,3800}/g) || [message];
-    const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback("\u{1F519} Back", actionId("managementBack"))]
-    ]);
-    await replyOrEditRoot(ctx, parts[0], keyboard);
-    
-    for (let i = 1; i < parts.length; i++) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      await ctx.reply(parts[i], { parse_mode: "HTML" });
-    }
-  } else {
-    const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback("\u{1F519} Back", actionId("managementBack"))]
-    ]);
-    await replyOrEditRoot(ctx, message, keyboard);
+  // Always show the full command reference as 5 separate messages
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback("\u{1F519} Back", actionId("managementBack"))]
+  ]);
+  await replyOrEditRoot(ctx, EXTENDED_COMMANDS[0], keyboard);
+
+  for (let i = 1; i < EXTENDED_COMMANDS.length; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 500)); // Avoid rate limit
+    await ctx.reply(EXTENDED_COMMANDS[i], { parse_mode: "HTML" });
   }
 });
 

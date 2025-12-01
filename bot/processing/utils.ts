@@ -1,7 +1,7 @@
 import type { Context } from "telegraf";
 import type { GroupChatContext, ProcessingAction } from "./types.js";
 import { logger } from "../../server/utils/logger.js";
-import { markAdminPermission, queuePendingOnboardingMessages, hasPromoButton, hasDetailedWarnings, hasAdvancedAnalytics, isGroupPremium, hasAutoWarning, hasAutoDelete } from "../state.js";
+import { markAdminPermission, queuePendingOnboardingMessages, hasPromoButton, hasAdvancedAnalytics, isGroupPremium, hasAutoWarning, hasAutoDelete } from "../state.js";
 
 export function isGroupChat(ctx: Context): ctx is GroupChatContext {
   // First check standard ctx.chat
@@ -170,7 +170,8 @@ async function warnMember(ctx: GroupChatContext, action: Extract<ProcessingActio
           chatId: ctx.chat.id.toString(),
           telegramUserId: action.userId.toString(),
           retentionDays: retentionDaysValue,
-          groupTitle: ctx.chat?.title ?? null,
+          // In this context we are in a group chat, but TypeScript's union type doesn't know that
+          groupTitle: (ctx.chat as any)?.title ?? null,
         });
 
         userWarningsCount = result.count;
@@ -229,31 +230,26 @@ async function warnMember(ctx: GroupChatContext, action: Extract<ProcessingActio
   }
 
   // Try to load custom warning message template
-  // Free: Basic reason, Premium: Detailed explanation
+  // Always prefer the full custom template when available (no premium gating)
   const chatIdStr = ctx.chat.id.toString();
-  const showDetailedWarning = hasDetailedWarnings(chatIdStr);
+
+  // Default template (used when no custom warningMessage is configured)
+  let warningTemplate =
+    "⚠️ <b>Warning!</b>\n\n" +
+    "👤 {user}\n\n" +
+    "📋 <b>Violation:</b> {reason}\n" +
+    "🔻 <b>Action:</b> {penalty}\n\n" +
+    "⚠️ Warning {user_warnings} of {warnings_count}\n" +
+    "💡 Each warning expires after {warningstime} days.";
   
-  // Default templates:
-  // Free: Shows reason but simpler format
-  // Premium: Shows detailed explanation with all info
-  let warningTemplate = showDetailedWarning 
-    ? "⚠️ <b>Warning!</b>\n\n👤 {user}\n\n📋 <b>Violation:</b> {reason}\n🔴 <b>Severity:</b> {severity}\n⚡ <b>Action:</b> {penalty}\n📊 <b>Your warnings:</b> {user_warnings}/{warnings_count}\n⏰ <b>Reset after:</b> {warningstime} days\n\n💡 <i>Repeated violations may result in a ban.</i>"
-    : "⚠️ {user}, rule violated: {reason}";
-  
-  // Load custom template from database
+  // Load custom template from database (if defined for the group)
   if (databaseAvailable) {
     try {
       const { loadCustomTextSettingsByChatId } = await import("../../server/db/groupSettingsRepository.js");
       const customTexts = await loadCustomTextSettingsByChatId(chatIdStr);
       if (customTexts.warningMessage && customTexts.warningMessage.trim()) {
-        // For Premium, use full custom template
-        // For Free, use custom template but strip some parts
-        if (showDetailedWarning) {
-          warningTemplate = customTexts.warningMessage;
-        } else {
-          // Free users get simpler version even with custom template
-          warningTemplate = "⚠️ {user}, rule violated: {reason}";
-        }
+        // Always use the full custom warning template when provided
+        warningTemplate = customTexts.warningMessage;
       }
     } catch (error) {
       // Fall back to default template if custom text loading fails

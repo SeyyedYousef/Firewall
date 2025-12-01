@@ -77,14 +77,12 @@ const TEMPLATE_DEFINITIONS: TemplateDefinition[] = [
     title: "Quiet hours started",
     description: "Explain when messaging is disabled. Include {starttime} and {endtime}.",
     placeholders: ["{starttime}", "{endtime}"],
-    requiredAll: ["{starttime}", "{endtime}"],
   },
   {
     key: "silenceEndMessage",
     title: "Quiet hours ended",
     description: "Let members know when quiet hours finish. Mention {starttime} for the next cycle.",
     placeholders: ["{starttime}", "{endtime}"],
-    requiredAll: ["{starttime}", "{endtime}"],
   },
   {
     key: "warningMessage",
@@ -92,7 +90,6 @@ const TEMPLATE_DEFINITIONS: TemplateDefinition[] = [
     description:
       "Sent when a member breaks the rules. Include {reason}, {penalty}, {user_warnings}, {warnings_count}, {warningstime}.",
     placeholders: ["{reason}", "{penalty}", "{user_warnings}", "{warnings_count}", "{warningstime}"],
-    requiredAll: ["{reason}", "{penalty}", "{user_warnings}", "{warnings_count}", "{warningstime}"],
   },
   {
     key: "forcedInviteMessage",
