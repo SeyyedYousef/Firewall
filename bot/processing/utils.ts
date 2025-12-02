@@ -1,7 +1,16 @@
 import type { Context } from "telegraf";
 import type { GroupChatContext, ProcessingAction } from "./types.js";
 import { logger } from "../../server/utils/logger.js";
-import { markAdminPermission, queuePendingOnboardingMessages, hasPromoButton, hasAdvancedAnalytics, isGroupPremium, hasAutoWarning, hasAutoDelete } from "../state.js";
+import {
+  markAdminPermission,
+  queuePendingOnboardingMessages,
+  hasPromoButton,
+  hasAdvancedAnalytics,
+  isGroupPremium,
+  hasAutoWarning,
+  hasAutoDelete,
+  getState,
+} from "../state.js";
 
 export function isGroupChat(ctx: Context): ctx is GroupChatContext {
   // First check standard ctx.chat
@@ -72,12 +81,107 @@ export function executeAction(ctx: GroupChatContext, action: ProcessingAction): 
       return recordModeration(ctx, action);
     case "record_rule_audit":
       return recordRuleAudit(ctx, action);
+    case "notify_admins":
+      return notifyAdmins(ctx);
     case "log":
       logAction(action);
       return Promise.resolve();
     case "noop":
     default:
       return Promise.resolve();
+  }
+}
+
+async function notifyAdmins(ctx: GroupChatContext): Promise<void> {
+  const message: any = ctx.message;
+  if (!message || typeof message.text !== "string") {
+    return;
+  }
+
+  const reply = message.reply_to_message as any | undefined;
+  if (!reply || typeof reply.message_id !== "number") {
+    // Only handle explicit replies
+    return;
+  }
+
+  const textLower = message.text.toLowerCase();
+  if (!textLower.includes("@admin")) {
+    // Safety check: this action should only be used for @admin mentions
+    return;
+  }
+
+  const chatId = ctx.chat?.id;
+  if (!chatId) {
+    return;
+  }
+
+  const chatIdStr = chatId.toString();
+
+  let recipientIds: string[] = [];
+
+  try {
+    const state = getState();
+    const group = state.groups?.[chatIdStr];
+    if (group) {
+      if (group.ownerId) {
+        recipientIds.push(group.ownerId);
+      }
+      if (Array.isArray(group.adminIds)) {
+        recipientIds.push(...group.adminIds);
+      }
+    }
+  } catch (error) {
+    logger.debug("failed to resolve group admins for notify_admins", {
+      chatId,
+      error,
+    });
+  }
+
+  const reporterId: number | undefined = message.from?.id;
+  const uniqueRecipientIds = Array.from(new Set(recipientIds.filter(Boolean))).filter((id) =>
+    reporterId ? id !== reporterId.toString() : true,
+  );
+
+  if (uniqueRecipientIds.length === 0) {
+    return;
+  }
+
+  const groupTitle = (ctx.chat as any)?.title ?? chatIdStr;
+
+  let reporterLabel = reporterId ? reporterId.toString() : "unknown";
+  if (message.from) {
+    const from = message.from as { username?: string; first_name?: string; last_name?: string };
+    if (from.username) {
+      reporterLabel = `@${from.username}`;
+    } else if (from.first_name || from.last_name) {
+      reporterLabel = [from.first_name, from.last_name].filter(Boolean).join(" ") || reporterLabel;
+    }
+  }
+
+  const headerText =
+    "📣 New admin report received" +
+    "\n\n" +
+    `Group: ${groupTitle}` +
+    "\n" +
+    `From: ${reporterLabel}${reporterId ? ` (ID: ${reporterId})` : ""}` +
+    "\n\n" +
+    "The following message was reported by replying with @admin. It is forwarded below.";
+
+  for (const id of uniqueRecipientIds) {
+    const numericId = Number(id);
+    if (!Number.isFinite(numericId)) {
+      continue;
+    }
+    try {
+      await ctx.telegram.sendMessage(numericId, headerText);
+      await ctx.telegram.forwardMessage(numericId, chatId, reply.message_id);
+    } catch (error) {
+      logger.debug("failed to send admin report notification", {
+        chatId,
+        adminId: numericId,
+        error,
+      });
+    }
   }
 }
 

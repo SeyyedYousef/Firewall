@@ -77,6 +77,10 @@ export type ProcessingAction =
       details?: Record<string, unknown>;
     }
   | {
+      // Trigger sending a private report to group owner/admins when users mention @admin in a reply
+      type: "notify_admins";
+    }
+  | {
       type: "noop";
     };
 

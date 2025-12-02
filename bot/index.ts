@@ -53,6 +53,12 @@ import {
   type ManagedGroup,
   type StarsOverview,
 } from "../server/services/dashboardService.js";
+import {
+  type BanRuleKey,
+  type GroupBanSettingsRecord,
+  loadBanSettingsByChatId,
+  saveBanSettingsByChatId,
+} from "../server/db/groupSettingsRepository.js";
 import { extractCreditCode, redeemCreditCode } from "../server/services/creditCodeService.js";
 import { recordGroupCreditRenewal } from "../server/services/missionVerificationService.js";
 import {
@@ -264,6 +270,88 @@ const REQUIRED_SLIDE_HEIGHT = 360;
 const databaseAvailable = Boolean(process.env.DATABASE_URL);
 
 type InlineKeyboard = ReturnType<typeof Markup.inlineKeyboard>;
+
+type InlineLockItem = {
+  id: string;
+  keys: BanRuleKey[];
+  label: string;
+};
+
+type InlineListId =
+  | "owners"
+  | "admins"
+  | "vip"
+  | "muted"
+  | "banned"
+  | "warnings"
+  | "exempt"
+  | "filters"
+  | "whitelist"
+  | "forward_whitelist"
+  | "auto_replies"
+  | "scheduled_posts";
+
+type InlineListConfig = {
+  id: InlineListId;
+  title: string;
+  supportsAdd: boolean;
+  commandUsage?: string;
+  commandExample?: string;
+};
+
+const INLINE_LOCK_ITEMS: InlineLockItem[] = [
+  { id: "links", keys: ["banLinks", "banDomains"], label: "Links" },
+  { id: "media", keys: ["banPhotos", "banVideos", "banGif", "banFiles", "banAudio", "banVoice"], label: "Media" },
+  { id: "stickers", keys: ["banStickers"], label: "Stickers" },
+  { id: "bots", keys: ["banBots", "banBotInviters"], label: "Bots" },
+  { id: "edit", keys: ["banCaptionless"], label: "Captionless media" },
+  { id: "forward", keys: ["banForward", "banForwardChannels"], label: "Forwards" },
+  { id: "usernames", keys: ["banUsernames"], label: "Usernames" },
+  { id: "hashtags", keys: ["banHashtags"], label: "Hashtags" },
+  { id: "text", keys: ["banTextPatterns"], label: "Text" },
+  { id: "emoji", keys: ["banEmojis", "banEmojiOnly"], label: "Emoji" },
+  { id: "location", keys: ["banLocation"], label: "Location" },
+  { id: "phones", keys: ["banPhones"], label: "Phone numbers" },
+  { id: "apps", keys: ["banApps"], label: "Apps" },
+  { id: "polls", keys: ["banPolls"], label: "Polls" },
+  { id: "inline_buttons", keys: ["banInlineKeyboards"], label: "Inline keyboards" },
+  { id: "games", keys: ["banGames"], label: "Games" },
+  { id: "latin", keys: ["banLatin"], label: "Latin text" },
+  { id: "persian", keys: ["banPersian"], label: "Persian/Arabic text" },
+  { id: "cyrillic", keys: ["banCyrillic"], label: "Cyrillic text" },
+  { id: "chinese", keys: ["banChinese"], label: "Chinese text" },
+  { id: "replies", keys: ["banUserReplies"], label: "Replies" },
+  { id: "cross_replies", keys: ["banCrossReplies"], label: "Cross-chat replies" },
+];
+
+const INLINE_LOCK_PAGE_SIZE = 6;
+
+const INLINE_LIST_CONFIGS: InlineListConfig[] = [
+  { id: "owners", title: "Owner list", supportsAdd: false },
+  { id: "admins", title: "Admin list", supportsAdd: false },
+  { id: "vip", title: "VIP members", supportsAdd: false },
+  { id: "muted", title: "Muted members", supportsAdd: false },
+  { id: "banned", title: "Banned members", supportsAdd: false },
+  { id: "warnings", title: "Warned members", supportsAdd: false },
+  { id: "exempt", title: "Exempt members", supportsAdd: false },
+  {
+    id: "filters",
+    title: "Filtered keywords",
+    supportsAdd: true,
+    commandUsage: "!filter {word}",
+    commandExample: "!filter hello",
+  },
+  {
+    id: "whitelist",
+    title: "Allowed keywords",
+    supportsAdd: true,
+    commandUsage: "!whitelist (reply)",
+    commandExample: "Reply to a message and send !whitelist",
+  },
+  { id: "forward_whitelist", title: "Allowed forwards", supportsAdd: false },
+  { id: "auto_replies", title: "Auto replies", supportsAdd: false },
+  { id: "scheduled_posts", title: "Scheduled posts", supportsAdd: false },
+];
 
 function actorId(ctx: Context): string | null {
   const id = ctx.from?.id;
@@ -1152,6 +1240,16 @@ const FIREWALL_DELETE_REGEX = new RegExp(`^${escapeRegExp(actionId("ownerFirewal
 const FIREWALL_EDIT_REGEX = new RegExp(`^${escapeRegExp(actionId("ownerFirewallEdit"))}:(.+)$`);
 const VERIFY_MEMBER_REGEX = /^fw_verify_member:(-?\d+):(-?\d+)$/;
 
+// Inline panel callback patterns
+const INLINE_GROUP_REGEX = /^fw_inline_group:(-?\d+)$/;
+const INLINE_MENU_REGEX = /^fw_inline_menu:(-?\d+)$/;
+const INLINE_BACK_TO_GROUPS = "fw_inline_back_to_groups";
+const INLINE_LOCKS_REGEX = /^fw_inline_locks:(-?\d+):(\d+)$/;
+const INLINE_LOCK_TOGGLE_REGEX = /^fw_inline_lock:(-?\d+):(\d+):([a-z0-9_]+)$/;
+const INLINE_LISTS_REGEX = /^fw_inline_lists:(-?\d+)$/;
+const INLINE_LIST_DETAIL_REGEX = /^fw_inline_list:(-?\d+):([a-z0-9_]+)$/;
+const INLINE_LIST_ADD_REGEX = /^fw_inline_add:(-?\d+):([a-z0-9_]+)$/;
+
 function formatGroupSnapshot(): string {
   const groups = listGroups();
   if (groups.length === 0) {
@@ -1161,6 +1259,222 @@ function formatGroupSnapshot(): string {
     return `- ${group.chatId} (${group.title}) - credit: ${group.creditBalance}`;
   });
   return lines.join("\n");
+}
+
+function getManageableGroupsForUser(userId: string): GroupRecord[] {
+  const all = listGroups();
+  if (userId === ownerUserId || isPanelAdmin(userId)) {
+    return all.filter((group) => group.managed);
+  }
+  return all.filter((group) => group.managed && (group.ownerId === userId || group.adminIds.includes(userId)));
+}
+
+function buildInlineGroupSelectionKeyboard(groups: GroupRecord[]): InlineKeyboard {
+  const rows: any[] = [];
+  for (const group of groups) {
+    const label = truncateLabel(`${group.title} (${group.chatId})`, 40);
+    rows.push([Markup.button.callback(label, `fw_inline_group:${group.chatId}`)]);
+  }
+  rows.push([Markup.button.callback("Back", actionId("managementBack"))]);
+  return Markup.inlineKeyboard(rows);
+}
+
+async function showInlineGroupSelection(ctx: Context): Promise<void> {
+  const id = actorId(ctx);
+  if (!id) {
+    await ctx.reply("Unable to determine your account.");
+    return;
+  }
+
+  const groups = getManageableGroupsForUser(id);
+  if (groups.length === 0) {
+    const message =
+      "No manageable groups were found for your account.\n\n" +
+      "Make sure the bot is an admin in your group and that you are a group owner or admin.";
+    await replyOrEditRoot(ctx, message, Markup.inlineKeyboard([[Markup.button.callback("Back", actionId("managementBack"))]]));
+    return;
+  }
+
+  const message = "Select a group you want to manage via the inline panel:";
+  await replyOrEditRoot(ctx, message, buildInlineGroupSelectionKeyboard(groups));
+}
+
+function buildInlineGroupMenuKeyboard(chatId: string): InlineKeyboard {
+  const locksCallback = `fw_inline_locks:${chatId}:1`;
+  const listsCallback = `fw_inline_lists:${chatId}`;
+  return Markup.inlineKeyboard([
+    [
+      Markup.button.callback("Locks", locksCallback),
+      Markup.button.callback("Lists", listsCallback),
+    ],
+    [
+      Markup.button.callback("Help (coming soon)", "fw_inline_help_placeholder"),
+      Markup.button.callback("Advanced settings (coming soon)", "fw_inline_advanced_placeholder"),
+    ],
+    [Markup.button.callback("Back to groups", INLINE_BACK_TO_GROUPS)],
+  ]);
+}
+
+async function showInlineGroupMenu(ctx: Context, chatId: string): Promise<void> {
+  const groups = listGroups();
+  const group = groups.find((g) => g.chatId === chatId) ?? null;
+  const title = group?.title ?? chatId;
+  const message = `Group management panel\n\nGroup: ${title}\n\nChoose a section to manage:`;
+  await replyOrEditRoot(ctx, message, buildInlineGroupMenuKeyboard(chatId));
+}
+
+function buildInlineLocksKeyboard(chatId: string, page: number, settings: GroupBanSettingsRecord): InlineKeyboard {
+  const totalPages = Math.max(1, Math.ceil(INLINE_LOCK_ITEMS.length / INLINE_LOCK_PAGE_SIZE));
+  const currentPage = Math.min(Math.max(page, 1), totalPages);
+  const start = (currentPage - 1) * INLINE_LOCK_PAGE_SIZE;
+  const pageItems = INLINE_LOCK_ITEMS.slice(start, start + INLINE_LOCK_PAGE_SIZE);
+
+  const rows: any[] = [];
+  for (const item of pageItems) {
+    const isOn = item.keys.some((key) => settings.rules[key]?.enabled);
+    const label = `${isOn ? "✅" : "☐"} ${item.label}`;
+    rows.push([Markup.button.callback(label, `fw_inline_lock:${chatId}:${currentPage}:${item.id}`)]);
+  }
+
+  const navRow: any[] = [];
+  if (currentPage > 1) {
+    navRow.push(Markup.button.callback("« Prev", `fw_inline_locks:${chatId}:${currentPage - 1}`));
+  }
+  if (currentPage < totalPages) {
+    navRow.push(Markup.button.callback("Next »", `fw_inline_locks:${chatId}:${currentPage + 1}`));
+  }
+  if (navRow.length > 0) {
+    rows.push(navRow);
+  }
+
+  rows.push([Markup.button.callback("Back to panel", `fw_inline_menu:${chatId}`)]);
+  return Markup.inlineKeyboard(rows);
+}
+
+async function showInlineLocksPage(ctx: Context, chatId: string, page: number): Promise<void> {
+  let settings: GroupBanSettingsRecord;
+  try {
+    settings = await loadBanSettingsByChatId(chatId);
+  } catch {
+    await replyOrEditRoot(
+      ctx,
+      "Unable to load lock settings for this group right now.",
+      Markup.inlineKeyboard([[Markup.button.callback("Back to panel", `fw_inline_menu:${chatId}`)]]),
+    );
+    return;
+  }
+
+  const totalPages = Math.max(1, Math.ceil(INLINE_LOCK_ITEMS.length / INLINE_LOCK_PAGE_SIZE));
+  const currentPage = Math.min(Math.max(page, 1), totalPages);
+  const groups = listGroups();
+  const group = groups.find((g) => g.chatId === chatId) ?? null;
+  const title = group?.title ?? chatId;
+  const message = `Locks\n\nGroup: ${title}\nPage ${currentPage}/${totalPages}\n\nTap a lock to toggle it on or off.`;
+  await replyOrEditRoot(ctx, message, buildInlineLocksKeyboard(chatId, currentPage, settings));
+}
+
+function getInlineListConfig(id: string): InlineListConfig | undefined {
+  return INLINE_LIST_CONFIGS.find((cfg) => cfg.id === (id as InlineListId));
+}
+
+function buildInlineListsKeyboard(chatId: string): InlineKeyboard {
+  const rows: any[] = [];
+  for (const cfg of INLINE_LIST_CONFIGS) {
+    rows.push([Markup.button.callback(cfg.title, `fw_inline_list:${chatId}:${cfg.id}`)]);
+  }
+  rows.push([Markup.button.callback("Back to panel", `fw_inline_menu:${chatId}`)]);
+  return Markup.inlineKeyboard(rows);
+}
+
+async function showInlineListsOverview(ctx: Context, chatId: string): Promise<void> {
+  let banSettings: GroupBanSettingsRecord | null = null;
+  try {
+    banSettings = await loadBanSettingsByChatId(chatId);
+  } catch {
+    banSettings = null;
+  }
+
+  const filterCount = banSettings?.blacklist?.length ?? 0;
+  const allowCount = banSettings?.whitelist?.length ?? 0;
+
+  const groups = listGroups();
+  const group = groups.find((g) => g.chatId === chatId) ?? null;
+  const title = group?.title ?? chatId;
+
+  const lines: string[] = [];
+  lines.push("Lists overview");
+  lines.push("");
+  lines.push(`Group: ${title}`);
+  lines.push("");
+  lines.push("Owners: not available");
+  lines.push("Admins: not available");
+  lines.push("VIP members: not available");
+  lines.push("Muted members: not available");
+  lines.push("Banned members: not available");
+  lines.push("Warned members: not available");
+  lines.push("Exempt members: not available");
+  lines.push(`Filtered keywords: ${filterCount}`);
+  lines.push(`Allowed keywords: ${allowCount}`);
+  lines.push("Allowed forwards: not available");
+  lines.push("Auto replies: not available");
+  lines.push("Scheduled posts: not available");
+
+  const message = lines.join("\n");
+  await replyOrEditRoot(ctx, message, buildInlineListsKeyboard(chatId));
+}
+
+async function showInlineListDetail(ctx: Context, chatId: string, listId: string): Promise<void> {
+  const cfg = getInlineListConfig(listId);
+  if (!cfg) {
+    await replyOrEditRoot(ctx, "Unknown list.", buildInlineListsKeyboard(chatId));
+    return;
+  }
+
+  let banSettings: GroupBanSettingsRecord | null = null;
+  if (cfg.id === "filters" || cfg.id === "whitelist") {
+    try {
+      banSettings = await loadBanSettingsByChatId(chatId);
+    } catch {
+      banSettings = null;
+    }
+  }
+
+  const groups = listGroups();
+  const group = groups.find((g) => g.chatId === chatId) ?? null;
+  const title = group?.title ?? chatId;
+
+  const lines: string[] = [];
+  lines.push(`${cfg.title} — Group: ${title}`);
+  lines.push("");
+
+  if (cfg.id === "filters" || cfg.id === "whitelist") {
+    const items = cfg.id === "filters" ? banSettings?.blacklist ?? [] : banSettings?.whitelist ?? [];
+    if (!items.length) {
+      lines.push("This list is empty.");
+    } else {
+      for (const entry of items) {
+        lines.push(`• ${entry}`);
+      }
+    }
+
+    if (cfg.supportsAdd && cfg.commandUsage && cfg.commandExample) {
+      lines.push("");
+      lines.push("You can also manage this list using text commands:");
+      lines.push(cfg.commandUsage);
+      lines.push(`Example: ${cfg.commandExample}`);
+    }
+  } else {
+    lines.push("This list is not available in the inline panel yet.");
+  }
+
+  const rows: any[] = [];
+  rows.push([Markup.button.callback("Back to lists", `fw_inline_lists:${chatId}`)]);
+  if (cfg.supportsAdd) {
+    rows.push([Markup.button.callback("Add (via commands)", `fw_inline_add:${chatId}:${cfg.id}`)]);
+  }
+  rows.push([Markup.button.callback("Back to panel", `fw_inline_menu:${chatId}`)]);
+
+  await replyOrEditRoot(ctx, lines.join("\n"), Markup.inlineKeyboard(rows));
 }
 
 export async function formatStatisticsSummary(): Promise<string> {
@@ -1569,12 +1883,197 @@ bot.action(actionId("managementPanel"), async (ctx) => {
 });
 
 bot.action(actionId("inlinePanel"), async (ctx) => {
-  await ctx.answerCbQuery(content.messages.inlinePanel, { show_alert: true });
+  await ctx.answerCbQuery();
+  await showInlineGroupSelection(ctx);
 });
 
 bot.action(actionId("managementBack"), async (ctx) => {
   await ctx.answerCbQuery();
   await sendStartMenu(ctx);
+});
+
+bot.action(INLINE_GROUP_REGEX, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data =
+    typeof ctx.callbackQuery === "object" &&
+    ctx.callbackQuery !== null &&
+    "data" in ctx.callbackQuery &&
+    typeof (ctx.callbackQuery as any).data === "string"
+      ? (ctx.callbackQuery as any).data
+      : "";
+  const match = data.match(INLINE_GROUP_REGEX);
+  const chatId = match?.[1];
+  if (!chatId) {
+    await showInlineGroupSelection(ctx);
+    return;
+  }
+  await showInlineGroupMenu(ctx, chatId);
+});
+
+bot.action(INLINE_BACK_TO_GROUPS, async (ctx) => {
+  await ctx.answerCbQuery();
+  await showInlineGroupSelection(ctx);
+});
+
+bot.action(INLINE_MENU_REGEX, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data =
+    typeof ctx.callbackQuery === "object" &&
+    ctx.callbackQuery !== null &&
+    "data" in ctx.callbackQuery &&
+    typeof (ctx.callbackQuery as any).data === "string"
+      ? (ctx.callbackQuery as any).data
+      : "";
+  const match = data.match(INLINE_MENU_REGEX);
+  const chatId = match?.[1];
+  if (!chatId) {
+    await showInlineGroupSelection(ctx);
+    return;
+  }
+  await showInlineGroupMenu(ctx, chatId);
+});
+
+bot.action(INLINE_LOCKS_REGEX, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data =
+    typeof ctx.callbackQuery === "object" &&
+    ctx.callbackQuery !== null &&
+    "data" in ctx.callbackQuery &&
+    typeof (ctx.callbackQuery as any).data === "string"
+      ? (ctx.callbackQuery as any).data
+      : "";
+  const match = data.match(INLINE_LOCKS_REGEX);
+  const chatId = match?.[1];
+  const pageRaw = match?.[2];
+  const page = pageRaw ? Number.parseInt(pageRaw, 10) || 1 : 1;
+  if (!chatId) {
+    await showInlineGroupSelection(ctx);
+    return;
+  }
+  await showInlineLocksPage(ctx, chatId, page);
+});
+
+bot.action(INLINE_LOCK_TOGGLE_REGEX, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data =
+    typeof ctx.callbackQuery === "object" &&
+    ctx.callbackQuery !== null &&
+    "data" in ctx.callbackQuery &&
+    typeof (ctx.callbackQuery as any).data === "string"
+      ? (ctx.callbackQuery as any).data
+      : "";
+  const match = data.match(INLINE_LOCK_TOGGLE_REGEX);
+  const chatId = match?.[1];
+  const pageRaw = match?.[2];
+  const lockId = match?.[3];
+  const page = pageRaw ? Number.parseInt(pageRaw, 10) || 1 : 1;
+  if (!chatId || !lockId) {
+    await showInlineGroupSelection(ctx);
+    return;
+  }
+
+  const item = INLINE_LOCK_ITEMS.find((entry) => entry.id === lockId);
+  if (!item) {
+    await showInlineLocksPage(ctx, chatId, page);
+    return;
+  }
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const anyEnabled = item.keys.some((key) => settings.rules[key]?.enabled);
+    for (const key of item.keys) {
+      if (!settings.rules[key]) {
+        continue;
+      }
+      settings.rules[key].enabled = !anyEnabled;
+    }
+    await saveBanSettingsByChatId(chatId, settings as unknown as GroupBanSettingsRecord);
+  } catch {
+    await replyOrEditRoot(
+      ctx,
+      "Failed to toggle this lock. Please try again later.",
+      Markup.inlineKeyboard([[Markup.button.callback("Back to panel", `fw_inline_menu:${chatId}`)]]),
+    );
+    return;
+  }
+
+  await showInlineLocksPage(ctx, chatId, page);
+});
+
+bot.action(INLINE_LISTS_REGEX, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data =
+    typeof ctx.callbackQuery === "object" &&
+    ctx.callbackQuery !== null &&
+    "data" in ctx.callbackQuery &&
+    typeof (ctx.callbackQuery as any).data === "string"
+      ? (ctx.callbackQuery as any).data
+      : "";
+  const match = data.match(INLINE_LISTS_REGEX);
+  const chatId = match?.[1];
+  if (!chatId) {
+    await showInlineGroupSelection(ctx);
+    return;
+  }
+  await showInlineListsOverview(ctx, chatId);
+});
+
+bot.action(INLINE_LIST_DETAIL_REGEX, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data =
+    typeof ctx.callbackQuery === "object" &&
+    ctx.callbackQuery !== null &&
+    "data" in ctx.callbackQuery &&
+    typeof (ctx.callbackQuery as any).data === "string"
+      ? (ctx.callbackQuery as any).data
+      : "";
+  const match = data.match(INLINE_LIST_DETAIL_REGEX);
+  const chatId = match?.[1];
+  const listId = match?.[2];
+  if (!chatId || !listId) {
+    await showInlineGroupSelection(ctx);
+    return;
+  }
+  await showInlineListDetail(ctx, chatId, listId);
+});
+
+bot.action(INLINE_LIST_ADD_REGEX, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data =
+    typeof ctx.callbackQuery === "object" &&
+    ctx.callbackQuery !== null &&
+    "data" in ctx.callbackQuery &&
+    typeof (ctx.callbackQuery as any).data === "string"
+      ? (ctx.callbackQuery as any).data
+      : "";
+  const match = data.match(INLINE_LIST_ADD_REGEX);
+  const chatId = match?.[1];
+  const listId = match?.[2];
+  if (!chatId || !listId) {
+    await showInlineGroupSelection(ctx);
+    return;
+  }
+
+  const cfg = getInlineListConfig(listId);
+  if (!cfg || !cfg.supportsAdd || !cfg.commandUsage || !cfg.commandExample) {
+    await showInlineListDetail(ctx, chatId, listId);
+    return;
+  }
+
+  const lines: string[] = [];
+  lines.push(`How to add to: ${cfg.title}`);
+  lines.push("");
+  lines.push("Use the following command in the group chat:");
+  lines.push(cfg.commandUsage);
+  lines.push("Example:");
+  lines.push(cfg.commandExample);
+
+  const rows: any[] = [];
+  rows.push([Markup.button.callback("Back to list", `fw_inline_list:${chatId}:${cfg.id}`)]);
+  rows.push([Markup.button.callback("Back to lists", `fw_inline_lists:${chatId}`)]);
+  rows.push([Markup.button.callback("Back to panel", `fw_inline_menu:${chatId}`)]);
+
+  await replyOrEditRoot(ctx, lines.join("\n"), Markup.inlineKeyboard(rows));
 });
 
 bot.action(actionId("channel"), async (ctx) => {

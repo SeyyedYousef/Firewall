@@ -28,6 +28,15 @@ export const textMessageHandler: UpdateHandler = {
       actions.push(...firewallActions);
     }
 
+    // If user replied to a message and mentioned @admin, enqueue an admin notification
+    const message: any = groupCtx.message;
+    if (message && typeof message.text === "string" && message.reply_to_message) {
+      const lowered = message.text.toLowerCase();
+      if (lowered.includes("@admin")) {
+        actions.push({ type: "notify_admins" });
+      }
+    }
+
     if (!actions.length) {
       return {
         actions: ensureActions([
