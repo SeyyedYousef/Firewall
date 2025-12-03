@@ -1261,12 +1261,10 @@ function formatGroupSnapshot(): string {
   return lines.join("\n");
 }
 
-function getManageableGroupsForUser(userId: string): GroupRecord[] {
-  const all = listGroups();
-  if (userId === ownerUserId || isPanelAdmin(userId)) {
-    return all.filter((group) => group.managed);
-  }
-  return all.filter((group) => group.managed && (group.ownerId === userId || group.adminIds.includes(userId)));
+async function getManageableGroupsForUser(userId: string): Promise<GroupRecord[]> {
+  const includeAll = userId === ownerUserId || isPanelAdmin(userId);
+  const groups = await loadGroupsSnapshot(userId, { includeAll });
+  return groups;
 }
 
 function buildInlineGroupSelectionKeyboard(groups: GroupRecord[]): InlineKeyboard {
@@ -1286,7 +1284,7 @@ async function showInlineGroupSelection(ctx: Context): Promise<void> {
     return;
   }
 
-  const groups = getManageableGroupsForUser(id);
+  const groups = await getManageableGroupsForUser(id);
   if (groups.length === 0) {
     const message =
       "No manageable groups were found for your account.\n\n" +
