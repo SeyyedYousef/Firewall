@@ -299,6 +299,7 @@ type InlineListConfig = {
   commandUsage?: string;
   commandExample?: string;
   addPrompt?: string;
+  description?: string;
 };
 
 const INLINE_LOCK_ITEMS: InlineLockItem[] = [
@@ -344,36 +345,50 @@ const INLINE_LOCK_ITEMS: InlineLockItem[] = [
 const INLINE_LOCK_PAGE_SIZE = 6;
 
 const INLINE_LIST_CONFIGS: InlineListConfig[] = [
-  { id: "owners", title: "👑 Owners", supportsAdd: false },
-  { id: "admins", title: "👥 Admins", supportsAdd: false },
+  {
+    id: "owners",
+    title: "👑 Owners",
+    supportsAdd: false,
+    description: "Group owners/creators. This shows all users with 'creator' status in this group."
+  },
+  {
+    id: "admins",
+    title: "👥 Admins",
+    supportsAdd: false,
+    description: "Group administrators. Users with admin permissions who can manage the group."
+  },
   {
     id: "vip",
     title: "⭐ VIP Members",
     supportsAdd: true,
     commandUsage: "!vip @username or !vip {user_id}",
     commandExample: "!vip @john or !vip 123456789",
-    addPrompt: "Send user ID or @username to add as VIP.\n\n💡 VIP members bypass all content restrictions."
+    addPrompt: "Send user ID or @username to add as VIP.\n\n💡 VIP members bypass all content restrictions.",
+    description: "VIP users who bypass ALL content filtering rules. Their messages are never deleted or restricted."
   },
   {
     id: "muted",
     title: "🔇 Muted",
     supportsAdd: false,
     commandUsage: "!mute [hours] (reply to user)",
-    commandExample: "!mute 24"
+    commandExample: "!mute 24",
+    description: "Users who have been muted via !mute command. They cannot send messages until the mute expires."
   },
   {
     id: "banned",
     title: "🚫 Banned",
     supportsAdd: false,
     commandUsage: "!ban [hours] (reply to user)",
-    commandExample: "!ban 1"
+    commandExample: "!ban 1",
+    description: "Users who have been banned via !ban command. They are removed from the group and cannot rejoin."
   },
   {
     id: "warnings",
     title: "⚠️ Warnings",
     supportsAdd: false,
     commandUsage: "!reset (reply to user)",
-    commandExample: "!reset"
+    commandExample: "!reset",
+    description: "Active warnings for users. After reaching the threshold, automatic action (mute/kick) is taken."
   },
   {
     id: "exempt",
@@ -381,7 +396,8 @@ const INLINE_LIST_CONFIGS: InlineListConfig[] = [
     supportsAdd: true,
     commandUsage: "!exempt @username or !exempt {user_id}",
     commandExample: "!exempt @john",
-    addPrompt: "Send user ID or @username to exempt from rules.\n\n💡 Exempt users are not affected by content restrictions."
+    addPrompt: "Send user ID or @username to exempt from rules.\n\n💡 Exempt users are not affected by content restrictions.",
+    description: "Users exempt from content filtering. Unlike VIP, they still receive warnings but messages aren't deleted."
   },
   {
     id: "filters",
@@ -389,7 +405,8 @@ const INLINE_LIST_CONFIGS: InlineListConfig[] = [
     supportsAdd: true,
     commandUsage: "!filter {word}",
     commandExample: "!filter spam",
-    addPrompt: "Send word(s) to filter.\n\n📝 Format:\n• Single: spam\n• Multiple: spam,scam,fake"
+    addPrompt: "Send word(s) to filter.\n\n📝 Format:\n• Single: spam\n• Multiple: spam,scam,fake",
+    description: "Blacklisted words that will be detected and messages containing them will be deleted."
   },
   {
     id: "whitelist",
@@ -397,7 +414,8 @@ const INLINE_LIST_CONFIGS: InlineListConfig[] = [
     supportsAdd: true,
     commandUsage: "!whitelist (reply)",
     commandExample: "Reply to a message and send !whitelist",
-    addPrompt: "Send word(s) to allow (comma-separated)."
+    addPrompt: "Send word(s) to allow (comma-separated).",
+    description: "Whitelisted words that are allowed even if they match other filters."
   },
   {
     id: "forward_whitelist",
@@ -405,21 +423,24 @@ const INLINE_LIST_CONFIGS: InlineListConfig[] = [
     supportsAdd: true,
     commandUsage: "!allowforward @channel",
     commandExample: "!allowforward @mychannel",
-    addPrompt: "Send channel username (e.g., @channel) to allow forwards from."
+    addPrompt: "Send channel username (e.g., @channel) to allow forwards from.",
+    description: "Channels that forwards are allowed from. If forward restriction is on, only these channels are permitted."
   },
   {
     id: "auto_replies",
     title: "🤖 Auto Replies",
     supportsAdd: false,
     commandUsage: "Set in Mini App",
-    commandExample: "Use Mini App → Auto Replies"
+    commandExample: "Use Mini App → Auto Replies",
+    description: "Automatic responses to specific keywords or phrases. Configure via Mini App."
   },
   {
     id: "scheduled_posts",
     title: "⏰ Scheduled Posts",
     supportsAdd: false,
     commandUsage: "Set in Mini App",
-    commandExample: "Use Mini App → Scheduled Posts"
+    commandExample: "Use Mini App → Scheduled Posts",
+    description: "Posts scheduled to be sent automatically at specific times. Configure via Mini App."
   },
 ];
 
@@ -1704,6 +1725,23 @@ async function showInlineListsOverview(ctx: Context, chatId: string): Promise<vo
   // Load other statistics from database (admins, warnings, muted, banned)
   const stats = await loadGroupListStats(chatId);
 
+  // Fetch owner/admin counts from Telegram API (more reliable)
+  let ownersCount = 0;
+  let adminsCount = 0;
+  try {
+    const numericChatId = parseInt(chatId, 10);
+    if (!isNaN(numericChatId)) {
+      const admins = await ctx.telegram.getChatAdministrators(numericChatId);
+      ownersCount = admins.filter(a => a.status === "creator").length;
+      adminsCount = admins.filter(a => a.status === "administrator").length;
+    }
+  } catch (error) {
+    logger.debug("Failed to fetch chat administrators for overview", { chatId, error: (error as Error).message });
+    // Fall back to stats from database
+    ownersCount = stats.ownersCount;
+    adminsCount = stats.adminsCount;
+  }
+
   const groups = listGroups();
   const group = groups.find((g) => g.chatId === chatId) ?? null;
   const title = group?.title ?? chatId;
@@ -1712,8 +1750,8 @@ async function showInlineListsOverview(ctx: Context, chatId: string): Promise<vo
   lines.push(`📂 Lists Section — Group: ${title}`);
   lines.push("");
   lines.push("📊 Current Statistics:");
-  lines.push(`├─ 👑 Owners: ${stats.ownersCount}`);
-  lines.push(`├─ 👥 Admins: ${stats.adminsCount}`);
+  lines.push(`├─ 👑 Owners: ${ownersCount}`);
+  lines.push(`├─ 👥 Admins: ${adminsCount}`);
   lines.push(`├─ ⭐ VIP Members: ${vipCount}`);
   lines.push(`├─ 🔇 Muted: ${stats.mutedCount}`);
   lines.push(`├─ 🚫 Banned: ${stats.bannedCount}`);
@@ -1801,16 +1839,44 @@ async function showInlineListDetail(ctx: Context, chatId: string, listId: string
       lines.push(`   Example: ${cfg.commandExample}`);
     }
   } else if (cfg.id === "owners" || cfg.id === "admins") {
-    // Display owner/admin info
-    const stats = await loadGroupListStats(chatId);
-    if (cfg.id === "owners") {
-      lines.push(`📊 Total owners: ${stats.ownersCount}`);
-      if (group?.ownerId) {
-        lines.push("");
-        lines.push(`• Owner ID: ${group.ownerId}`);
+    // Fetch real admins from Telegram API
+    if (cfg.description) {
+      lines.push(`ℹ️ ${cfg.description}`);
+      lines.push("");
+    }
+
+    try {
+      const numericChatId = parseInt(chatId, 10);
+      if (!isNaN(numericChatId)) {
+        const admins = await ctx.telegram.getChatAdministrators(numericChatId);
+
+        if (cfg.id === "owners") {
+          const owners = admins.filter(a => a.status === "creator");
+          lines.push(`📊 Total owners: ${owners.length}`);
+          lines.push("");
+          for (const owner of owners) {
+            const name = owner.user.first_name + (owner.user.last_name ? ` ${owner.user.last_name}` : "");
+            const username = owner.user.username ? ` (@${owner.user.username})` : "";
+            lines.push(`• ${name}${username}`);
+            lines.push(`  ID: ${owner.user.id}`);
+          }
+        } else {
+          const adminsList = admins.filter(a => a.status === "administrator");
+          lines.push(`📊 Total admins: ${adminsList.length}`);
+          lines.push("");
+          for (const admin of adminsList) {
+            const name = admin.user.first_name + (admin.user.last_name ? ` ${admin.user.last_name}` : "");
+            const username = admin.user.username ? ` (@${admin.user.username})` : "";
+            const customTitle = 'custom_title' in admin && admin.custom_title ? ` [${admin.custom_title}]` : "";
+            lines.push(`• ${name}${username}${customTitle}`);
+          }
+        }
+      } else {
+        lines.push("⚠️ Unable to fetch administrators for this chat.");
       }
-    } else {
-      lines.push(`📊 Total admins: ${stats.adminsCount}`);
+    } catch (error) {
+      logger.debug("Failed to fetch chat administrators", { chatId, error: (error as Error).message });
+      lines.push("⚠️ Unable to fetch administrators. Bot may not have permission.");
     }
     lines.push("");
     lines.push("ℹ️ Owner and admin management is handled through Telegram's group settings.");
