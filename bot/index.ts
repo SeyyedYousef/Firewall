@@ -399,6 +399,136 @@ function getInlineSession(userId: string): InlineSession | undefined {
 function clearInlineSession(userId: string): void {
   inlineSessions.delete(userId);
 }
+
+// Group list statistics for inline panel
+type GroupListStats = {
+  ownersCount: number;
+  adminsCount: number;
+  vipCount: number;
+  mutedCount: number;
+  bannedCount: number;
+  warningsCount: number;
+  exemptCount: number;
+  forwardWhitelistCount: number;
+  autoRepliesCount: number;
+  scheduledPostsCount: number;
+};
+
+async function loadGroupListStats(chatId: string): Promise<GroupListStats> {
+  const stats: GroupListStats = {
+    ownersCount: 0,
+    adminsCount: 0,
+    vipCount: 0,
+    mutedCount: 0,
+    bannedCount: 0,
+    warningsCount: 0,
+    exemptCount: 0,
+    forwardWhitelistCount: 0,
+    autoRepliesCount: 0,
+    scheduledPostsCount: 0,
+  };
+
+  try {
+    // Get group from in-memory list
+    const groups = listGroups();
+    const group = groups.find((g) => g.chatId === chatId);
+
+    // Owner count - typically 1 if ownerId exists
+    if (group?.ownerId) {
+      stats.ownersCount = 1;
+    }
+
+    // Try to load from database if available
+    if (databaseAvailable) {
+      const { prisma } = await import("../server/db/client.js");
+
+      // Find the group in database
+      const dbGroup = await prisma.group.findUnique({
+        where: { telegramChatId: chatId },
+        select: {
+          id: true,
+          banSettings: true,
+        },
+      });
+
+      if (dbGroup) {
+        // Count admins from GroupAdmin table
+        const adminsCount = await prisma.groupAdmin.count({
+          where: { groupId: dbGroup.id },
+        });
+        stats.adminsCount = adminsCount;
+
+        // Count active warnings
+        const warningsCount = await prisma.userWarning.count({
+          where: {
+            groupId: dbGroup.id,
+            OR: [
+              { expiresAt: null },
+              { expiresAt: { gt: new Date() } },
+            ],
+          },
+        });
+        stats.warningsCount = warningsCount;
+
+        // Count recent mute/ban actions (last 30 days)
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+        const mutedCount = await prisma.moderationAction.count({
+          where: {
+            groupId: dbGroup.id,
+            action: { in: ["mute", "restrict"] },
+            createdAt: { gte: thirtyDaysAgo },
+          },
+        });
+        stats.mutedCount = mutedCount;
+
+        const bannedCount = await prisma.moderationAction.count({
+          where: {
+            groupId: dbGroup.id,
+            action: { in: ["ban", "kick"] },
+            createdAt: { gte: thirtyDaysAgo },
+          },
+        });
+        stats.bannedCount = bannedCount;
+
+        // Parse banSettings for VIP, exempt, forward whitelist
+        if (dbGroup.banSettings && typeof dbGroup.banSettings === "object") {
+          const banSettings = dbGroup.banSettings as Record<string, unknown>;
+
+          // VIP members (whitelist users who bypass all rules)
+          if (Array.isArray(banSettings.vipMembers)) {
+            stats.vipCount = banSettings.vipMembers.length;
+          }
+
+          // Exempt users
+          if (Array.isArray(banSettings.exemptUsers)) {
+            stats.exemptCount = banSettings.exemptUsers.length;
+          }
+
+          // Forward whitelist
+          if (Array.isArray(banSettings.forwardWhitelist)) {
+            stats.forwardWhitelistCount = banSettings.forwardWhitelist.length;
+          }
+
+          // Auto replies
+          if (Array.isArray(banSettings.autoReplies)) {
+            stats.autoRepliesCount = banSettings.autoReplies.length;
+          }
+
+          // Scheduled posts
+          if (Array.isArray(banSettings.scheduledPosts)) {
+            stats.scheduledPostsCount = banSettings.scheduledPosts.length;
+          }
+        }
+      }
+    }
+  } catch (error) {
+    logger.warn("Failed to load group list stats", { chatId, error });
+  }
+
+  return stats;
+}
+
 function actorId(ctx: Context): string | null {
   const id = ctx.from?.id;
   return typeof id === "number" ? id.toString() : null;
@@ -1480,6 +1610,9 @@ async function showInlineListsOverview(ctx: Context, chatId: string): Promise<vo
   const filterCount = banSettings?.blacklist?.length ?? 0;
   const allowCount = banSettings?.whitelist?.length ?? 0;
 
+  // Load actual statistics from database
+  const stats = await loadGroupListStats(chatId);
+
   const groups = listGroups();
   const group = groups.find((g) => g.chatId === chatId) ?? null;
   const title = group?.title ?? chatId;
@@ -1488,18 +1621,18 @@ async function showInlineListsOverview(ctx: Context, chatId: string): Promise<vo
   lines.push(`📂 Lists Section — Group: ${title}`);
   lines.push("");
   lines.push("📊 Current Statistics:");
-  lines.push("├─ 👑 Owners: coming soon");
-  lines.push("├─ 👥 Admins: coming soon");
-  lines.push("├─ ⭐ VIP Members: coming soon");
-  lines.push("├─ 🔇 Muted: coming soon");
-  lines.push("├─ 🚫 Banned: coming soon");
-  lines.push("├─ ⚠️ Warnings: coming soon");
-  lines.push("├─ ✅ Exempt: coming soon");
+  lines.push(`├─ 👑 Owners: ${stats.ownersCount}`);
+  lines.push(`├─ 👥 Admins: ${stats.adminsCount}`);
+  lines.push(`├─ ⭐ VIP Members: ${stats.vipCount}`);
+  lines.push(`├─ 🔇 Muted: ${stats.mutedCount}`);
+  lines.push(`├─ 🚫 Banned: ${stats.bannedCount}`);
+  lines.push(`├─ ⚠️ Warnings: ${stats.warningsCount}`);
+  lines.push(`├─ ✅ Exempt: ${stats.exemptCount}`);
   lines.push(`├─ 🚷 Filtered Keywords: ${filterCount}`);
   lines.push(`├─ ✔️ Allowed Keywords: ${allowCount}`);
-  lines.push("├─ ↪️ Allowed Forwards: coming soon");
-  lines.push("├─ 🤖 Auto Replies: coming soon");
-  lines.push("└─ ⏰ Scheduled Posts: coming soon");
+  lines.push(`├─ ↪️ Allowed Forwards: ${stats.forwardWhitelistCount}`);
+  lines.push(`├─ 🤖 Auto Replies: ${stats.autoRepliesCount}`);
+  lines.push(`└─ ⏰ Scheduled Posts: ${stats.scheduledPostsCount}`);
   lines.push("");
   lines.push("Tap a list to view details.");
 
@@ -1515,7 +1648,8 @@ async function showInlineListDetail(ctx: Context, chatId: string, listId: string
   }
 
   let banSettings: GroupBanSettingsRecord | null = null;
-  if (cfg.id === "filters" || cfg.id === "whitelist") {
+  // Load ban settings for lists that use them
+  if (cfg.id === "filters" || cfg.id === "whitelist" || cfg.id === "vip") {
     try {
       banSettings = await loadBanSettingsByChatId(chatId);
     } catch {
@@ -1549,8 +1683,63 @@ async function showInlineListDetail(ctx: Context, chatId: string, listId: string
       lines.push(`   ${cfg.commandUsage}`);
       lines.push(`   Example: ${cfg.commandExample}`);
     }
+  } else if (cfg.id === "vip") {
+    // Display VIP members from banSettings
+    const rawSettings = banSettings as unknown as Record<string, unknown>;
+    const vipMembers = Array.isArray(rawSettings?.vipMembers) ? rawSettings.vipMembers as string[] : [];
+
+    if (!vipMembers.length) {
+      lines.push("⚠️ No VIP members yet.");
+      lines.push("");
+      lines.push("💡 VIP members bypass all content restrictions.");
+    } else {
+      lines.push(`📊 Total VIP members: ${vipMembers.length}`);
+      lines.push("");
+      for (const member of vipMembers) {
+        lines.push(`• ${member}`);
+      }
+      lines.push("");
+      lines.push("💡 VIP members bypass all content restrictions.");
+    }
+
+    if (cfg.commandUsage && cfg.commandExample) {
+      lines.push("");
+      lines.push("💡 You can also use commands in the group:");
+      lines.push(`   ${cfg.commandUsage}`);
+      lines.push(`   Example: ${cfg.commandExample}`);
+    }
+  } else if (cfg.id === "owners" || cfg.id === "admins") {
+    // Display owner/admin info
+    const stats = await loadGroupListStats(chatId);
+    if (cfg.id === "owners") {
+      lines.push(`📊 Total owners: ${stats.ownersCount}`);
+      if (group?.ownerId) {
+        lines.push("");
+        lines.push(`• Owner ID: ${group.ownerId}`);
+      }
+    } else {
+      lines.push(`📊 Total admins: ${stats.adminsCount}`);
+    }
+    lines.push("");
+    lines.push("ℹ️ Owner and admin management is handled through Telegram's group settings.");
+  } else if (cfg.id === "warnings") {
+    const stats = await loadGroupListStats(chatId);
+    lines.push(`📊 Active warnings: ${stats.warningsCount}`);
+    lines.push("");
+    lines.push("ℹ️ Warnings are issued automatically when users violate rules.");
+    lines.push("Use <code>!reset</code> (reply) to clear a user's warnings.");
+  } else if (cfg.id === "muted" || cfg.id === "banned") {
+    const stats = await loadGroupListStats(chatId);
+    const count = cfg.id === "muted" ? stats.mutedCount : stats.bannedCount;
+    const label = cfg.id === "muted" ? "muted" : "banned";
+    lines.push(`📊 Recently ${label}: ${count} (last 30 days)`);
+    lines.push("");
+    lines.push(`ℹ️ Use <code>!${cfg.id === "muted" ? "mute" : "ban"} [hours]</code> (reply) to ${label} users.`);
+    lines.push(`Use <code>!unmute</code> (reply) to remove restrictions.`);
   } else {
     lines.push("ℹ️ This list is not available in the inline panel yet.");
+    lines.push("");
+    lines.push("💡 Use the Mini App for full access to all features.");
   }
 
   const rows: any[] = [];
@@ -3484,10 +3673,30 @@ bot.on("text", async (ctx, next) => {
           ]));
         }
       } else if (listId === "vip") {
-        // Placeholder for VIP system
-        await ctx.reply("✅ VIP member added (Simulation). Real implementation coming soon.", Markup.inlineKeyboard([
-          [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
-        ]));
+        // Add VIP member to banSettings
+        const settings = await loadBanSettingsByChatId(chatId);
+        const rawSettings = settings as unknown as Record<string, unknown>;
+
+        // Initialize vipMembers array if not exists
+        if (!Array.isArray(rawSettings.vipMembers)) {
+          rawSettings.vipMembers = [];
+        }
+
+        const vipMembers = rawSettings.vipMembers as string[];
+        const trimmedInput = text.trim();
+
+        // Check if already exists
+        if (vipMembers.includes(trimmedInput)) {
+          await ctx.reply("⚠️ This user is already a VIP member.", Markup.inlineKeyboard([
+            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+          ]));
+        } else {
+          vipMembers.push(trimmedInput);
+          await saveBanSettingsByChatId(chatId, settings);
+          await ctx.reply(`✅ Successfully added VIP member: ${trimmedInput}\n\n💡 VIP members bypass all content restrictions.`, Markup.inlineKeyboard([
+            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+          ]));
+        }
       } else {
         await ctx.reply("This list does not support adding items yet.", Markup.inlineKeyboard([
           [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]

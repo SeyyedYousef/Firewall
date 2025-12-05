@@ -18,7 +18,7 @@ export function isGroupChat(ctx: Context): ctx is GroupChatContext {
   if (type === "group" || type === "supergroup") {
     return true;
   }
-  
+
   // For chat_member and my_chat_member updates, chat info is in the update object
   const update = ctx.update as any;
   if (update?.chat_member?.chat) {
@@ -37,7 +37,7 @@ export function isGroupChat(ctx: Context): ctx is GroupChatContext {
       return true;
     }
   }
-  
+
   return false;
 }
 
@@ -147,25 +147,70 @@ async function notifyAdmins(ctx: GroupChatContext): Promise<void> {
   }
 
   const groupTitle = (ctx.chat as any)?.title ?? chatIdStr;
+  const groupUsername = (ctx.chat as any)?.username;
 
-  let reporterLabel = reporterId ? reporterId.toString() : "unknown";
-  if (message.from) {
-    const from = message.from as { username?: string; first_name?: string; last_name?: string };
-    if (from.username) {
-      reporterLabel = `@${from.username}`;
-    } else if (from.first_name || from.last_name) {
-      reporterLabel = [from.first_name, from.last_name].filter(Boolean).join(" ") || reporterLabel;
-    }
-  }
+  // Build comprehensive reporter information
+  const from = message.from as {
+    username?: string;
+    first_name?: string;
+    last_name?: string;
+    language_code?: string;
+  } | undefined;
 
-  const headerText =
-    "📣 New admin report received" +
-    "\n\n" +
-    `Group: ${groupTitle}` +
-    "\n" +
-    `From: ${reporterLabel}${reporterId ? ` (ID: ${reporterId})` : ""}` +
-    "\n\n" +
-    "The following message was reported by replying with @admin. It is forwarded below.";
+  const reporterUsername = from?.username ? `@${from.username}` : "N/A";
+  const reporterFirstName = from?.first_name ?? "";
+  const reporterLastName = from?.last_name ?? "";
+  const reporterFullName = [reporterFirstName, reporterLastName].filter(Boolean).join(" ") || "Unknown";
+  const reporterLanguage = from?.language_code ?? "Unknown";
+
+  // Get offending message author info
+  const offender = reply.from as {
+    username?: string;
+    first_name?: string;
+    last_name?: string;
+    id?: number;
+  } | undefined;
+
+  const offenderUsername = offender?.username ? `@${offender.username}` : "N/A";
+  const offenderFirstName = offender?.first_name ?? "";
+  const offenderLastName = offender?.last_name ?? "";
+  const offenderFullName = [offenderFirstName, offenderLastName].filter(Boolean).join(" ") || "Unknown";
+  const offenderId = offender?.id;
+
+  // Format timestamp
+  const reportTimestamp = new Date();
+  const formattedTime = reportTimestamp.toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+
+  // Build group link if available
+  const groupLink = groupUsername ? `https://t.me/${groupUsername}` : "N/A";
+
+  // Build detailed reporter information message
+  const reporterDetailsText =
+    "📋 <b>Report Details</b>\n\n" +
+    "👤 <b>Reporter Information:</b>\n" +
+    `├ Name: ${reporterFullName}\n` +
+    `├ Username: ${reporterUsername}\n` +
+    `├ User ID: ${reporterId ?? "Unknown"}\n` +
+    `└ Language: ${reporterLanguage}\n\n` +
+    "⚠️ <b>Reported Message Author:</b>\n" +
+    `├ Name: ${offenderFullName}\n` +
+    `├ Username: ${offenderUsername}\n` +
+    `└ User ID: ${offenderId ?? "Unknown"}\n\n` +
+    "🏢 <b>Group Information:</b>\n" +
+    `├ Group: ${groupTitle}\n` +
+    `├ Group ID: ${chatIdStr}\n` +
+    `└ Link: ${groupLink}\n\n` +
+    "🕒 <b>Report Submitted:</b>\n" +
+    `└ ${formattedTime}\n\n` +
+    "💡 <i>A user has flagged content for your review by replying with @admin.</i>";
 
   for (const id of uniqueRecipientIds) {
     const numericId = Number(id);
@@ -173,8 +218,11 @@ async function notifyAdmins(ctx: GroupChatContext): Promise<void> {
       continue;
     }
     try {
-      await ctx.telegram.sendMessage(numericId, headerText);
+      // First: Forward the offending message
       await ctx.telegram.forwardMessage(numericId, chatId, reply.message_id);
+
+      // Second: Send detailed reporter information
+      await ctx.telegram.sendMessage(numericId, reporterDetailsText, { parse_mode: "HTML" });
     } catch (error) {
       logger.debug("failed to send admin report notification", {
         chatId,
@@ -218,9 +266,9 @@ async function deleteMessage(ctx: GroupChatContext, action: Extract<ProcessingAc
 
 async function warnMember(ctx: GroupChatContext, action: Extract<ProcessingAction, { type: "warn_member" }>) {
   const mention = ctx.message?.from?.first_name ?? ctx.message?.from?.username ?? action.userId.toString();
-  
+
   const databaseAvailable = Boolean(process.env?.DATABASE_URL);
-  
+
   // Defaults for template placeholders
   let warningsEnabled = true;
   let penaltyLabel = "delete";
@@ -253,13 +301,13 @@ async function warnMember(ctx: GroupChatContext, action: Extract<ProcessingActio
         }
       }
     } catch (error) {
-      logger.debug("failed to load general settings, proceeding with warning", { 
-        chatId: ctx.chat.id, 
-        error 
+      logger.debug("failed to load general settings, proceeding with warning", {
+        chatId: ctx.chat.id,
+        error
       });
     }
   }
-  
+
   // Try to persist warning in database and get aggregated count
   if (databaseAvailable) {
     try {
@@ -345,7 +393,7 @@ async function warnMember(ctx: GroupChatContext, action: Extract<ProcessingActio
     "🔻 <b>Action:</b> {penalty}\n\n" +
     "⚠️ Warning {user_warnings} of {warnings_count}\n" +
     "💡 Each warning expires after {warningstime} days.";
-  
+
   // Load custom template from database (if defined for the group)
   if (databaseAvailable) {
     try {
@@ -358,9 +406,9 @@ async function warnMember(ctx: GroupChatContext, action: Extract<ProcessingActio
     } catch (error) {
       // Fall back to default template if custom text loading fails
       const { logger } = await import("../../server/utils/logger.js");
-      logger.debug("failed to load custom warning message, using default", { 
-        chatId: ctx.chat.id, 
-        error 
+      logger.debug("failed to load custom warning message, using default", {
+        chatId: ctx.chat.id,
+        error
       });
     }
   }
@@ -560,9 +608,9 @@ async function sendMessage(ctx: GroupChatContext, action: Extract<ProcessingActi
       const messageId = (sent as any)?.message_id as number | undefined;
       if (typeof messageId === "number") {
         const { logger } = await import("../../server/utils/logger.js");
-        logger.info("scheduling auto-delete for sent message", { 
-          chatId: ctx.chat?.id, 
-          messageId, 
+        logger.info("scheduling auto-delete for sent message", {
+          chatId: ctx.chat?.id,
+          messageId,
           timeoutMs,
           source: action.autoDeleteSeconds ? 'action' : 'general_settings'
         });

@@ -36,7 +36,7 @@
       "start_add_to_group": "➕ Add To Group"
     },
     "channelAnnouncement": "Channel link not configured yet.",
-    "commands": "📚 <b>Quick Guide</b>\nTo get started, explore these key commands:\n\n• <code>Coming soon</code>\n\n💡 For the best experience, configure your settings in the Mini App right after setup.",
+    "commands": "📚 <b>Quick Guide</b>\nTo get started, explore these key commands:\n\n• <code>!lock link</code> — Block Telegram links\n• <code>!filter word</code> — Filter a keyword\n• <code>!ban 24</code> — Ban user (reply)\n• <code>!mute 1</code> — Mute for 1 hour (reply)\n\n💡 For the best experience, configure your settings in the Mini App right after setup.",
     "infoCommands": "🚀 <b>Firewall</b> was created and is continuously developed with care by <b>@iamSeyyed</b>.\n\n🙏 Special thanks to <b>@maxim</b>, <b>@username</b>, all server admins, the development team, supporters, and every user who reports bugs or suggests new features — your feedback keeps this project alive.\n\n💬 We deeply appreciate every group that uses <b>Firewall</b>.\nYour trust is our motivation — and we'll keep making <b>Firewall</b> stronger every day. 🔥"
   },
   "promoSlides": [],
