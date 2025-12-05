@@ -354,10 +354,35 @@ const INLINE_LIST_CONFIGS: InlineListConfig[] = [
     commandExample: "!vip @john or !vip 123456789",
     addPrompt: "Send user ID or @username to add as VIP.\n\n💡 VIP members bypass all content restrictions."
   },
-  { id: "muted", title: "🔇 Muted", supportsAdd: false },
-  { id: "banned", title: "🚫 Banned", supportsAdd: false },
-  { id: "warnings", title: "⚠️ Warnings", supportsAdd: false },
-  { id: "exempt", title: "✅ Exempt", supportsAdd: false },
+  {
+    id: "muted",
+    title: "🔇 Muted",
+    supportsAdd: false,
+    commandUsage: "!mute [hours] (reply to user)",
+    commandExample: "!mute 24"
+  },
+  {
+    id: "banned",
+    title: "🚫 Banned",
+    supportsAdd: false,
+    commandUsage: "!ban [hours] (reply to user)",
+    commandExample: "!ban 1"
+  },
+  {
+    id: "warnings",
+    title: "⚠️ Warnings",
+    supportsAdd: false,
+    commandUsage: "!reset (reply to user)",
+    commandExample: "!reset"
+  },
+  {
+    id: "exempt",
+    title: "✅ Exempt",
+    supportsAdd: true,
+    commandUsage: "!exempt @username or !exempt {user_id}",
+    commandExample: "!exempt @john",
+    addPrompt: "Send user ID or @username to exempt from rules.\n\n💡 Exempt users are not affected by content restrictions."
+  },
   {
     id: "filters",
     title: "🚷 Filtered Keywords",
@@ -374,9 +399,28 @@ const INLINE_LIST_CONFIGS: InlineListConfig[] = [
     commandExample: "Reply to a message and send !whitelist",
     addPrompt: "Send word(s) to allow (comma-separated)."
   },
-  { id: "forward_whitelist", title: "↪️ Allowed Forwards", supportsAdd: false },
-  { id: "auto_replies", title: "🤖 Auto Replies", supportsAdd: false },
-  { id: "scheduled_posts", title: "⏰ Scheduled Posts", supportsAdd: false },
+  {
+    id: "forward_whitelist",
+    title: "↪️ Allowed Forwards",
+    supportsAdd: true,
+    commandUsage: "!allowforward @channel",
+    commandExample: "!allowforward @mychannel",
+    addPrompt: "Send channel username (e.g., @channel) to allow forwards from."
+  },
+  {
+    id: "auto_replies",
+    title: "🤖 Auto Replies",
+    supportsAdd: false,
+    commandUsage: "Set in Mini App",
+    commandExample: "Use Mini App → Auto Replies"
+  },
+  {
+    id: "scheduled_posts",
+    title: "⏰ Scheduled Posts",
+    supportsAdd: false,
+    commandUsage: "Set in Mini App",
+    commandExample: "Use Mini App → Scheduled Posts"
+  },
 ];
 
 // Inline session management for interactive list additions
@@ -1649,7 +1693,8 @@ async function showInlineListDetail(ctx: Context, chatId: string, listId: string
 
   let banSettings: GroupBanSettingsRecord | null = null;
   // Load ban settings for lists that use them
-  if (cfg.id === "filters" || cfg.id === "whitelist" || cfg.id === "vip") {
+  const listsNeedingBanSettings = ["filters", "whitelist", "vip", "exempt", "forward_whitelist", "auto_replies", "scheduled_posts"];
+  if (listsNeedingBanSettings.includes(cfg.id)) {
     try {
       banSettings = await loadBanSettingsByChatId(chatId);
     } catch {
@@ -1736,6 +1781,113 @@ async function showInlineListDetail(ctx: Context, chatId: string, listId: string
     lines.push("");
     lines.push(`ℹ️ Use <code>!${cfg.id === "muted" ? "mute" : "ban"} [hours]</code> (reply) to ${label} users.`);
     lines.push(`Use <code>!unmute</code> (reply) to remove restrictions.`);
+    lines.push("");
+    lines.push("💡 <b>How to add:</b>");
+    lines.push(`   In your group, reply to a user's message and send:`);
+    lines.push(`   <code>${cfg.commandUsage}</code>`);
+    lines.push(`   Example: <code>${cfg.commandExample}</code>`);
+  } else if (cfg.id === "exempt") {
+    // Display exempt users from banSettings
+    const rawSettings = banSettings as unknown as Record<string, unknown>;
+    const exemptUsers = Array.isArray(rawSettings?.exemptUsers) ? rawSettings.exemptUsers as string[] : [];
+
+    if (!exemptUsers.length) {
+      lines.push("⚠️ No exempt users yet.");
+      lines.push("");
+      lines.push("💡 Exempt users bypass content restrictions.");
+    } else {
+      lines.push(`📊 Total exempt users: ${exemptUsers.length}`);
+      lines.push("");
+      for (const user of exemptUsers) {
+        lines.push(`• ${user}`);
+      }
+      lines.push("");
+      lines.push("💡 Exempt users bypass content restrictions.");
+    }
+
+    if (cfg.commandUsage && cfg.commandExample) {
+      lines.push("");
+      lines.push("💡 <b>How to add:</b>");
+      lines.push(`   In your group, use: <code>${cfg.commandUsage}</code>`);
+      lines.push(`   Example: <code>${cfg.commandExample}</code>`);
+    }
+  } else if (cfg.id === "forward_whitelist") {
+    // Display forward whitelist from banSettings
+    const rawSettings = banSettings as unknown as Record<string, unknown>;
+    const forwardWhitelist = Array.isArray(rawSettings?.forwardWhitelist) ? rawSettings.forwardWhitelist as string[] : [];
+
+    if (!forwardWhitelist.length) {
+      lines.push("⚠️ No allowed forward channels yet.");
+      lines.push("");
+      lines.push("💡 Add channels to allow forwarding messages from them.");
+    } else {
+      lines.push(`📊 Total allowed channels: ${forwardWhitelist.length}`);
+      lines.push("");
+      for (const channel of forwardWhitelist) {
+        lines.push(`• ${channel}`);
+      }
+      lines.push("");
+      lines.push("💡 Messages forwarded from these channels won't be blocked.");
+    }
+
+    if (cfg.commandUsage && cfg.commandExample) {
+      lines.push("");
+      lines.push("💡 <b>How to add:</b>");
+      lines.push(`   In your group, use: <code>${cfg.commandUsage}</code>`);
+      lines.push(`   Example: <code>${cfg.commandExample}</code>`);
+    }
+  } else if (cfg.id === "auto_replies") {
+    // Display auto replies from banSettings
+    const rawSettings = banSettings as unknown as Record<string, unknown>;
+    const autoReplies = Array.isArray(rawSettings?.autoReplies) ? rawSettings.autoReplies as Array<{ trigger?: string; response?: string }> : [];
+
+    if (!autoReplies.length) {
+      lines.push("⚠️ No auto replies configured yet.");
+      lines.push("");
+      lines.push("💡 Auto replies automatically respond to specific triggers.");
+    } else {
+      lines.push(`📊 Total auto replies: ${autoReplies.length}`);
+      lines.push("");
+      for (const reply of autoReplies.slice(0, 10)) {
+        const trigger = reply.trigger ?? "(unknown)";
+        const response = reply.response ?? "(no response)";
+        const truncatedResponse = response.length > 30 ? response.substring(0, 27) + "..." : response;
+        lines.push(`• <b>${trigger}</b> → ${truncatedResponse}`);
+      }
+      if (autoReplies.length > 10) {
+        lines.push(`... and ${autoReplies.length - 10} more`);
+      }
+    }
+
+    lines.push("");
+    lines.push("💡 <b>How to configure:</b>");
+    lines.push(`   Use Mini App → Auto Replies for full management.`);
+  } else if (cfg.id === "scheduled_posts") {
+    // Display scheduled posts from banSettings
+    const rawSettings = banSettings as unknown as Record<string, unknown>;
+    const scheduledPosts = Array.isArray(rawSettings?.scheduledPosts) ? rawSettings.scheduledPosts as Array<{ content?: string; scheduledAt?: string }> : [];
+
+    if (!scheduledPosts.length) {
+      lines.push("⚠️ No scheduled posts yet.");
+      lines.push("");
+      lines.push("💡 Schedule posts to be sent at specific times.");
+    } else {
+      lines.push(`📊 Total scheduled posts: ${scheduledPosts.length}`);
+      lines.push("");
+      for (const post of scheduledPosts.slice(0, 5)) {
+        const content = post.content ?? "(no content)";
+        const scheduledAt = post.scheduledAt ?? "(unknown time)";
+        const truncatedContent = content.length > 25 ? content.substring(0, 22) + "..." : content;
+        lines.push(`• ${scheduledAt}: ${truncatedContent}`);
+      }
+      if (scheduledPosts.length > 5) {
+        lines.push(`... and ${scheduledPosts.length - 5} more`);
+      }
+    }
+
+    lines.push("");
+    lines.push("💡 <b>How to configure:</b>");
+    lines.push(`   Use Mini App → Scheduled Posts for full management.`);
   } else {
     lines.push("ℹ️ This list is not available in the inline panel yet.");
     lines.push("");
@@ -3694,6 +3846,61 @@ bot.on("text", async (ctx, next) => {
           vipMembers.push(trimmedInput);
           await saveBanSettingsByChatId(chatId, settings);
           await ctx.reply(`✅ Successfully added VIP member: ${trimmedInput}\n\n💡 VIP members bypass all content restrictions.`, Markup.inlineKeyboard([
+            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+          ]));
+        }
+      } else if (listId === "exempt") {
+        // Add exempt user to banSettings
+        const settings = await loadBanSettingsByChatId(chatId);
+        const rawSettings = settings as unknown as Record<string, unknown>;
+
+        // Initialize exemptUsers array if not exists
+        if (!Array.isArray(rawSettings.exemptUsers)) {
+          rawSettings.exemptUsers = [];
+        }
+
+        const exemptUsers = rawSettings.exemptUsers as string[];
+        const trimmedInput = text.trim();
+
+        // Check if already exists
+        if (exemptUsers.includes(trimmedInput)) {
+          await ctx.reply("⚠️ This user is already exempt.", Markup.inlineKeyboard([
+            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+          ]));
+        } else {
+          exemptUsers.push(trimmedInput);
+          await saveBanSettingsByChatId(chatId, settings);
+          await ctx.reply(`✅ Successfully added exempt user: ${trimmedInput}\n\n💡 Exempt users bypass content restrictions.`, Markup.inlineKeyboard([
+            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+          ]));
+        }
+      } else if (listId === "forward_whitelist") {
+        // Add forward whitelist channel to banSettings
+        const settings = await loadBanSettingsByChatId(chatId);
+        const rawSettings = settings as unknown as Record<string, unknown>;
+
+        // Initialize forwardWhitelist array if not exists
+        if (!Array.isArray(rawSettings.forwardWhitelist)) {
+          rawSettings.forwardWhitelist = [];
+        }
+
+        const forwardWhitelist = rawSettings.forwardWhitelist as string[];
+        let trimmedInput = text.trim();
+
+        // Normalize channel username - ensure it starts with @
+        if (!trimmedInput.startsWith("@") && !trimmedInput.startsWith("-")) {
+          trimmedInput = "@" + trimmedInput;
+        }
+
+        // Check if already exists
+        if (forwardWhitelist.includes(trimmedInput)) {
+          await ctx.reply("⚠️ This channel is already in the forward whitelist.", Markup.inlineKeyboard([
+            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+          ]));
+        } else {
+          forwardWhitelist.push(trimmedInput);
+          await saveBanSettingsByChatId(chatId, settings);
+          await ctx.reply(`✅ Successfully added to forward whitelist: ${trimmedInput}\n\n💡 Messages forwarded from this channel won't be blocked.`, Markup.inlineKeyboard([
             [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
           ]));
         }
