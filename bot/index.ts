@@ -472,102 +472,127 @@ async function loadGroupListStats(chatId: string): Promise<GroupListStats> {
     scheduledPostsCount: 0,
   };
 
+  // Get group from in-memory list
+  const groups = listGroups();
+  const group = groups.find((g) => g.chatId === chatId);
+
+  // Owner count - typically 1 if ownerId exists
+  if (group?.ownerId) {
+    stats.ownersCount = 1;
+  }
+
+  // Try to load from database if available
+  if (!databaseAvailable) {
+    return stats;
+  }
+
+  let prismaModule: { prisma: any };
   try {
-    // Get group from in-memory list
-    const groups = listGroups();
-    const group = groups.find((g) => g.chatId === chatId);
+    prismaModule = await import("../server/db/client.js");
+  } catch {
+    logger.warn("Failed to import prisma client", { chatId });
+    return stats;
+  }
+  const { prisma } = prismaModule;
 
-    // Owner count - typically 1 if ownerId exists
-    if (group?.ownerId) {
-      stats.ownersCount = 1;
-    }
-
-    // Try to load from database if available
-    if (databaseAvailable) {
-      const { prisma } = await import("../server/db/client.js");
-
-      // Find the group in database
-      const dbGroup = await prisma.group.findUnique({
-        where: { telegramChatId: chatId },
-        select: {
-          id: true,
-          banSettings: true,
-        },
-      });
-
-      if (dbGroup) {
-        // Count admins from GroupAdmin table
-        const adminsCount = await prisma.groupAdmin.count({
-          where: { groupId: dbGroup.id },
-        });
-        stats.adminsCount = adminsCount;
-
-        // Count active warnings
-        const warningsCount = await prisma.userWarning.count({
-          where: {
-            groupId: dbGroup.id,
-            OR: [
-              { expiresAt: null },
-              { expiresAt: { gt: new Date() } },
-            ],
-          },
-        });
-        stats.warningsCount = warningsCount;
-
-        // Count recent mute/ban actions (last 30 days)
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
-        const mutedCount = await prisma.moderationAction.count({
-          where: {
-            groupId: dbGroup.id,
-            action: { in: ["mute", "restrict"] },
-            createdAt: { gte: thirtyDaysAgo },
-          },
-        });
-        stats.mutedCount = mutedCount;
-
-        const bannedCount = await prisma.moderationAction.count({
-          where: {
-            groupId: dbGroup.id,
-            action: { in: ["ban", "kick"] },
-            createdAt: { gte: thirtyDaysAgo },
-          },
-        });
-        stats.bannedCount = bannedCount;
-
-        // Parse banSettings for VIP, exempt, forward whitelist
-        if (dbGroup.banSettings && typeof dbGroup.banSettings === "object") {
-          const banSettings = dbGroup.banSettings as Record<string, unknown>;
-
-          // VIP members (whitelist users who bypass all rules)
-          if (Array.isArray(banSettings.vipMembers)) {
-            stats.vipCount = banSettings.vipMembers.length;
-          }
-
-          // Exempt users
-          if (Array.isArray(banSettings.exemptUsers)) {
-            stats.exemptCount = banSettings.exemptUsers.length;
-          }
-
-          // Forward whitelist
-          if (Array.isArray(banSettings.forwardWhitelist)) {
-            stats.forwardWhitelistCount = banSettings.forwardWhitelist.length;
-          }
-
-          // Auto replies
-          if (Array.isArray(banSettings.autoReplies)) {
-            stats.autoRepliesCount = banSettings.autoReplies.length;
-          }
-
-          // Scheduled posts
-          if (Array.isArray(banSettings.scheduledPosts)) {
-            stats.scheduledPostsCount = banSettings.scheduledPosts.length;
-          }
-        }
-      }
-    }
+  // Find the group in database
+  let dbGroup: { id: string; banSettings: unknown } | null = null;
+  try {
+    dbGroup = await prisma.group.findUnique({
+      where: { telegramChatId: chatId },
+      select: {
+        id: true,
+        banSettings: true,
+      },
+    });
   } catch (error) {
-    logger.warn("Failed to load group list stats", { chatId, error });
+    logger.warn("Failed to find group in database", { chatId, error });
+    return stats;
+  }
+
+  if (!dbGroup) {
+    return stats;
+  }
+
+  // Count admins from GroupAdmin table (independent query)
+  try {
+    const adminsCount = await prisma.groupAdmin.count({
+      where: { groupId: dbGroup.id },
+    });
+    stats.adminsCount = adminsCount;
+  } catch (error) {
+    logger.debug("Failed to count admins (table may not exist)", { chatId, error: (error as Error).message });
+  }
+
+  // Count active warnings (independent query)
+  try {
+    const warningsCount = await prisma.userWarning.count({
+      where: {
+        groupId: dbGroup.id,
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gt: new Date() } },
+        ],
+      },
+    });
+    stats.warningsCount = warningsCount;
+  } catch (error) {
+    logger.debug("Failed to count warnings (table may not exist)", { chatId, error: (error as Error).message });
+  }
+
+  // Count recent mute/ban actions (independent query)
+  try {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const mutedCount = await prisma.moderationAction.count({
+      where: {
+        groupId: dbGroup.id,
+        action: { in: ["mute", "restrict"] },
+        createdAt: { gte: thirtyDaysAgo },
+      },
+    });
+    stats.mutedCount = mutedCount;
+
+    const bannedCount = await prisma.moderationAction.count({
+      where: {
+        groupId: dbGroup.id,
+        action: { in: ["ban", "kick"] },
+        createdAt: { gte: thirtyDaysAgo },
+      },
+    });
+    stats.bannedCount = bannedCount;
+  } catch (error) {
+    logger.debug("Failed to count muted/banned (table may not exist)", { chatId, error: (error as Error).message });
+  }
+
+  // Parse banSettings for VIP, exempt, forward whitelist (no database query needed)
+  if (dbGroup.banSettings && typeof dbGroup.banSettings === "object") {
+    const banSettings = dbGroup.banSettings as Record<string, unknown>;
+
+    // VIP members (whitelist users who bypass all rules)
+    if (Array.isArray(banSettings.vipMembers)) {
+      stats.vipCount = banSettings.vipMembers.length;
+    }
+
+    // Exempt users
+    if (Array.isArray(banSettings.exemptUsers)) {
+      stats.exemptCount = banSettings.exemptUsers.length;
+    }
+
+    // Forward whitelist
+    if (Array.isArray(banSettings.forwardWhitelist)) {
+      stats.forwardWhitelistCount = banSettings.forwardWhitelist.length;
+    }
+
+    // Auto replies
+    if (Array.isArray(banSettings.autoReplies)) {
+      stats.autoRepliesCount = banSettings.autoReplies.length;
+    }
+
+    // Scheduled posts
+    if (Array.isArray(banSettings.scheduledPosts)) {
+      stats.scheduledPostsCount = banSettings.scheduledPosts.length;
+    }
   }
 
   return stats;
