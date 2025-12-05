@@ -369,17 +369,19 @@ const INLINE_LIST_CONFIGS: InlineListConfig[] = [
   {
     id: "muted",
     title: "🔇 Muted",
-    supportsAdd: false,
+    supportsAdd: true,
     commandUsage: "!mute [hours] (reply to user)",
     commandExample: "!mute 24",
+    addPrompt: "Send User ID to mute (permanently).\n\n⚠️ Note: Only User IDs are supported currently.",
     description: "Users who have been muted via !mute command. They cannot send messages until the mute expires."
   },
   {
     id: "banned",
     title: "🚫 Banned",
-    supportsAdd: false,
+    supportsAdd: true,
     commandUsage: "!ban [hours] (reply to user)",
     commandExample: "!ban 1",
+    addPrompt: "Send User ID to ban.\n\n⚠️ Note: Only User IDs are supported currently.",
     description: "Users who have been banned via !ban command. They are removed from the group and cannot rejoin."
   },
   {
@@ -1701,17 +1703,7 @@ async function showInlineListsOverview(ctx: Context, chatId: string): Promise<vo
   // Get raw settings for accessing all fields
   const rawSettings = banSettings as unknown as Record<string, unknown> | null;
 
-  // Debug logging to trace what's in banSettings
-  logger.info("DEBUG: showInlineListsOverview loaded settings", {
-    chatId,
-    hasBanSettings: banSettings !== null,
-    blacklistLength: banSettings?.blacklist?.length ?? 0,
-    whitelistLength: banSettings?.whitelist?.length ?? 0,
-    rawVipMembers: rawSettings?.vipMembers,
-    rawExemptUsers: rawSettings?.exemptUsers,
-    rawForwardWhitelist: rawSettings?.forwardWhitelist,
-    fullRawSettings: rawSettings ? Object.keys(rawSettings) : [],
-  });
+
 
   // Extract counts from banSettings directly
   const filterCount = banSettings?.blacklist?.length ?? 0;
@@ -4016,6 +4008,51 @@ bot.on("text", async (ctx, next) => {
           await ctx.reply(`✅ Successfully added to forward whitelist: ${trimmedInput}\n\n💡 Messages forwarded from this channel won't be blocked.`, Markup.inlineKeyboard([
             [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
           ]));
+        }
+      } else if (listId === "banned" || listId === "muted") {
+        const targetUserId = parseInt(text.trim(), 10);
+        if (isNaN(targetUserId)) {
+          await ctx.reply("⚠️ Invalid User ID. Please send a numeric User ID.", Markup.inlineKeyboard([
+            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+          ]));
+        } else {
+          try {
+            const numericChatId = parseInt(chatId, 10);
+            if (listId === "banned") {
+              await ctx.telegram.banChatMember(numericChatId, targetUserId);
+              await ctx.reply(`✅ Successfully banned user ${targetUserId}.`, Markup.inlineKeyboard([
+                [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+              ]));
+            } else {
+              // Mute (restrict permissions)
+              await ctx.telegram.restrictChatMember(numericChatId, targetUserId, {
+                permissions: {
+                  can_send_messages: false,
+                  can_send_audios: false,
+                  can_send_documents: false,
+                  can_send_photos: false,
+                  can_send_videos: false,
+                  can_send_video_notes: false,
+                  can_send_voice_notes: false,
+                  can_send_polls: false,
+                  can_send_other_messages: false,
+                  can_add_web_page_previews: false,
+                  can_change_info: false,
+                  can_invite_users: false,
+                  can_pin_messages: false,
+                  can_manage_topics: false,
+                }
+              });
+              await ctx.reply(`✅ Successfully muted user ${targetUserId}.`, Markup.inlineKeyboard([
+                [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+              ]));
+            }
+          } catch (error) {
+            logger.error(`Failed to ${listId} user via inline panel`, { chatId, targetUserId, error });
+            await ctx.reply(`❌ Failed to ${listId} user. Ensure the bot is an admin and the user ID is valid.\nError: ${(error as Error).message}`, Markup.inlineKeyboard([
+              [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+            ]));
+          }
         }
       } else {
         await ctx.reply("This list does not support adding items yet.", Markup.inlineKeyboard([

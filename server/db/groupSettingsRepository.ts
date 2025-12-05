@@ -244,7 +244,7 @@ function sanitizeStringList(value: unknown, fallback: string[]): string[] {
 function normalizeBanSettings(input: unknown): GroupBanSettingsRecord {
   const base = createDefaultBanSettings();
   if (!input || typeof input !== "object" || Array.isArray(input)) {
-    logger.info("DEBUG: normalizeBanSettings - input is null/invalid, returning defaults");
+
     return base;
   }
 
@@ -290,12 +290,7 @@ function normalizeBanSettings(input: unknown): GroupBanSettingsRecord {
     result.scheduledPosts = rawInput.scheduledPosts;
   }
 
-  logger.info("DEBUG: normalizeBanSettings - output", {
-    hasVipMembers: 'vipMembers' in result,
-    vipMembersValue: result.vipMembers,
-    hasExemptUsers: 'exemptUsers' in result,
-    resultKeys: Object.keys(result),
-  });
+
 
   return result as GroupBanSettingsRecord;
 }
@@ -310,26 +305,13 @@ export async function loadBanSettings(groupId: string): Promise<GroupBanSettings
     throw new GroupNotFoundError(groupId);
   }
 
-  // DEBUG: Log raw database content
-  logger.info("DEBUG: loadBanSettings - raw from DB", {
-    groupId,
-    hasBanSettings: group.banSettings !== null,
-    banSettingsType: typeof group.banSettings,
-    banSettingsKeys: group.banSettings && typeof group.banSettings === 'object' ? Object.keys(group.banSettings as object) : [],
-    fullBanSettings: JSON.stringify(group.banSettings),
-  });
+
 
   return normalizeBanSettings(group.banSettings ?? undefined);
 }
 
 export async function saveBanSettings(groupId: string, settings: unknown): Promise<GroupBanSettingsRecord> {
-  logger.info("DEBUG: saveBanSettings - input", {
-    groupId,
-    inputType: typeof settings,
-    inputKeys: settings && typeof settings === 'object' ? Object.keys(settings as object) : [],
-    hasVipMembers: settings && typeof settings === 'object' && 'vipMembers' in (settings as object),
-    vipMembersValue: settings && typeof settings === 'object' ? (settings as Record<string, unknown>).vipMembers : undefined,
-  });
+
   const normalized = normalizeBanSettings(settings);
   try {
     await prisma.group.update({
