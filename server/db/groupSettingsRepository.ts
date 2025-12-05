@@ -260,7 +260,36 @@ function normalizeBanSettings(input: unknown): GroupBanSettingsRecord {
   base.blacklist = sanitizeStringList(candidate.blacklist, base.blacklist);
   base.whitelist = sanitizeStringList(candidate.whitelist, base.whitelist);
 
-  return base;
+  // Preserve additional list fields that are stored in banSettings
+  const rawInput = input as Record<string, unknown>;
+  const result = base as unknown as Record<string, unknown>;
+
+  // VIP members list
+  if (Array.isArray(rawInput.vipMembers)) {
+    result.vipMembers = sanitizeStringList(rawInput.vipMembers, []);
+  }
+
+  // Exempt users list
+  if (Array.isArray(rawInput.exemptUsers)) {
+    result.exemptUsers = sanitizeStringList(rawInput.exemptUsers, []);
+  }
+
+  // Forward whitelist (allowed forward channels)
+  if (Array.isArray(rawInput.forwardWhitelist)) {
+    result.forwardWhitelist = sanitizeStringList(rawInput.forwardWhitelist, []);
+  }
+
+  // Auto replies (preserve as-is since it's complex objects)
+  if (Array.isArray(rawInput.autoReplies)) {
+    result.autoReplies = rawInput.autoReplies;
+  }
+
+  // Scheduled posts (preserve as-is since it's complex objects)
+  if (Array.isArray(rawInput.scheduledPosts)) {
+    result.scheduledPosts = rawInput.scheduledPosts;
+  }
+
+  return result as GroupBanSettingsRecord;
 }
 
 export async function loadBanSettings(groupId: string): Promise<GroupBanSettingsRecord> {
@@ -387,7 +416,7 @@ function normalizeGeneralSettings(input: unknown): GroupGeneralSettingsRecord {
 
   booleanKeys.forEach((key) => {
     const value = (candidate as Record<string, unknown>)[key as string];
-  (result as any)[key] = sanitizeBoolean(value, base[key as keyof typeof base] as unknown as boolean);
+    (result as any)[key] = sanitizeBoolean(value, base[key as keyof typeof base] as unknown as boolean);
   });
 
   const scheduleKeys: Array<keyof GroupGeneralSettingsRecord> = [
