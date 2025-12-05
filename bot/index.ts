@@ -1647,12 +1647,25 @@ async function showInlineListsOverview(ctx: Context, chatId: string): Promise<vo
   let banSettings: GroupBanSettingsRecord | null = null;
   try {
     banSettings = await loadBanSettingsByChatId(chatId);
-  } catch {
+  } catch (loadError) {
+    logger.error("Failed to load ban settings", { chatId, error: loadError });
     banSettings = null;
   }
 
   // Get raw settings for accessing all fields
   const rawSettings = banSettings as unknown as Record<string, unknown> | null;
+
+  // Debug logging to trace what's in banSettings
+  logger.info("DEBUG: showInlineListsOverview loaded settings", {
+    chatId,
+    hasBanSettings: banSettings !== null,
+    blacklistLength: banSettings?.blacklist?.length ?? 0,
+    whitelistLength: banSettings?.whitelist?.length ?? 0,
+    rawVipMembers: rawSettings?.vipMembers,
+    rawExemptUsers: rawSettings?.exemptUsers,
+    rawForwardWhitelist: rawSettings?.forwardWhitelist,
+    fullRawSettings: rawSettings ? Object.keys(rawSettings) : [],
+  });
 
   // Extract counts from banSettings directly
   const filterCount = banSettings?.blacklist?.length ?? 0;
