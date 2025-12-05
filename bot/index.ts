@@ -1651,10 +1651,19 @@ async function showInlineListsOverview(ctx: Context, chatId: string): Promise<vo
     banSettings = null;
   }
 
+  // Get raw settings for accessing all fields
+  const rawSettings = banSettings as unknown as Record<string, unknown> | null;
+
+  // Extract counts from banSettings directly
   const filterCount = banSettings?.blacklist?.length ?? 0;
   const allowCount = banSettings?.whitelist?.length ?? 0;
+  const vipCount = Array.isArray(rawSettings?.vipMembers) ? (rawSettings.vipMembers as unknown[]).length : 0;
+  const exemptCount = Array.isArray(rawSettings?.exemptUsers) ? (rawSettings.exemptUsers as unknown[]).length : 0;
+  const forwardWhitelistCount = Array.isArray(rawSettings?.forwardWhitelist) ? (rawSettings.forwardWhitelist as unknown[]).length : 0;
+  const autoRepliesCount = Array.isArray(rawSettings?.autoReplies) ? (rawSettings.autoReplies as unknown[]).length : 0;
+  const scheduledPostsCount = Array.isArray(rawSettings?.scheduledPosts) ? (rawSettings.scheduledPosts as unknown[]).length : 0;
 
-  // Load actual statistics from database
+  // Load other statistics from database (admins, warnings, muted, banned)
   const stats = await loadGroupListStats(chatId);
 
   const groups = listGroups();
@@ -1667,16 +1676,16 @@ async function showInlineListsOverview(ctx: Context, chatId: string): Promise<vo
   lines.push("📊 Current Statistics:");
   lines.push(`├─ 👑 Owners: ${stats.ownersCount}`);
   lines.push(`├─ 👥 Admins: ${stats.adminsCount}`);
-  lines.push(`├─ ⭐ VIP Members: ${stats.vipCount}`);
+  lines.push(`├─ ⭐ VIP Members: ${vipCount}`);
   lines.push(`├─ 🔇 Muted: ${stats.mutedCount}`);
   lines.push(`├─ 🚫 Banned: ${stats.bannedCount}`);
   lines.push(`├─ ⚠️ Warnings: ${stats.warningsCount}`);
-  lines.push(`├─ ✅ Exempt: ${stats.exemptCount}`);
+  lines.push(`├─ ✅ Exempt: ${exemptCount}`);
   lines.push(`├─ 🚷 Filtered Keywords: ${filterCount}`);
   lines.push(`├─ ✔️ Allowed Keywords: ${allowCount}`);
-  lines.push(`├─ ↪️ Allowed Forwards: ${stats.forwardWhitelistCount}`);
-  lines.push(`├─ 🤖 Auto Replies: ${stats.autoRepliesCount}`);
-  lines.push(`└─ ⏰ Scheduled Posts: ${stats.scheduledPostsCount}`);
+  lines.push(`├─ ↪️ Allowed Forwards: ${forwardWhitelistCount}`);
+  lines.push(`├─ 🤖 Auto Replies: ${autoRepliesCount}`);
+  lines.push(`└─ ⏰ Scheduled Posts: ${scheduledPostsCount}`);
   lines.push("");
   lines.push("Tap a list to view details.");
 
