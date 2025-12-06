@@ -356,10 +356,15 @@ export function GroupMandatoryMembershipPage() {
             <div className={styles.cardHeader}>
               <div>
                 <Title level="3" className={styles.cardTitle}>
-                  {TEXT.forcedTitle}
+                  {TEXT.forcedTitle} {group?.subscriptionType !== 'premium' && '⭐'}
                 </Title>
                 <Text weight="2" className={styles.cardHint}>
                   {TEXT.forcedHint}
+                  {group?.subscriptionType !== 'premium' && (
+                    <span style={{ color: 'var(--tg-theme-destructive-text-color)', display: 'block', marginTop: 4 }}>
+                      Premium feature. Upgrade to enable.
+                    </span>
+                  )}
                 </Text>
               </div>
               <button type="button" className={styles.tooltipButton} title={TEXT.forcedTooltip}>
@@ -380,6 +385,7 @@ export function GroupMandatoryMembershipPage() {
                   placeholder="0"
                   value={forcedInviteCountText}
                   onChange={handleForcedChange}
+                  disabled={group?.subscriptionType !== 'premium'}
                 />
               </div>
               <Text weight="2" className={classNames(styles.summaryText, forcedInviteCount <= 0 && styles.summaryMuted)}>
@@ -428,10 +434,15 @@ export function GroupMandatoryMembershipPage() {
             <div className={styles.cardHeader}>
               <div>
                 <Title level="3" className={styles.cardTitle}>
-                  {TEXT.channelsTitle}
+                  {TEXT.channelsTitle} {group?.subscriptionType !== 'premium' && '⭐'}
                 </Title>
                 <Text weight="2" className={styles.cardHint}>
                   {TEXT.channelsHint}
+                  {group?.subscriptionType !== 'premium' && (
+                    <span style={{ color: 'var(--tg-theme-destructive-text-color)', display: 'block', marginTop: 4 }}>
+                      Premium feature. Upgrade to enable.
+                    </span>
+                  )}
                 </Text>
               </div>
               <button type="button" className={styles.tooltipButton} title={TEXT.channelsTooltip}>
@@ -444,6 +455,7 @@ export function GroupMandatoryMembershipPage() {
                 placeholder={TEXT.channelsPlaceholder}
                 value={channelsInput}
                 onChange={handleChannelsChange}
+                disabled={group?.subscriptionType !== 'premium'}
               />
               {group?.subscriptionType !== 'premium' && mandatoryChannels.length >= 1 && (
                 <Text weight="2" className={styles.premiumNotice}>

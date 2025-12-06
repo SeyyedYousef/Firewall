@@ -277,54 +277,54 @@ export function GroupCustomTextsPage() {
     setToastMessage("");
   }, []);
 
-  
-const validationErrors = useMemo(() => {
-  if (!settings) {
-    return {} as Record<TemplateKey, string>;
-  }
-  const errors: Partial<Record<TemplateKey, string>> = {};
-  TEMPLATE_DEFINITIONS.forEach((template) => {
-    const value = settings[template.key].trim();
-    if (!value) {
-      return;
+
+  const validationErrors = useMemo(() => {
+    if (!settings) {
+      return {} as Record<TemplateKey, string>;
     }
-    if (template.requiredAll) {
-      const missing = template.requiredAll.filter((token) => !value.includes(token));
-      if (missing.length > 0) {
-        errors[template.key] = `Missing required placeholders: ${missing.join(", ")}.`;
+    const errors: Partial<Record<TemplateKey, string>> = {};
+    TEMPLATE_DEFINITIONS.forEach((template) => {
+      const value = settings[template.key].trim();
+      if (!value) {
         return;
       }
-    }
-    if (template.requiredAny) {
-      const satisfiesAny = template.requiredAny.some((groupTokens) =>
-        groupTokens.some((token) => value.includes(token)),
-      );
-      if (!satisfiesAny) {
-        const options = template.requiredAny
-          .map((groupTokens) => groupTokens.join(" or "))
-          .join(", ");
-        errors[template.key] = `Include at least one of: ${options}.`;
+      if (template.requiredAll) {
+        const missing = template.requiredAll.filter((token) => !value.includes(token));
+        if (missing.length > 0) {
+          errors[template.key] = `Missing required placeholders: ${missing.join(", ")}.`;
+          return;
+        }
       }
+      if (template.requiredAny) {
+        const satisfiesAny = template.requiredAny.some((groupTokens) =>
+          groupTokens.some((token) => value.includes(token)),
+        );
+        if (!satisfiesAny) {
+          const options = template.requiredAny
+            .map((groupTokens) => groupTokens.join(" or "))
+            .join(", ");
+          errors[template.key] = `Include at least one of: ${options}.`;
+        }
+      }
+    });
+    return errors as Record<TemplateKey, string>;
+  }, [settings]);
+
+
+
+  const promoButtonError = useMemo(() => {
+    if (!settings) {
+      return "";
     }
-  });
-  return errors as Record<TemplateKey, string>;
-}, [settings]);
-
-
-  
-const promoButtonError = useMemo(() => {
-  if (!settings) {
+    if (settings.promoButtonEnabled && settings.promoButtonText.trim().length === 0) {
+      return "Button text is required when the promo button is enabled.";
+    }
+    const url = settings.promoButtonUrl.trim();
+    if (url.length > 0 && !VALID_BUTTON_PROTOCOLS.some((protocol) => url.startsWith(protocol))) {
+      return "Only https:// or tg:// links are allowed.";
+    }
     return "";
-  }
-  if (settings.promoButtonEnabled && settings.promoButtonText.trim().length === 0) {
-    return "Button text is required when the promo button is enabled.";
-  }
-  const url = settings.promoButtonUrl.trim();
-  if (url.length > 0 && !VALID_BUTTON_PROTOCOLS.some((protocol) => url.startsWith(protocol))) {
-    return "Only https:// or tg:// links are allowed.";
-  }
-  return "";
-}, [settings]);
+  }, [settings]);
 
 
   const hasErrors = useMemo(() => {
@@ -471,10 +471,23 @@ const promoButtonError = useMemo(() => {
           <Card className={styles.card}>
             <div className={styles.cardHeader}>
               <div className={styles.headerMain}>
-                <Title level="3" className={styles.cardTitle}>Promo button</Title>
-                <Text weight="2" className={styles.cardHint}>Use the promo button to highlight an external link in automated messages. Provide a short label and a valid URL.</Text>
+                <Title level="3" className={styles.cardTitle}>
+                  Promo button {group?.subscriptionType !== 'premium' && '⭐'}
+                </Title>
+                <Text weight="2" className={styles.cardHint}>
+                  Use the promo button to highlight an external link in automated messages. Provide a short label and a valid URL.
+                  {group?.subscriptionType !== 'premium' && (
+                    <span style={{ color: 'var(--tg-theme-destructive-text-color)', display: 'block', marginTop: 4 }}>
+                      Premium feature. Upgrade to enable.
+                    </span>
+                  )}
+                </Text>
               </div>
-              <Switch checked={settings.promoButtonEnabled} onChange={handlePromoToggle} />
+              <Switch
+                checked={settings.promoButtonEnabled}
+                onChange={handlePromoToggle}
+                disabled={group?.subscriptionType !== 'premium'}
+              />
             </div>
             <div className={styles.field}>
               <div className={styles.fieldRow}>
@@ -484,6 +497,7 @@ const promoButtonError = useMemo(() => {
                   maxLength={30}
                   onChange={handlePromoTextChange}
                   placeholder="Enter button text"
+                  disabled={group?.subscriptionType !== 'premium'}
                 />
               </div>
               <div className={styles.fieldRow}>
@@ -492,6 +506,7 @@ const promoButtonError = useMemo(() => {
                   value={settings.promoButtonUrl}
                   onChange={handlePromoUrlChange}
                   placeholder="https://t.me/YourChannel"
+                  disabled={group?.subscriptionType !== 'premium'}
                 />
               </div>
               <div className={styles.textareaFooter}>

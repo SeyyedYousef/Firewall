@@ -86,13 +86,14 @@ function findPlan(plans: StarsPlan[], planId: string | null): StarsPlan | null {
 }
 
 const PREMIUM_BENEFITS = [
+  { icon: '🚫', title: 'No Ads', desc: 'Remove all promotional messages from your group' },
+  { icon: '⚡', title: 'Faster Speed', desc: 'Priority processing for faster bot response' },
+  { icon: '🗳️', title: 'Vote to Mute', desc: 'Allow members to vote to mute spammers' },
+  { icon: '🧩', title: 'Advanced Captcha', desc: 'Image and math captchas for better protection' },
   { icon: '📋', title: 'Mandatory Membership', desc: 'Require users to join channels before messaging' },
   { icon: '➕', title: 'Mandatory Add', desc: 'Require users to invite members before messaging' },
   { icon: '🔘', title: 'Custom Promo Button', desc: 'Customize or disable the promotional button' },
-  { icon: '🚫', title: 'No Ads', desc: 'Remove all promotional messages from your group' },
-  { icon: '⚡', title: 'Priority Processing', desc: 'Faster bot response times' },
   { icon: '📊', title: 'Advanced Analytics', desc: 'Detailed group statistics and insights' },
-  { icon: '🔔', title: 'Custom Webhook', desc: 'Get real-time notifications for group events' },
   { icon: '⚠️', title: 'Auto Warning', desc: 'Automated warning system with custom thresholds' },
 ];
 
@@ -114,6 +115,7 @@ export function StarsPage() {
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [snackbar, setSnackbar] = useState<string | null>(null);
+  const [showBenefitsModal, setShowBenefitsModal] = useState(false);
 
   const loadData = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -327,22 +329,6 @@ export function StarsPage() {
 
   return (
     <div className={styles.page} dir='ltr'>
-      {/* Premium Benefits Section */}
-      <section className={styles.section}>
-        <Text weight='2' className={styles.stepTitle}>✨ Premium Benefits</Text>
-        <div className={styles.benefitsList}>
-          {PREMIUM_BENEFITS.map((benefit) => (
-            <div key={benefit.title} className={styles.benefitItem}>
-              <span className={styles.benefitIcon}>{benefit.icon}</span>
-              <div className={styles.benefitText}>
-                <Text weight='2' className={styles.benefitTitle}>{benefit.title}</Text>
-                <Text className={styles.benefitDesc}>{benefit.desc}</Text>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       <section className={styles.section}>
         <Text weight='2' className={styles.stepTitle}>{TEXT.stepTarget}</Text>
         <div className={styles.tabRow}>
@@ -503,6 +489,14 @@ export function StarsPage() {
               </div>
             </div>
             <Button
+              mode='outline'
+              size='l'
+              stretched
+              onClick={() => setShowBenefitsModal(true)}
+            >
+              ✨ Why Premium?
+            </Button>
+            <Button
               mode='filled'
               size='l'
               stretched
@@ -521,6 +515,34 @@ export function StarsPage() {
 
       {snackbar && (
         <Snackbar onClose={() => setSnackbar(null)}>{snackbar}</Snackbar>
+      )}
+
+      {/* Premium Benefits Modal */}
+      {showBenefitsModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowBenefitsModal(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <Text weight='2' className={styles.modalTitle}>✨ Premium Benefits</Text>
+            <div className={styles.modalBenefitsList}>
+              {PREMIUM_BENEFITS.map((benefit) => (
+                <div key={benefit.title} className={styles.modalBenefitItem}>
+                  <span className={styles.benefitIcon}>{benefit.icon}</span>
+                  <div className={styles.benefitText}>
+                    <Text weight='2' className={styles.benefitTitle}>{benefit.title}</Text>
+                    <Text className={styles.benefitDesc}>{benefit.desc}</Text>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Button
+              mode='filled'
+              size='l'
+              stretched
+              onClick={() => setShowBenefitsModal(false)}
+            >
+              Got it!
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );
