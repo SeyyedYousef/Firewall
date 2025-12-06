@@ -689,9 +689,9 @@ const DEFAULT_CUSTOM_TEXTS: CustomTextSettingsRecord = {
     "Hi {user}, to chat in this group, you must join our channel(s):\n\n" +
     "{channel_names}\n\n" +
     "<i>Once you've joined, you can start chatting!</i>",
-  promoButtonEnabled: false,
-  promoButtonText: "🛡 Protected by Firewall",
-  promoButtonUrl: "https://t.me/tgfirewall",
+  promoButtonEnabled: true,
+  promoButtonText: "🛡 Protected by Firewall Bot",
+  promoButtonUrl: "https://t.me/Firewall_Robot",
 };
 
 function sanitizeUrl(value: unknown, fallback: string): string {

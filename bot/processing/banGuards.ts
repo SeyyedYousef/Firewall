@@ -356,6 +356,100 @@ export async function evaluateBanGuards(ctx: GroupChatContext): Promise<Processi
     }
   }, chatId);
 
+  // ========== FLOOD PROTECTION ==========
+  // Check if user is flooding (many messages in short time)
+  // Admins are exempt from flood protection
+  const rawSettings = settings as unknown as Record<string, unknown>;
+  const rulesRaw = rawSettings.rules as Record<string, unknown> | undefined;
+  if (rulesRaw?.blockFlood === true) {
+    const userId = message.from?.id;
+    if (userId) {
+      const isAdmin = await isAdminOrOwner(ctx);
+      if (!isAdmin) {
+        const floodKey = `${chatId}:${userId}:flood`;
+        const now = Date.now();
+        const floodWindowMs = 10 * 1000; // 10 seconds
+        const floodThreshold = 5; // 5 messages in 10 seconds
+
+        const floodList = (rateHistory.get(floodKey) ?? []).filter((t) => t >= now - floodWindowMs);
+        floodList.push(now);
+        rateHistory.set(floodKey, floodList);
+
+        if (floodList.length > floodThreshold) {
+          triggered.push("flood");
+          logger.info("Flood detected", { chatId, userId, messageCount: floodList.length });
+        }
+      }
+    }
+  }
+
+  // ========== MANDATORY JOIN ENFORCEMENT ==========
+  // Check if mandatory join is enabled and user hasn't joined required channels
+  if (rawSettings.mandatoryJoinEnabled === true) {
+    const mandatoryChannels = Array.isArray(rawSettings.mandatoryChannels)
+      ? rawSettings.mandatoryChannels as string[]
+      : [];
+
+    if (mandatoryChannels.length > 0) {
+      const userId = message.from?.id;
+      if (userId) {
+        const isAdmin = await isAdminOrOwner(ctx);
+        if (!isAdmin) {
+          for (const channel of mandatoryChannels) {
+            try {
+              // Check if user is member of the channel
+              const channelId = channel.startsWith("@") ? channel : `@${channel}`;
+              const member = await ctx.telegram.getChatMember(channelId, userId);
+              if (member.status === "left" || member.status === "kicked") {
+                triggered.push("mandatoryJoin");
+                logger.info("Mandatory join violated", { chatId, userId, channel });
+                break;
+              }
+            } catch (error) {
+              // If we can't check, skip (bot may not be admin in channel)
+              logger.debug("Failed to check mandatory join channel membership", { channel, error });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // ========== TEMP MEDIA SCHEDULING ==========
+  // Schedule media for auto-deletion if temp media is enabled
+  if (rawSettings.tempMediaEnabled === true) {
+    const tempMediaSettings = rawSettings.tempMedia as Record<string, unknown> | undefined;
+    const deleteMinutes = (tempMediaSettings?.deleteMinutes as number) ?? 20;
+
+    // Check if this message contains media that should be auto-deleted
+    let shouldScheduleDelete = false;
+    if (tempMediaSettings) {
+      if ((tempMediaSettings.gif !== false) && facts.hasAnimation) shouldScheduleDelete = true;
+      if ((tempMediaSettings.sticker !== false) && facts.hasSticker) shouldScheduleDelete = true;
+      if ((tempMediaSettings.video !== false) && (facts.hasVideo || facts.hasVideoNote)) shouldScheduleDelete = true;
+      if ((tempMediaSettings.photo !== false) && facts.hasPhoto) shouldScheduleDelete = true;
+      if ((tempMediaSettings.file === true) && facts.hasDocument) shouldScheduleDelete = true;
+      if ((tempMediaSettings.audio === true) && (facts.hasAudio || facts.hasVoice)) shouldScheduleDelete = true;
+    }
+
+    if (shouldScheduleDelete) {
+      const messageId = message.message_id;
+      const deleteDelayMs = deleteMinutes * 60 * 1000;
+
+      // Schedule deletion using setTimeout
+      setTimeout(async () => {
+        try {
+          await ctx.telegram.deleteMessage(ctx.chat.id, messageId);
+          logger.info("Temp media auto-deleted", { chatId, messageId, deleteMinutes });
+        } catch (error) {
+          logger.debug("Failed to auto-delete temp media", { chatId, messageId, error });
+        }
+      }, deleteDelayMs);
+
+      logger.debug("Scheduled temp media for deletion", { chatId, messageId, deleteMinutes });
+    }
+  }
+
   if (!triggered.length) {
     // Apply limit settings if ban rules not triggered
     const limitActions = applyLimitSettings(limits, ctx, facts);
@@ -539,7 +633,7 @@ function getActiveSilenceWindow(
   if (inWindow(silence.window1)) {
     return { kind: "window", windowKey: "window1", start: silence.window1.start, end: silence.window1.end };
   }
-  
+
   // PREMIUM FEATURE: Extra silence windows (window2, window3) only for Premium
   // Free users only get window1
   if (chatId && hasExtraSilenceWindows(chatId)) {
@@ -731,7 +825,7 @@ function isRuleActive(rule: BanRuleSetting | undefined, timestampSeconds: number
   // PREMIUM FEATURE: Custom schedule is only for Premium
   // Free users get "all time" mode regardless of schedule setting
   const canUseSchedule = chatId ? hasCustomSchedule(chatId) : false;
-  
+
   if (!rule.schedule || rule.schedule.mode === "all" || !canUseSchedule) {
     return true;
   }

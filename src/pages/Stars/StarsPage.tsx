@@ -85,6 +85,17 @@ function findPlan(plans: StarsPlan[], planId: string | null): StarsPlan | null {
   return plans.find((plan) => plan.id === planId) ?? null;
 }
 
+const PREMIUM_BENEFITS = [
+  { icon: '📋', title: 'Mandatory Membership', desc: 'Require users to join channels before messaging' },
+  { icon: '➕', title: 'Mandatory Add', desc: 'Require users to invite members before messaging' },
+  { icon: '🔘', title: 'Custom Promo Button', desc: 'Customize or disable the promotional button' },
+  { icon: '🚫', title: 'No Ads', desc: 'Remove all promotional messages from your group' },
+  { icon: '⚡', title: 'Priority Processing', desc: 'Faster bot response times' },
+  { icon: '📊', title: 'Advanced Analytics', desc: 'Detailed group statistics and insights' },
+  { icon: '🔔', title: 'Custom Webhook', desc: 'Get real-time notifications for group events' },
+  { icon: '⚠️', title: 'Auto Warning', desc: 'Automated warning system with custom thresholds' },
+];
+
 export function StarsPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -316,6 +327,22 @@ export function StarsPage() {
 
   return (
     <div className={styles.page} dir='ltr'>
+      {/* Premium Benefits Section */}
+      <section className={styles.section}>
+        <Text weight='2' className={styles.stepTitle}>✨ Premium Benefits</Text>
+        <div className={styles.benefitsList}>
+          {PREMIUM_BENEFITS.map((benefit) => (
+            <div key={benefit.title} className={styles.benefitItem}>
+              <span className={styles.benefitIcon}>{benefit.icon}</span>
+              <div className={styles.benefitText}>
+                <Text weight='2' className={styles.benefitTitle}>{benefit.title}</Text>
+                <Text className={styles.benefitDesc}>{benefit.desc}</Text>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <section className={styles.section}>
         <Text weight='2' className={styles.stepTitle}>{TEXT.stepTarget}</Text>
         <div className={styles.tabRow}>

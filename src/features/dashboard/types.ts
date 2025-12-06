@@ -22,6 +22,8 @@ export type SubscriptionType = 'free' | 'premium';
 
 export interface PremiumFeatures {
   promoButton: boolean;
+  mandatoryMembership: boolean;
+  mandatoryAdd: boolean;
   detailedWarnings: boolean;
   advancedAnalytics: boolean;
   customSchedule: boolean;
@@ -39,12 +41,14 @@ export interface PremiumFeatures {
  * List of premium feature keys for UI display
  */
 export const PREMIUM_FEATURE_KEYS: (keyof PremiumFeatures)[] = [
+  'mandatoryMembership',
+  'mandatoryAdd',
+  'promoButton',
   'customSchedule',
   'voteMute',
   'advancedCaptcha',
   'extraSilenceWindows',
   'extraMandatoryChannels',
-  'promoButton',
   'detailedWarnings',
   'advancedAnalytics',
   'webhook',
@@ -58,6 +62,8 @@ export const PREMIUM_FEATURE_KEYS: (keyof PremiumFeatures)[] = [
  */
 export const PREMIUM_FEATURE_LABELS: Record<keyof PremiumFeatures, string> = {
   promoButton: 'Promo Button',
+  mandatoryMembership: 'Mandatory Membership',
+  mandatoryAdd: 'Mandatory Add Invites',
   detailedWarnings: 'Detailed Warnings',
   advancedAnalytics: 'Advanced Analytics',
   customSchedule: 'Custom Schedule',

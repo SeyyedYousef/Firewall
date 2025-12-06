@@ -49,12 +49,12 @@ function normalizePromoSlideEntry(raw: unknown, index: number): PromoSlideRecord
   const analytics =
     value.analytics && typeof value.analytics === "object"
       ? {
-          impressions: Number((value.analytics as Record<string, unknown>).impressions ?? 0),
-          clicks: Number((value.analytics as Record<string, unknown>).clicks ?? 0),
-          ctr: Number((value.analytics as Record<string, unknown>).ctr ?? 0),
-          avgTimeSpent: Number((value.analytics as Record<string, unknown>).avgTimeSpent ?? 0),
-          bounceRate: Number((value.analytics as Record<string, unknown>).bounceRate ?? 0),
-        }
+        impressions: Number((value.analytics as Record<string, unknown>).impressions ?? 0),
+        clicks: Number((value.analytics as Record<string, unknown>).clicks ?? 0),
+        ctr: Number((value.analytics as Record<string, unknown>).ctr ?? 0),
+        avgTimeSpent: Number((value.analytics as Record<string, unknown>).avgTimeSpent ?? 0),
+        bounceRate: Number((value.analytics as Record<string, unknown>).bounceRate ?? 0),
+      }
       : { ...EMPTY_PROMO_ANALYTICS };
 
   return {
@@ -136,6 +136,10 @@ export type SubscriptionType = 'free' | 'premium';
 export type PremiumFeatures = {
   // دکمه شیشه‌ای زیر پیام‌های ربات
   promoButton: boolean;
+  // عضویت اجباری در کانال
+  mandatoryMembership: boolean;
+  // اد اجباری
+  mandatoryAdd: boolean;
   // پیام اخطار با توضیح کامل‌تر (Free هم دلیل دارد ولی Premium واضح‌تر)
   detailedWarnings: boolean;
   // آمار پیشرفته گروه
@@ -162,6 +166,8 @@ export type PremiumFeatures = {
 
 export const DEFAULT_FREE_FEATURES: PremiumFeatures = {
   promoButton: false,
+  mandatoryMembership: false,
+  mandatoryAdd: false,
   detailedWarnings: false,
   advancedAnalytics: false,
   customSchedule: false,
@@ -177,6 +183,8 @@ export const DEFAULT_FREE_FEATURES: PremiumFeatures = {
 
 export const DEFAULT_PREMIUM_FEATURES: PremiumFeatures = {
   promoButton: true,
+  mandatoryMembership: true,
+  mandatoryAdd: true,
   detailedWarnings: true,
   advancedAnalytics: true,
   customSchedule: true,
@@ -626,8 +634,8 @@ function validateOwnerSession(session: OwnerSessionState, issues: string[]): voi
     case "awaitingBroadcastConfirm":
       assertCondition(
         isRecord((session as { pending?: unknown }).pending) &&
-          typeof (session as { pending?: { message?: unknown } }).pending?.message === "string" &&
-          ((session as { pending?: { message?: string } }).pending?.message ?? "").length > 0,
+        typeof (session as { pending?: { message?: unknown } }).pending?.message === "string" &&
+        ((session as { pending?: { message?: string } }).pending?.message ?? "").length > 0,
         "ownerSession.pending.message must be a non-empty string",
         issues,
       );
@@ -635,7 +643,7 @@ function validateOwnerSession(session: OwnerSessionState, issues: string[]): voi
     case "awaitingDailyTaskButton":
       assertCondition(
         isRecord((session as { pending?: unknown }).pending) &&
-          typeof (session as { pending?: { channelLink?: unknown } }).pending?.channelLink === "string",
+        typeof (session as { pending?: { channelLink?: unknown } }).pending?.channelLink === "string",
         "ownerSession.pending.channelLink must be a string",
         issues,
       );
@@ -655,9 +663,9 @@ function validateOwnerSession(session: OwnerSessionState, issues: string[]): voi
       }).pending;
       assertCondition(
         isRecord(pending) &&
-          typeof pending?.channelLink === "string" &&
-          typeof pending?.buttonLabel === "string" &&
-          typeof pending?.description === "string",
+        typeof pending?.channelLink === "string" &&
+        typeof pending?.buttonLabel === "string" &&
+        typeof pending?.description === "string",
         "ownerSession.pending must include channelLink, buttonLabel, and description",
         issues,
       );
@@ -667,8 +675,8 @@ function validateOwnerSession(session: OwnerSessionState, issues: string[]): voi
       const pending = (session as { pending?: { ruleId?: unknown; chatId?: unknown } }).pending;
       assertCondition(
         isRecord(pending) &&
-          typeof pending?.ruleId === "string" &&
-          (pending?.chatId === null || typeof pending?.chatId === "string"),
+        typeof pending?.ruleId === "string" &&
+        (pending?.chatId === null || typeof pending?.chatId === "string"),
         "ownerSession.pending must include ruleId and optional chatId",
         issues,
       );
@@ -678,7 +686,7 @@ function validateOwnerSession(session: OwnerSessionState, issues: string[]): voi
       const pending = (session as { pending?: { groupCount?: unknown } }).pending;
       assertCondition(
         isRecord(pending) &&
-          typeof pending?.groupCount === "number",
+        typeof pending?.groupCount === "number",
         "ownerSession.pending must include groupCount",
         issues,
       );
@@ -981,21 +989,21 @@ function readStateFromDisk(): BotState {
       })
     );
 
-  const starsInput = (parsed.stars ?? {}) as any;
+    const starsInput = (parsed.stars ?? {}) as any;
     const plans = Array.isArray(starsInput?.plans)
       ? (starsInput.plans as StarsPlanRecord[]).map((plan) => ({
-          id: String(plan.id),
-          days: Number.isFinite(plan.days) ? plan.days : 0,
-          price: Number.isFinite(plan.price) ? plan.price : 0,
-          ...(plan.label ? { label: String(plan.label) } : {}),
-          ...(plan.description ? { description: String(plan.description) } : {}),
-        }))
+        id: String(plan.id),
+        days: Number.isFinite(plan.days) ? plan.days : 0,
+        price: Number.isFinite(plan.price) ? plan.price : 0,
+        ...(plan.label ? { label: String(plan.label) } : {}),
+        ...(plan.description ? { description: String(plan.description) } : {}),
+      }))
       : structuredClone(defaultState.stars.plans);
     const starsGroupsInput =
       typeof starsInput?.groups === "object" && starsInput?.groups !== null
         ? (starsInput.groups as Record<string, Partial<GroupStarsRecord>>)
         : {};
-  const starsGroups: Record<string, GroupStarsRecord> = Object.fromEntries(
+    const starsGroups: Record<string, GroupStarsRecord> = Object.fromEntries(
       Object.entries(starsGroupsInput).map(([id, entry]) => [
         id,
         {
@@ -1030,65 +1038,65 @@ function readStateFromDisk(): BotState {
         buttonLabels:
           typeof parsed.settings?.buttonLabels === "object" && parsed.settings?.buttonLabels !== null
             ? Object.fromEntries(
-                Object.entries(parsed.settings.buttonLabels).map(([key, value]) => [key, String(value)])
-              )
+              Object.entries(parsed.settings.buttonLabels).map(([key, value]) => [key, String(value)])
+            )
             : structuredClone(defaultState.settings.buttonLabels),
       },
       promoSlides: Array.isArray(parsed.promoSlides)
         ? parsed.promoSlides
-            .map((entry, index) => normalizePromoSlideEntry(entry, index))
-            .filter((entry): entry is PromoSlideRecord => entry !== null)
+          .map((entry, index) => normalizePromoSlideEntry(entry, index))
+          .filter((entry): entry is PromoSlideRecord => entry !== null)
         : [],
-    broadcasts: Array.isArray(parsed.broadcasts) ? parsed.broadcasts : [],
-    stars: {
-      balance:
-        typeof starsInput?.balance === "number" && Number.isFinite(starsInput.balance)
-          ? Math.max(0, starsInput.balance)
-          : defaultState.stars.balance,
-      plans,
-      groups: starsGroups,
-    },
-    ownerSession: normalizeOwnerSession(parsed.ownerSession),
-    pendingOnboarding:
-      typeof parsed.pendingOnboarding === "object" && parsed.pendingOnboarding !== null
-        ? Object.fromEntries(
+      broadcasts: Array.isArray(parsed.broadcasts) ? parsed.broadcasts : [],
+      stars: {
+        balance:
+          typeof starsInput?.balance === "number" && Number.isFinite(starsInput.balance)
+            ? Math.max(0, starsInput.balance)
+            : defaultState.stars.balance,
+        plans,
+        groups: starsGroups,
+      },
+      ownerSession: normalizeOwnerSession(parsed.ownerSession),
+      pendingOnboarding:
+        typeof parsed.pendingOnboarding === "object" && parsed.pendingOnboarding !== null
+          ? Object.fromEntries(
             Object.entries(parsed.pendingOnboarding as Record<string, unknown>).map(([chatId, value]) => {
               const queue = Array.isArray(value)
                 ? (value as unknown[]).map((entry) => {
-                    if (!entry || typeof entry !== "object") {
-                      return null;
-                    }
-                    const record = entry as Record<string, unknown>;
-                    const text = typeof record.text === "string" ? record.text : null;
-                    if (!text || text.trim().length === 0) {
-                      return null;
-                    }
-                    const parseMode =
-                      record.parseMode === "HTML" || record.parseMode === "MarkdownV2"
-                        ? (record.parseMode as "HTML" | "MarkdownV2")
-                        : undefined;
-                    const threadId =
-                      typeof record.threadId === "number" && Number.isFinite(record.threadId)
-                        ? record.threadId
-                        : undefined;
-                    return { text, parseMode, threadId };
-                  })
+                  if (!entry || typeof entry !== "object") {
+                    return null;
+                  }
+                  const record = entry as Record<string, unknown>;
+                  const text = typeof record.text === "string" ? record.text : null;
+                  if (!text || text.trim().length === 0) {
+                    return null;
+                  }
+                  const parseMode =
+                    record.parseMode === "HTML" || record.parseMode === "MarkdownV2"
+                      ? (record.parseMode as "HTML" | "MarkdownV2")
+                      : undefined;
+                  const threadId =
+                    typeof record.threadId === "number" && Number.isFinite(record.threadId)
+                      ? record.threadId
+                      : undefined;
+                  return { text, parseMode, threadId };
+                })
                 : [];
               const filtered = queue.filter((item) => item !== null) as PendingOnboardingMessage[];
               return [chatId, filtered];
             }),
           )
-        : {},
-    creditCodes: Array.isArray((parsed as any).creditCodes) ? (parsed as any).creditCodes : [],
-    pendingGroupSetups:
-      typeof (parsed as any).pendingGroupSetups === "object" && (parsed as any).pendingGroupSetups !== null
-        ? (parsed as any).pendingGroupSetups
-        : {},
-    userFreeGroups:
-      typeof (parsed as any).userFreeGroups === "object" && (parsed as any).userFreeGroups !== null
-        ? (parsed as any).userFreeGroups
-        : {},
-  };
+          : {},
+      creditCodes: Array.isArray((parsed as any).creditCodes) ? (parsed as any).creditCodes : [],
+      pendingGroupSetups:
+        typeof (parsed as any).pendingGroupSetups === "object" && (parsed as any).pendingGroupSetups !== null
+          ? (parsed as any).pendingGroupSetups
+          : {},
+      userFreeGroups:
+        typeof (parsed as any).userFreeGroups === "object" && (parsed as any).userFreeGroups !== null
+          ? (parsed as any).userFreeGroups
+          : {},
+    };
     validateBotState(candidate);
     return candidate;
   } catch (error) {
@@ -1104,7 +1112,7 @@ async function withFileLock<T>(task: () => Awaitable<T>): Promise<T> {
   let handle: import("node:fs/promises").FileHandle | null = null;
   const lockPayload = `${process.pid}:${Date.now()}`;
 
-  for (;;) {
+  for (; ;) {
     try {
       handle = await open(stateLockPath, "wx");
       await handle.writeFile(lockPayload, "utf8");
@@ -1469,7 +1477,7 @@ function upsertGroupInDraft(draft: BotState, record: UpsertGroupInput): GroupRec
       typeof record.creditDelta === "number"
         ? Math.max(0, existing.creditBalance + record.creditDelta)
         : existing.creditBalance;
-    
+
     // Track if credit balance actually changed
     const creditChanged = typeof record.creditDelta === "number" && record.creditDelta !== 0;
 
@@ -1477,12 +1485,12 @@ function upsertGroupInDraft(draft: BotState, record: UpsertGroupInput): GroupRec
       record.adminIds === undefined
         ? existing.adminIds
         : Array.from(
-            new Set(
-              (record.adminIds ?? [])
-                .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
-                .filter((entry) => entry.length > 0),
-            ),
-          );
+          new Set(
+            (record.adminIds ?? [])
+              .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+              .filter((entry) => entry.length > 0),
+          ),
+        );
 
     const updated: GroupRecord = {
       ...existing,
@@ -2006,7 +2014,7 @@ export function applyStarsPurchase(input: StarsPurchaseInput): StarsPurchaseInte
   let outcome: StarsPurchaseInternalResult | null = null;
   state = withState((draft) => {
     const plan = resolveStarsPlan(draft, input.planId);
-    
+
     // For paid purchases, we receive stars (increase balance)
     // For gifted purchases, we also receive stars from the gifter
     // No need to check existing balance - payment was already confirmed by Telegram
@@ -2205,21 +2213,21 @@ export function getGroupExpirationInfo(groupId: string): {
   if (!entry) {
     return null;
   }
-  
+
   const nowMs = Date.now();
   const expiresAtMs = Date.parse(entry.expiresAt);
   if (!Number.isFinite(expiresAtMs)) {
     return null;
   }
-  
+
   const GRACE_PERIOD_DAYS = 3;
   const graceEndMs = expiresAtMs + GRACE_PERIOD_DAYS * DAY_MS;
-  
+
   const isActive = expiresAtMs > nowMs && !entry.disabled;
   const daysLeft = isActive ? Math.ceil((expiresAtMs - nowMs) / DAY_MS) : 0;
   const isInGracePeriod = !isActive && nowMs <= graceEndMs;
   const graceDaysLeft = isInGracePeriod ? Math.ceil((graceEndMs - nowMs) / DAY_MS) : 0;
-  
+
   return {
     isActive,
     expiresAt: entry.expiresAt,
@@ -2307,7 +2315,7 @@ export function findCreditCode(code: string): CreditCodeRecord | null {
 
 export function useCreditCode(code: string, userId: string, groupId?: string): { success: boolean; message: string; days?: number } {
   const creditCode = findCreditCode(code);
-  
+
   if (!creditCode) {
     return { success: false, message: "کد اعتباری یافت نشد." };
   }
@@ -2343,8 +2351,8 @@ export function useCreditCode(code: string, userId: string, groupId?: string): {
     return draft;
   });
 
-  return { 
-    success: true, 
+  return {
+    success: true,
     message: `کد اعتباری با موفقیت استفاده شد. ${creditCode.days} روز اعتبار دریافت کردید.`,
     days: creditCode.days
   };
@@ -2594,16 +2602,16 @@ export function listFreeGroups(): GroupRecord[] {
  */
 export function listInactiveGroups(inactiveDays: number = 3): GroupRecord[] {
   const cutoffMs = Date.now() - inactiveDays * 24 * 60 * 60 * 1000;
-  
+
   return Object.values(state.groups).filter(group => {
     if (!group.managed) {
       return false;
     }
-    
+
     const lastActivity = group.lastActivityAt ? new Date(group.lastActivityAt).getTime() : 0;
     const createdAt = new Date(group.createdAt).getTime();
     const lastActiveTime = Math.max(lastActivity, createdAt);
-    
+
     return lastActiveTime < cutoffMs;
   });
 }
@@ -2688,6 +2696,20 @@ export function hasAdvancedCaptcha(chatId: string): boolean {
  */
 export function hasExtraSilenceWindows(chatId: string): boolean {
   return hasFeature(chatId, "extraSilenceWindows");
+}
+
+/**
+ * Check if group has mandatory membership feature (join channel requirement)
+ */
+export function hasMandatoryMembership(chatId: string): boolean {
+  return hasFeature(chatId, "mandatoryMembership");
+}
+
+/**
+ * Check if group has mandatory add feature (invite friends requirement)
+ */
+export function hasMandatoryAdd(chatId: string): boolean {
+  return hasFeature(chatId, "mandatoryAdd");
 }
 
 /**

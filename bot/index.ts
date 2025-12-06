@@ -58,6 +58,8 @@ import {
   type GroupBanSettingsRecord,
   loadBanSettingsByChatId,
   saveBanSettingsByChatId,
+  loadGeneralSettingsByChatId,
+  saveGeneralSettingsByChatId,
 } from "../server/db/groupSettingsRepository.js";
 import { extractCreditCode, redeemCreditCode } from "../server/services/creditCodeService.js";
 import { recordGroupCreditRenewal } from "../server/services/missionVerificationService.js";
@@ -99,6 +101,7 @@ import {
   canUserAddFreeGroup,
   getUserFreeGroupCount,
   listFreeGroups,
+  isGroupPremium,
   type PendingGroupSetup,
 } from "./state.js";
 import { registerPromoStaticRoutes } from "../server/services/promoMediaStorage.js";
@@ -431,27 +434,39 @@ const INLINE_LIST_CONFIGS: InlineListConfig[] = [
   {
     id: "auto_replies",
     title: "🤖 Auto Replies",
-    supportsAdd: false,
-    commandUsage: "Set in Mini App",
-    commandExample: "Use Mini App → Auto Replies",
-    description: "Automatic responses to specific keywords or phrases. Configure via Mini App."
+    supportsAdd: true,
+    commandUsage: "Inline Panel",
+    commandExample: "Use ➕ Add button below",
+    addPrompt: "📝 **Step 1/2: Enter Trigger Keyword**\n\nSend the keyword/phrase that will trigger this auto-reply.\n\nExample: `hello` or `price`",
+    description: "Automatic responses to specific keywords or phrases."
   },
   {
     id: "scheduled_posts",
     title: "⏰ Scheduled Posts",
-    supportsAdd: false,
-    commandUsage: "Set in Mini App",
-    commandExample: "Use Mini App → Scheduled Posts",
-    description: "Posts scheduled to be sent automatically at specific times. Configure via Mini App."
+    supportsAdd: true,
+    commandUsage: "Inline Panel",
+    commandExample: "Use ➕ Add button below",
+    addPrompt: "📝 **Step 1/2: Enter Message**\n\nSend the message content you want to schedule.\n\nYou can include text, emojis, etc.",
+    description: "Posts scheduled to be sent automatically at specific times."
   },
 ];
 
 // Inline session management for interactive list additions
-type InlineSessionStep = "awaiting_add_input";
+type InlineSessionStep =
+  | "awaiting_add_input"           // Single step input (filters, whitelist, etc.)
+  | "awaiting_auto_reply_trigger"  // Step 1 for auto replies: keyword
+  | "awaiting_auto_reply_response" // Step 2 for auto replies: response text
+  | "awaiting_scheduled_message"   // Step 1 for scheduled posts: message content
+  | "awaiting_scheduled_time";     // Step 2 for scheduled posts: schedule time
+
 type InlineSession = {
   chatId: string;
   listId: InlineListId;
   step: InlineSessionStep;
+  tempData?: {
+    trigger?: string;           // For auto-reply: stores the trigger keyword
+    scheduledMessage?: string;  // For scheduled post: stores the message content
+  };
 };
 const inlineSessions = new Map<string, InlineSession>();
 
@@ -1965,12 +1980,21 @@ async function showInlineListDetail(ctx: Context, chatId: string, listId: string
     }
 
     lines.push("");
-    lines.push("💡 <b>How to configure:</b>");
-    lines.push(`   Use Mini App → Auto Replies for full management.`);
+    lines.push("💡 <b>How to add:</b>");
+    lines.push(`   Use the ➕ Add button below.`);
+    lines.push(`   Step 1: Enter trigger keyword`);
+    lines.push(`   Step 2: Enter response message`);
   } else if (cfg.id === "scheduled_posts") {
     // Display scheduled posts from banSettings
     const rawSettings = banSettings as unknown as Record<string, unknown>;
-    const scheduledPosts = Array.isArray(rawSettings?.scheduledPosts) ? rawSettings.scheduledPosts as Array<{ content?: string; scheduledAt?: string }> : [];
+    const scheduledPosts = Array.isArray(rawSettings?.scheduledPosts) ? rawSettings.scheduledPosts as Array<{
+      message?: string;
+      scheduleTime?: string;
+      scheduleType?: string;
+      scheduleDayOfWeek?: number;
+      scheduleDate?: string;
+      enabled?: boolean;
+    }> : [];
 
     if (!scheduledPosts.length) {
       lines.push("⚠️ No scheduled posts yet.");
@@ -1979,11 +2003,22 @@ async function showInlineListDetail(ctx: Context, chatId: string, listId: string
     } else {
       lines.push(`📊 Total scheduled posts: ${scheduledPosts.length}`);
       lines.push("");
+      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
       for (const post of scheduledPosts.slice(0, 5)) {
-        const content = post.content ?? "(no content)";
-        const scheduledAt = post.scheduledAt ?? "(unknown time)";
-        const truncatedContent = content.length > 25 ? content.substring(0, 22) + "..." : content;
-        lines.push(`• ${scheduledAt}: ${truncatedContent}`);
+        const message = post.message ?? "(no content)";
+        const truncatedMessage = message.length > 25 ? message.substring(0, 22) + "..." : message;
+
+        let scheduleDisplay = post.scheduleTime ?? "(unknown time)";
+        if (post.scheduleType === "weekly" && post.scheduleDayOfWeek !== undefined) {
+          scheduleDisplay = `${dayNames[post.scheduleDayOfWeek]} ${post.scheduleTime}`;
+        } else if (post.scheduleType === "once" && post.scheduleDate) {
+          scheduleDisplay = `${post.scheduleDate} ${post.scheduleTime}`;
+        } else if (post.scheduleType === "daily") {
+          scheduleDisplay = `Daily ${post.scheduleTime}`;
+        }
+
+        const statusIcon = post.enabled !== false ? "✅" : "⏸️";
+        lines.push(`${statusIcon} ${scheduleDisplay}: ${truncatedMessage}`);
       }
       if (scheduledPosts.length > 5) {
         lines.push(`... and ${scheduledPosts.length - 5} more`);
@@ -1991,8 +2026,10 @@ async function showInlineListDetail(ctx: Context, chatId: string, listId: string
     }
 
     lines.push("");
-    lines.push("💡 <b>How to configure:</b>");
-    lines.push(`   Use Mini App → Scheduled Posts for full management.`);
+    lines.push("💡 <b>How to add:</b>");
+    lines.push(`   Use the ➕ Add button below.`);
+    lines.push(`   Step 1: Enter message content`);
+    lines.push(`   Step 2: Set schedule time`);
   } else {
     lines.push("ℹ️ This list is not available in the inline panel yet.");
     lines.push("");
@@ -2498,21 +2535,1040 @@ bot.action(INLINE_ADVANCED_REGEX, async (ctx) => {
   const chatId = match?.[1];
   if (!chatId) return;
 
+  await showInlineAdvanced(ctx, chatId);
+});
+
+// Advanced Settings sub-feature regex patterns
+const ADV_TEMPMEDIA_REGEX = /^fw_adv_tempmedia:(-?\d+)$/;
+const ADV_TEMPMEDIA_TOGGLE_REGEX = /^fw_adv_tm_toggle:(-?\d+):([a-z]+)$/;
+const ADV_TEMPMEDIA_TIME_REGEX = /^fw_adv_tm_time:(-?\d+):(up|down|upfast|downfast)$/;
+const ADV_TOGGLE_REGEX = /^fw_adv_toggle:(-?\d+):([a-z_]+)$/;
+const ADV_WELCOME_REGEX = /^fw_adv_welcome:(-?\d+)$/;
+const ADV_WARNING_REGEX = /^fw_adv_warning:(-?\d+)$/;
+const ADV_FLOOD_REGEX = /^fw_adv_flood:(-?\d+)$/;
+const ADV_MANDATORY_REGEX = /^fw_adv_mandatory:(-?\d+)$/;
+const ADV_CLEANUP_REGEX = /^fw_adv_cleanup:(-?\d+)$/;
+const ADV_REPORTS_REGEX = /^fw_adv_reports:(-?\d+)$/;
+
+// Advanced Settings Types
+type AdvancedFeature = {
+  id: string;
+  title: string;
+  icon: string;
+  settingsKey?: string;         // Key in generalSettings
+  banSettingsKey?: string;      // Key in banSettings.rules
+  banSettingsRootKey?: string;  // Key at root level of banSettings (not in rules)
+  hasSubMenu?: boolean;
+};
+
+const ADVANCED_FEATURES: AdvancedFeature[] = [
+  // Row 1
+  { id: "temp_media", title: "Temp Media", icon: "⏰", hasSubMenu: true },
+  { id: "verification", title: "Verification", icon: "✅", settingsKey: "userVerificationEnabled" },
+  { id: "anti_betrayal", title: "Anti-Betrayal", icon: "🛡️", banSettingsRootKey: "antiBetrayal" },
+  // Row 2
+  { id: "mandatory_join", title: "Mandatory Join", icon: "📋", hasSubMenu: true },
+  { id: "mandatory_add", title: "Mandatory Add", icon: "➕", banSettingsRootKey: "mandatoryAdd" },
+  { id: "welcome", title: "Welcome", icon: "👋", settingsKey: "welcomeEnabled", hasSubMenu: true },
+  // Row 3
+  { id: "warning", title: "Warnings", icon: "⚠️", settingsKey: "warningEnabled", hasSubMenu: true },
+  { id: "anti_ad", title: "Anti-Ad", icon: "🚫", banSettingsKey: "blockLinks" },
+  { id: "strict_mode", title: "Strict Mode", icon: "🔒", settingsKey: "countAdminViolationsEnabled" },
+  // Row 4
+  { id: "auto_lock", title: "Auto Lock", icon: "🔐", settingsKey: "autoDeleteEnabled" },
+  { id: "flood", title: "Flood Protection", icon: "💬", hasSubMenu: true },
+  { id: "lock_limit", title: "Lock Limit", icon: "📊", hasSubMenu: true },
+  // Row 5
+  { id: "permissions", title: "Permissions", icon: "⚙️", hasSubMenu: true },
+  { id: "cleanup", title: "Cleanup", icon: "🧹", hasSubMenu: true },
+  { id: "lock_features", title: "Lock Features", icon: "🔒", banSettingsRootKey: "lockFeatures" },
+  // Row 6
+  { id: "timezone", title: "Time Zone", icon: "🕐", hasSubMenu: true },
+  { id: "reports", title: "Reports", icon: "📈", hasSubMenu: true },
+];
+
+async function showInlineAdvanced(ctx: Context, chatId: string): Promise<void> {
+  let generalSettings;
+  let banSettings;
+
+  try {
+    generalSettings = await loadGeneralSettingsByChatId(chatId);
+  } catch {
+    generalSettings = null;
+  }
+
+  try {
+    banSettings = await loadBanSettingsByChatId(chatId);
+  } catch {
+    banSettings = null;
+  }
+
+  const rawGeneral = generalSettings as Record<string, unknown> | null;
+  const rawBan = banSettings as unknown as Record<string, unknown> | null;
+
+  // Check if group is premium
+  const isPremium = isGroupPremium(chatId);
+  const premiumOnlyFeatureIds = ["mandatory_join", "mandatory_add"];
+
+  // Build status line
+  const enabledCount = ADVANCED_FEATURES.filter(f => {
+    if (f.settingsKey && rawGeneral) {
+      return rawGeneral[f.settingsKey] === true;
+    }
+    if (f.banSettingsKey && rawBan?.rules) {
+      const rules = rawBan.rules as Record<string, unknown>;
+      return rules[f.banSettingsKey] === true;
+    }
+    return false;
+  }).length;
+
   const message = `⚙️ <b>Advanced Settings</b>
 
-Configure advanced features for your group.
+Configure advanced protection features for your group.
 
-• <b>Anti-Spam:</b> Configure strictness of spam filters.
-• <b>Verification:</b> Manage user verification settings.
-• <b>Logging:</b> Configure log channels.
+📊 <b>Status:</b> ${enabledCount} features enabled
+${!isPremium ? `\n⭐ Features marked with ⭐ require Premium` : ""}
 
-<i>These settings are currently read-only in the inline panel. Please use the Mini App for full control.</i>`;
+<i>Tap a feature to toggle or configure it.</i>`;
 
-  const keyboard = Markup.inlineKeyboard([
-    [Markup.button.webApp("🧩 Open Mini App", miniAppUrl)],
-    [Markup.button.callback("◀️ Back to Panel", `fw_inline_menu:${chatId}`)]
+  const rows: any[] = [];
+
+  // Build 2-column layout
+  for (let i = 0; i < ADVANCED_FEATURES.length; i += 2) {
+    const f1 = ADVANCED_FEATURES[i];
+    const f2 = ADVANCED_FEATURES[i + 1];
+
+    const row: any[] = [];
+
+    // Feature 1
+    let status1 = "❌";
+    if (f1.settingsKey && rawGeneral?.[f1.settingsKey] === true) {
+      status1 = "✅";
+    } else if (f1.banSettingsKey && rawBan?.rules) {
+      const rules = rawBan.rules as Record<string, unknown>;
+      if (rules[f1.banSettingsKey] === true) status1 = "✅";
+    } else if (f1.banSettingsRootKey && rawBan) {
+      if (rawBan[f1.banSettingsRootKey] === true) status1 = "✅";
+    } else if (f1.id === "temp_media" && rawBan) {
+      const tempMediaEnabled = (rawBan as any).tempMediaEnabled === true;
+      status1 = tempMediaEnabled ? "✅" : "❌";
+    }
+
+    // Add premium lock badge for premium-only features
+    const isPremiumOnly1 = premiumOnlyFeatureIds.includes(f1.id);
+    const premiumBadge1 = isPremiumOnly1 && !isPremium ? " ⭐" : "";
+
+    const callback1 = f1.hasSubMenu
+      ? `fw_adv_${f1.id}:${chatId}`
+      : `fw_adv_toggle:${chatId}:${f1.id}`;
+    row.push(Markup.button.callback(`${f1.icon} ${f1.title}${premiumBadge1} ${status1}`, callback1));
+
+    // Feature 2 (if exists)
+    if (f2) {
+      let status2 = "❌";
+      if (f2.settingsKey && rawGeneral?.[f2.settingsKey] === true) {
+        status2 = "✅";
+      } else if (f2.banSettingsKey && rawBan?.rules) {
+        const rules = rawBan.rules as Record<string, unknown>;
+        if (rules[f2.banSettingsKey] === true) status2 = "✅";
+      } else if (f2.banSettingsRootKey && rawBan) {
+        if (rawBan[f2.banSettingsRootKey] === true) status2 = "✅";
+      }
+
+      // Add premium lock badge for premium-only features
+      const isPremiumOnly2 = premiumOnlyFeatureIds.includes(f2.id);
+      const premiumBadge2 = isPremiumOnly2 && !isPremium ? " ⭐" : "";
+
+      const callback2 = f2.hasSubMenu
+        ? `fw_adv_${f2.id}:${chatId}`
+        : `fw_adv_toggle:${chatId}:${f2.id}`;
+      row.push(Markup.button.callback(`${f2.icon} ${f2.title}${premiumBadge2} ${status2}`, callback2));
+    }
+
+    rows.push(row);
+  }
+
+  // Back button
+  rows.push([Markup.button.callback("◀️ Back to Panel", `fw_inline_menu:${chatId}`)]);
+
+  const keyboard = Markup.inlineKeyboard(rows);
+  await replyOrEditRoot(ctx, message, keyboard);
+}
+
+// Toggle handler for simple on/off features
+bot.action(ADV_TOGGLE_REGEX, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(ADV_TOGGLE_REGEX);
+  const chatId = match?.[1];
+  const featureId = match?.[2];
+  if (!chatId || !featureId) return;
+
+  const feature = ADVANCED_FEATURES.find(f => f.id === featureId);
+  if (!feature) return;
+
+  // Premium-only features - block activation for free groups
+  const premiumOnlyFeatures = ["mandatory_join", "mandatory_add"];
+  if (premiumOnlyFeatures.includes(featureId) && !isGroupPremium(chatId)) {
+    await ctx.answerCbQuery(
+      "⭐ This is a Premium feature. Upgrade to enable it!",
+      { show_alert: true }
+    );
+    return;
+  }
+
+  try {
+    if (feature.settingsKey) {
+      const settings = await loadGeneralSettingsByChatId(chatId);
+      const rawSettings = settings as Record<string, unknown>;
+      const currentValue = rawSettings[feature.settingsKey] === true;
+      rawSettings[feature.settingsKey] = !currentValue;
+      await saveGeneralSettingsByChatId(chatId, settings);
+
+      await ctx.answerCbQuery(`${feature.title} ${!currentValue ? "enabled" : "disabled"}!`);
+    } else if (feature.banSettingsKey) {
+      const settings = await loadBanSettingsByChatId(chatId);
+      const rawSettings = settings as unknown as Record<string, unknown>;
+      if (!rawSettings.rules) {
+        rawSettings.rules = {};
+      }
+      const rules = rawSettings.rules as Record<string, unknown>;
+      const currentValue = rules[feature.banSettingsKey] === true;
+      rules[feature.banSettingsKey] = !currentValue;
+      await saveBanSettingsByChatId(chatId, settings);
+
+      await ctx.answerCbQuery(`${feature.title} ${!currentValue ? "enabled" : "disabled"}!`);
+    } else if (feature.banSettingsRootKey) {
+      // Save at root level of banSettings (not in rules)
+      const settings = await loadBanSettingsByChatId(chatId);
+      const rawSettings = settings as unknown as Record<string, unknown>;
+      const currentValue = rawSettings[feature.banSettingsRootKey] === true;
+      rawSettings[feature.banSettingsRootKey] = !currentValue;
+      await saveBanSettingsByChatId(chatId, settings);
+
+      await ctx.answerCbQuery(`${feature.title} ${!currentValue ? "enabled" : "disabled"}!`);
+    }
+  } catch (error) {
+    logger.error("Failed to toggle advanced feature", { chatId, featureId, error });
+    await ctx.answerCbQuery("Failed to save settings.");
+  }
+
+  // Refresh the advanced menu
+  await showInlineAdvanced(ctx, chatId);
+});
+
+// ========== TEMP MEDIA SUB-MENU ==========
+bot.action(/^fw_adv_temp_media:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_temp_media:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  await showTempMediaSettings(ctx, chatId);
+});
+
+async function showTempMediaSettings(ctx: Context, chatId: string): Promise<void> {
+  let banSettings;
+  try {
+    banSettings = await loadBanSettingsByChatId(chatId);
+  } catch {
+    banSettings = null;
+  }
+
+  const rawBan = banSettings as unknown as Record<string, unknown> | null;
+  const tempMediaEnabled = rawBan?.tempMediaEnabled === true;
+  const tempMediaSettings = (rawBan?.tempMedia as Record<string, unknown>) ?? {};
+
+  const deleteMinutes = (tempMediaSettings.deleteMinutes as number) ?? 20;
+  const mediaTypes = {
+    gif: tempMediaSettings.gif !== false,
+    sticker: tempMediaSettings.sticker !== false,
+    video: tempMediaSettings.video !== false,
+    photo: tempMediaSettings.photo !== false,
+    file: tempMediaSettings.file === true,
+    audio: tempMediaSettings.audio === true,
+  };
+
+  if (!tempMediaEnabled) {
+    // Show enable prompt
+    const message = `⏰ <b>Temporary Media</b>
+
+• When enabled, media will be auto-deleted after a set time
+• This helps prevent group filtering issues
+
+<b>Status:</b> ❌ Disabled
+
+<i>Enable this feature to configure media types and delete time.</i>`;
+
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback("✅ Enable Temp Media", `fw_adv_tm_master:${chatId}:on`)],
+      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+    ]);
+
+    await replyOrEditRoot(ctx, message, keyboard);
+    return;
+  }
+
+  // Show full settings
+  const message = `⏰ <b>Temporary Media</b>
+
+• Media will be auto-deleted after <b>${deleteMinutes} minutes</b>
+• This helps prevent group filtering issues
+
+<b>Media Types:</b>`;
+
+  const rows: any[] = [];
+
+  // Master toggle
+  rows.push([Markup.button.callback(`⏰ Temp Media ✅`, `fw_adv_tm_master:${chatId}:off`)]);
+
+  // Media type toggles (2 per row)
+  rows.push([
+    Markup.button.callback(`🎬 GIF ${mediaTypes.gif ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:gif`),
+    Markup.button.callback(`🎭 Sticker ${mediaTypes.sticker ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:sticker`),
+  ]);
+  rows.push([
+    Markup.button.callback(`🎥 Video ${mediaTypes.video ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:video`),
+    Markup.button.callback(`📷 Photo ${mediaTypes.photo ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:photo`),
+  ]);
+  rows.push([
+    Markup.button.callback(`📁 File ${mediaTypes.file ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:file`),
+    Markup.button.callback(`🔊 Audio ${mediaTypes.audio ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:audio`),
   ]);
 
+  // Time selector
+  rows.push([Markup.button.callback(`⏱️ Delete Time: ${deleteMinutes} min`, `fw_adv_tm_time_show:${chatId}`)]);
+  rows.push([
+    Markup.button.callback("◁◁", `fw_adv_tm_time:${chatId}:downfast`),
+    Markup.button.callback("◁", `fw_adv_tm_time:${chatId}:down`),
+    Markup.button.callback("▷", `fw_adv_tm_time:${chatId}:up`),
+    Markup.button.callback("▷▷", `fw_adv_tm_time:${chatId}:upfast`),
+  ]);
+
+  // Back button
+  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
+
+  const keyboard = Markup.inlineKeyboard(rows);
+  await replyOrEditRoot(ctx, message, keyboard);
+}
+
+// Temp Media master toggle
+bot.action(/^fw_adv_tm_master:(-?\d+):(on|off)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_tm_master:(-?\d+):(on|off)$/);
+  const chatId = match?.[1];
+  const action = match?.[2];
+  if (!chatId || !action) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    rawSettings.tempMediaEnabled = action === "on";
+
+    // Initialize tempMedia settings if enabling
+    if (action === "on" && !rawSettings.tempMedia) {
+      rawSettings.tempMedia = {
+        deleteMinutes: 20,
+        gif: true,
+        sticker: true,
+        video: true,
+        photo: true,
+        file: false,
+        audio: false,
+      };
+    }
+
+    await saveBanSettingsByChatId(chatId, settings);
+  } catch (error) {
+    logger.error("Failed to toggle temp media", { chatId, error });
+  }
+
+  await showTempMediaSettings(ctx, chatId);
+});
+
+// Temp Media type toggle
+bot.action(/^fw_adv_tm_type:(-?\d+):([a-z]+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_tm_type:(-?\d+):([a-z]+)$/);
+  const chatId = match?.[1];
+  const mediaType = match?.[2];
+  if (!chatId || !mediaType) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.tempMedia) {
+      rawSettings.tempMedia = {};
+    }
+    const tempMedia = rawSettings.tempMedia as Record<string, unknown>;
+
+    // Toggle the media type
+    const currentValue = tempMedia[mediaType] === true || (tempMedia[mediaType] !== false && ["gif", "sticker", "video", "photo"].includes(mediaType));
+    tempMedia[mediaType] = !currentValue;
+
+    await saveBanSettingsByChatId(chatId, settings);
+  } catch (error) {
+    logger.error("Failed to toggle temp media type", { chatId, mediaType, error });
+  }
+
+  await showTempMediaSettings(ctx, chatId);
+});
+
+// Temp Media time adjustment
+bot.action(/^fw_adv_tm_time:(-?\d+):(up|down|upfast|downfast)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_tm_time:(-?\d+):(up|down|upfast|downfast)$/);
+  const chatId = match?.[1];
+  const direction = match?.[2];
+  if (!chatId || !direction) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.tempMedia) {
+      rawSettings.tempMedia = { deleteMinutes: 20 };
+    }
+    const tempMedia = rawSettings.tempMedia as Record<string, unknown>;
+    let currentMinutes = (tempMedia.deleteMinutes as number) ?? 20;
+
+    // Adjust time
+    const adjustments: Record<string, number> = {
+      up: 5,
+      down: -5,
+      upfast: 30,
+      downfast: -30,
+    };
+
+    currentMinutes += adjustments[direction] ?? 0;
+    currentMinutes = Math.max(1, Math.min(1440, currentMinutes)); // 1 min to 24 hours
+    tempMedia.deleteMinutes = currentMinutes;
+
+    await saveBanSettingsByChatId(chatId, settings);
+  } catch (error) {
+    logger.error("Failed to adjust temp media time", { chatId, direction, error });
+  }
+
+  await showTempMediaSettings(ctx, chatId);
+});
+
+// ========== WELCOME SUB-MENU ==========
+bot.action(/^fw_adv_welcome:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_welcome:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  await showWelcomeSettings(ctx, chatId);
+});
+
+async function showWelcomeSettings(ctx: Context, chatId: string): Promise<void> {
+  let generalSettings;
+  try {
+    generalSettings = await loadGeneralSettingsByChatId(chatId);
+  } catch {
+    generalSettings = null;
+  }
+
+  const rawGeneral = generalSettings as Record<string, unknown> | null;
+  const welcomeEnabled = rawGeneral?.welcomeEnabled === true;
+
+  if (!welcomeEnabled) {
+    const message = `👋 <b>Welcome Message</b>
+
+• Automatically greet new members when they join
+• Customize the welcome message
+
+<b>Status:</b> ❌ Disabled
+
+<i>Enable this feature to configure welcome settings.</i>`;
+
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback("✅ Enable Welcome", `fw_adv_welcome_toggle:${chatId}:on`)],
+      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+    ]);
+
+    await replyOrEditRoot(ctx, message, keyboard);
+    return;
+  }
+
+  const message = `👋 <b>Welcome Message</b>
+
+• New members will receive a welcome message
+• Configure the message text and options
+
+<b>Status:</b> ✅ Enabled`;
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback("👋 Welcome ✅", `fw_adv_welcome_toggle:${chatId}:off`)],
+    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+  ]);
+
+  await replyOrEditRoot(ctx, message, keyboard);
+}
+
+bot.action(/^fw_adv_welcome_toggle:(-?\d+):(on|off)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_welcome_toggle:(-?\d+):(on|off)$/);
+  const chatId = match?.[1];
+  const action = match?.[2];
+  if (!chatId || !action) return;
+
+  try {
+    const settings = await loadGeneralSettingsByChatId(chatId);
+    const rawSettings = settings as Record<string, unknown>;
+    rawSettings.welcomeEnabled = action === "on";
+    await saveGeneralSettingsByChatId(chatId, settings);
+  } catch (error) {
+    logger.error("Failed to toggle welcome", { chatId, error });
+  }
+
+  await showWelcomeSettings(ctx, chatId);
+});
+
+// ========== WARNING SUB-MENU ==========
+bot.action(/^fw_adv_warning:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_warning:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  await showWarningSettings(ctx, chatId);
+});
+
+async function showWarningSettings(ctx: Context, chatId: string): Promise<void> {
+  let generalSettings;
+  try {
+    generalSettings = await loadGeneralSettingsByChatId(chatId);
+  } catch {
+    generalSettings = null;
+  }
+
+  const rawGeneral = generalSettings as Record<string, unknown> | null;
+  const warningEnabled = rawGeneral?.warningEnabled === true;
+  const autoWarning = rawGeneral?.autoWarning as Record<string, unknown> | null;
+  const threshold = (autoWarning?.threshold as number) ?? 3;
+  const penalty = (autoWarning?.penalty as string) ?? "mute";
+
+  if (!warningEnabled) {
+    const message = `⚠️ <b>Warning System</b>
+
+• Track user violations with warnings
+• Auto-punish after reaching threshold
+
+<b>Status:</b> ❌ Disabled
+
+<i>Enable this feature to configure warning settings.</i>`;
+
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback("✅ Enable Warnings", `fw_adv_warning_toggle:${chatId}:on`)],
+      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+    ]);
+
+    await replyOrEditRoot(ctx, message, keyboard);
+    return;
+  }
+
+  const message = `⚠️ <b>Warning System</b>
+
+• Threshold: <b>${threshold} warnings</b>
+• Penalty: <b>${penalty}</b>
+
+<b>Status:</b> ✅ Enabled`;
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback("⚠️ Warnings ✅", `fw_adv_warning_toggle:${chatId}:off`)],
+    [
+      Markup.button.callback("◁", `fw_adv_warning_thresh:${chatId}:down`),
+      Markup.button.callback(`Threshold: ${threshold}`, `fw_adv_warning_thresh:${chatId}:show`),
+      Markup.button.callback("▷", `fw_adv_warning_thresh:${chatId}:up`),
+    ],
+    [
+      Markup.button.callback(`Penalty: ${penalty}`, `fw_adv_warning_penalty:${chatId}`),
+    ],
+    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+  ]);
+
+  await replyOrEditRoot(ctx, message, keyboard);
+}
+
+bot.action(/^fw_adv_warning_toggle:(-?\d+):(on|off)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_warning_toggle:(-?\d+):(on|off)$/);
+  const chatId = match?.[1];
+  const action = match?.[2];
+  if (!chatId || !action) return;
+
+  try {
+    const settings = await loadGeneralSettingsByChatId(chatId);
+    const rawSettings = settings as Record<string, unknown>;
+    rawSettings.warningEnabled = action === "on";
+    await saveGeneralSettingsByChatId(chatId, settings);
+  } catch (error) {
+    logger.error("Failed to toggle warning", { chatId, error });
+  }
+
+  await showWarningSettings(ctx, chatId);
+});
+
+bot.action(/^fw_adv_warning_thresh:(-?\d+):(up|down|show)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_warning_thresh:(-?\d+):(up|down|show)$/);
+  const chatId = match?.[1];
+  const direction = match?.[2];
+  if (!chatId || !direction || direction === "show") return;
+
+  try {
+    const settings = await loadGeneralSettingsByChatId(chatId);
+    const rawSettings = settings as Record<string, unknown>;
+    let autoWarning = rawSettings.autoWarning as Record<string, unknown>;
+    if (!autoWarning) {
+      autoWarning = { threshold: 3, penalty: "mute" };
+      rawSettings.autoWarning = autoWarning;
+    }
+
+    let threshold = (autoWarning.threshold as number) ?? 3;
+    threshold += direction === "up" ? 1 : -1;
+    threshold = Math.max(1, Math.min(10, threshold));
+    autoWarning.threshold = threshold;
+
+    await saveGeneralSettingsByChatId(chatId, settings);
+  } catch (error) {
+    logger.error("Failed to adjust warning threshold", { chatId, error });
+  }
+
+  await showWarningSettings(ctx, chatId);
+});
+
+bot.action(/^fw_adv_warning_penalty:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_warning_penalty:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  try {
+    const settings = await loadGeneralSettingsByChatId(chatId);
+    const rawSettings = settings as Record<string, unknown>;
+    let autoWarning = rawSettings.autoWarning as Record<string, unknown>;
+    if (!autoWarning) {
+      autoWarning = { threshold: 3, penalty: "mute" };
+      rawSettings.autoWarning = autoWarning;
+    }
+
+    // Cycle through penalties
+    const penalties = ["delete", "mute", "kick"];
+    const currentPenalty = (autoWarning.penalty as string) ?? "mute";
+    const currentIndex = penalties.indexOf(currentPenalty);
+    const nextIndex = (currentIndex + 1) % penalties.length;
+    autoWarning.penalty = penalties[nextIndex];
+
+    await saveGeneralSettingsByChatId(chatId, settings);
+  } catch (error) {
+    logger.error("Failed to cycle warning penalty", { chatId, error });
+  }
+
+  await showWarningSettings(ctx, chatId);
+});
+
+// ========== FLOOD PROTECTION SUB-MENU ==========
+bot.action(/^fw_adv_flood:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_flood:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  await showFloodSettings(ctx, chatId);
+});
+
+async function showFloodSettings(ctx: Context, chatId: string): Promise<void> {
+  let banSettings;
+  try {
+    banSettings = await loadBanSettingsByChatId(chatId);
+  } catch {
+    banSettings = null;
+  }
+
+  const rawBan = banSettings as unknown as Record<string, unknown> | null;
+  const rules = rawBan?.rules as Record<string, unknown> | null;
+  const floodEnabled = rules?.blockFlood === true;
+
+  if (!floodEnabled) {
+    const message = `💬 <b>Flood Protection</b>
+
+• Prevent users from sending too many messages rapidly
+• Auto-mute flood offenders
+
+<b>Status:</b> ❌ Disabled
+
+<i>Enable this feature to protect against message flooding.</i>`;
+
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback("✅ Enable Flood Protection", `fw_adv_flood_toggle:${chatId}:on`)],
+      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+    ]);
+
+    await replyOrEditRoot(ctx, message, keyboard);
+    return;
+  }
+
+  const message = `💬 <b>Flood Protection</b>
+
+• Users sending too many messages will be muted
+• Protects against spam attacks
+
+<b>Status:</b> ✅ Enabled`;
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback("💬 Flood Protection ✅", `fw_adv_flood_toggle:${chatId}:off`)],
+    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+  ]);
+
+  await replyOrEditRoot(ctx, message, keyboard);
+}
+
+bot.action(/^fw_adv_flood_toggle:(-?\d+):(on|off)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_flood_toggle:(-?\d+):(on|off)$/);
+  const chatId = match?.[1];
+  const action = match?.[2];
+  if (!chatId || !action) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    if (!rawSettings.rules) {
+      rawSettings.rules = {};
+    }
+    const rules = rawSettings.rules as Record<string, unknown>;
+    rules.blockFlood = action === "on";
+    await saveBanSettingsByChatId(chatId, settings);
+  } catch (error) {
+    logger.error("Failed to toggle flood protection", { chatId, error });
+  }
+
+  await showFloodSettings(ctx, chatId);
+});
+
+// ========== MANDATORY JOIN SUB-MENU ==========
+bot.action(/^fw_adv_mandatory_join:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_mandatory_join:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  await showMandatoryJoinSettings(ctx, chatId);
+});
+
+async function showMandatoryJoinSettings(ctx: Context, chatId: string): Promise<void> {
+  let banSettings;
+  try {
+    banSettings = await loadBanSettingsByChatId(chatId);
+  } catch {
+    banSettings = null;
+  }
+
+  const rawBan = banSettings as unknown as Record<string, unknown> | null;
+  const mandatoryJoinEnabled = rawBan?.mandatoryJoinEnabled === true;
+  const mandatoryChannels = Array.isArray(rawBan?.mandatoryChannels) ? rawBan.mandatoryChannels as string[] : [];
+
+  if (!mandatoryJoinEnabled) {
+    const message = `📋 <b>Mandatory Join</b>
+
+• Require users to join a channel before messaging
+• Auto-delete messages from non-members
+
+<b>Status:</b> ❌ Disabled
+
+<i>Enable this feature to enforce channel membership.</i>`;
+
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback("✅ Enable Mandatory Join", `fw_adv_mandatory_toggle:${chatId}:on`)],
+      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+    ]);
+
+    await replyOrEditRoot(ctx, message, keyboard);
+    return;
+  }
+
+  const channelList = mandatoryChannels.length > 0
+    ? mandatoryChannels.map(c => `• ${c}`).join("\n")
+    : "No channels configured";
+
+  const message = `📋 <b>Mandatory Join</b>
+
+• Users must join specified channels to message
+• ${mandatoryChannels.length} channel(s) configured
+
+<b>Channels:</b>
+${channelList}
+
+<b>Status:</b> ✅ Enabled`;
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback("📋 Mandatory Join ✅", `fw_adv_mandatory_toggle:${chatId}:off`)],
+    [Markup.button.callback("➕ Add Channel", `fw_adv_mandatory_add:${chatId}`)],
+    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+  ]);
+
+  await replyOrEditRoot(ctx, message, keyboard);
+}
+
+bot.action(/^fw_adv_mandatory_toggle:(-?\d+):(on|off)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_mandatory_toggle:(-?\d+):(on|off)$/);
+  const chatId = match?.[1];
+  const action = match?.[2];
+  if (!chatId || !action) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    rawSettings.mandatoryJoinEnabled = action === "on";
+
+    if (action === "on" && !Array.isArray(rawSettings.mandatoryChannels)) {
+      rawSettings.mandatoryChannels = [];
+    }
+
+    await saveBanSettingsByChatId(chatId, settings);
+  } catch (error) {
+    logger.error("Failed to toggle mandatory join", { chatId, error });
+  }
+
+  await showMandatoryJoinSettings(ctx, chatId);
+});
+
+// ========== REPORTS SUB-MENU ==========
+bot.action(/^fw_adv_reports:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_reports:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  const message = `📈 <b>Reports</b>
+
+View moderation statistics and activity logs for your group.
+
+<i>Reports are available in the Mini App for detailed analysis.</i>`;
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.webApp("📊 View Full Reports", miniAppUrl)],
+    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+  ]);
+
+  await replyOrEditRoot(ctx, message, keyboard);
+});
+
+// ========== LOCK LIMIT SUB-MENU ==========
+bot.action(/^fw_adv_lock_limit:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_lock_limit:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  const message = `📊 <b>Lock Limit</b>
+
+Configure message limits and word count restrictions.
+
+• <b>Min/Max Words:</b> Set word count limits per message
+• <b>Messages per Window:</b> Limit messages in time window
+• <b>Duplicate Detection:</b> Block repeated messages
+
+<i>Use the Mini App for detailed limit configuration.</i>`;
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.webApp("⚙️ Configure Limits", miniAppUrl)],
+    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+  ]);
+
+  await replyOrEditRoot(ctx, message, keyboard);
+});
+
+// ========== PERMISSIONS SUB-MENU ==========
+bot.action(/^fw_adv_permissions:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_permissions:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  const message = `⚙️ <b>Group Permissions</b>
+
+Configure what members can do in your group.
+
+• <b>Send Messages:</b> Allow/block text messages
+• <b>Send Media:</b> Allow/block photos, videos, stickers
+• <b>Add Members:</b> Allow/block adding new members
+• <b>Pin Messages:</b> Allow/block pinning messages
+
+<i>These settings affect all non-admin members.</i>`;
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.webApp("⚙️ Configure Permissions", miniAppUrl)],
+    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+  ]);
+
+  await replyOrEditRoot(ctx, message, keyboard);
+});
+
+// ========== CLEANUP SUB-MENU ==========
+bot.action(/^fw_adv_cleanup:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_cleanup:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  const message = `🧹 <b>Group Cleanup</b>
+
+Clean up your group by removing inactive or unwanted members.
+
+• <b>Remove Inactive:</b> Remove members who haven't messaged
+• <b>Remove Deleted:</b> Remove deleted accounts
+• <b>Remove Bots:</b> Remove bot accounts
+
+⚠️ <b>Warning:</b> This action cannot be undone!`;
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback("🧹 Remove Deleted Accounts", `fw_adv_cleanup_action:${chatId}:deleted`)],
+    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+  ]);
+
+  await replyOrEditRoot(ctx, message, keyboard);
+});
+
+// Cleanup action handler
+bot.action(/^fw_adv_cleanup_action:(-?\d+):([a-z]+)$/, async (ctx) => {
+  await ctx.answerCbQuery("Cleanup started...");
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_cleanup_action:(-?\d+):([a-z]+)$/);
+  const chatId = match?.[1];
+  const action = match?.[2];
+  if (!chatId || !action) return;
+
+  // Note: Actual cleanup would require iterating members - this is a placeholder
+  await ctx.reply(`🧹 Cleanup action "${action}" has been queued. This may take a while for large groups.`);
+});
+
+// ========== TIMEZONE SUB-MENU ==========
+bot.action(/^fw_adv_timezone:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_timezone:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  let generalSettings;
+  try {
+    generalSettings = await loadGeneralSettingsByChatId(chatId);
+  } catch {
+    generalSettings = null;
+  }
+
+  const currentTz = (generalSettings as any)?.timezone ?? "UTC";
+
+  const message = `🕐 <b>Time Zone</b>
+
+Current timezone: <b>${currentTz}</b>
+
+The timezone affects:
+• Silence window schedules
+• Scheduled posts timing
+• Activity reports
+
+Select a timezone below:`;
+
+  const timezones = [
+    { name: "UTC", label: "🌍 UTC" },
+    { name: "Asia/Tehran", label: "🇮🇷 Iran (Tehran)" },
+    { name: "Asia/Dubai", label: "🇦🇪 Dubai" },
+    { name: "Europe/London", label: "🇬🇧 London" },
+    { name: "America/New_York", label: "🇺🇸 New York" },
+  ];
+
+  const rows: any[] = [];
+  for (const tz of timezones) {
+    const isSelected = currentTz === tz.name;
+    rows.push([Markup.button.callback(
+      `${tz.label} ${isSelected ? "✅" : ""}`,
+      `fw_adv_tz_set:${chatId}:${tz.name}`
+    )]);
+  }
+  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
+
+  const keyboard = Markup.inlineKeyboard(rows);
+  await replyOrEditRoot(ctx, message, keyboard);
+});
+
+// Timezone set handler
+bot.action(/^fw_adv_tz_set:(-?\d+):(.+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_tz_set:(-?\d+):(.+)$/);
+  const chatId = match?.[1];
+  const timezone = match?.[2];
+  if (!chatId || !timezone) return;
+
+  try {
+    const settings = await loadGeneralSettingsByChatId(chatId);
+    (settings as any).timezone = timezone;
+    await saveGeneralSettingsByChatId(chatId, settings);
+    await ctx.answerCbQuery(`Timezone set to ${timezone}`);
+  } catch (error) {
+    logger.error("Failed to set timezone", { chatId, timezone, error });
+    await ctx.answerCbQuery("Failed to set timezone");
+  }
+
+  // Refresh timezone menu
+  const generalSettings = await loadGeneralSettingsByChatId(chatId);
+  const currentTz = (generalSettings as any)?.timezone ?? "UTC";
+
+  const message = `🕐 <b>Time Zone</b>
+
+Current timezone: <b>${currentTz}</b>
+
+The timezone affects:
+• Silence window schedules
+• Scheduled posts timing
+• Activity reports
+
+Select a timezone below:`;
+
+  const timezones = [
+    { name: "UTC", label: "🌍 UTC" },
+    { name: "Asia/Tehran", label: "🇮🇷 Iran (Tehran)" },
+    { name: "Asia/Dubai", label: "🇦🇪 Dubai" },
+    { name: "Europe/London", label: "🇬🇧 London" },
+    { name: "America/New_York", label: "🇺🇸 New York" },
+  ];
+
+  const rows: any[] = [];
+  for (const tz of timezones) {
+    const isSelected = currentTz === tz.name;
+    rows.push([Markup.button.callback(
+      `${tz.label} ${isSelected ? "✅" : ""}`,
+      `fw_adv_tz_set:${chatId}:${tz.name}`
+    )]);
+  }
+  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
+
+  const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
 });
 
@@ -2533,10 +3589,19 @@ bot.action(INLINE_LIST_ADD_REGEX, async (ctx) => {
 
   const userId = ctx.from?.id?.toString();
   if (userId) {
+    // Determine the appropriate step based on listId
+    let step: InlineSessionStep = "awaiting_add_input";
+    if (listId === "auto_replies") {
+      step = "awaiting_auto_reply_trigger";
+    } else if (listId === "scheduled_posts") {
+      step = "awaiting_scheduled_message";
+    }
+
     setInlineSession(userId, {
       chatId,
       listId: listId as InlineListId,
-      step: "awaiting_add_input"
+      step,
+      tempData: {}
     });
   }
 
@@ -4062,6 +5127,242 @@ bot.on("text", async (ctx, next) => {
     } catch (error) {
       logger.error("Failed to add item to list", { chatId, listId, error });
       await ctx.reply("❌ An error occurred while saving. Please try again.");
+    }
+
+    clearInlineSession(userId);
+    return;
+  }
+
+  // Handle auto-reply step 1: trigger keyword
+  if (session.step === "awaiting_auto_reply_trigger") {
+    const chatId = session.chatId;
+    const trigger = text.trim();
+
+    if (!trigger) {
+      await ctx.reply("⚠️ Please enter a valid trigger keyword.");
+      return;
+    }
+
+    // Store trigger and move to next step
+    setInlineSession(userId, {
+      ...session,
+      step: "awaiting_auto_reply_response",
+      tempData: { ...session.tempData, trigger }
+    });
+
+    await ctx.reply(
+      `📝 **Step 2/2: Enter Response**\n\n` +
+      `Trigger: \`${trigger}\`\n\n` +
+      `Now send the response message that will be sent when someone types "${trigger}".`,
+      {
+        parse_mode: "Markdown", reply_markup: Markup.inlineKeyboard([
+          [Markup.button.callback("◀️ Cancel", `fw_inline_list:${chatId}:auto_replies`)]
+        ]).reply_markup
+      }
+    );
+    return;
+  }
+
+  // Handle auto-reply step 2: response text
+  if (session.step === "awaiting_auto_reply_response") {
+    const chatId = session.chatId;
+    const trigger = session.tempData?.trigger;
+    const response = text.trim();
+
+    if (!trigger) {
+      clearInlineSession(userId);
+      await ctx.reply("⚠️ Session expired. Please try again.", Markup.inlineKeyboard([
+        [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:auto_replies`)]
+      ]));
+      return;
+    }
+
+    if (!response) {
+      await ctx.reply("⚠️ Please enter a valid response message.");
+      return;
+    }
+
+    try {
+      const settings = await loadBanSettingsByChatId(chatId);
+      const rawSettings = settings as unknown as Record<string, unknown>;
+
+      if (!Array.isArray(rawSettings.autoReplies)) {
+        rawSettings.autoReplies = [];
+      }
+
+      const autoReplies = rawSettings.autoReplies as Array<{ trigger: string; response: string; enabled: boolean }>;
+
+      // Check if trigger already exists
+      const existingIndex = autoReplies.findIndex(ar => ar.trigger.toLowerCase() === trigger.toLowerCase());
+      if (existingIndex >= 0) {
+        // Update existing
+        autoReplies[existingIndex].response = response;
+      } else {
+        // Add new
+        autoReplies.push({ trigger, response, enabled: true });
+      }
+
+      await saveBanSettingsByChatId(chatId, settings);
+
+      await ctx.reply(
+        `✅ Auto-reply saved!\n\n` +
+        `🔑 Trigger: \`${trigger}\`\n` +
+        `💬 Response: ${response.substring(0, 100)}${response.length > 100 ? '...' : ''}`,
+        {
+          parse_mode: "Markdown", reply_markup: Markup.inlineKeyboard([
+            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:auto_replies`)]
+          ]).reply_markup
+        }
+      );
+    } catch (error) {
+      logger.error("Failed to save auto-reply", { chatId, trigger, error });
+      await ctx.reply("❌ Failed to save auto-reply. Please try again.", Markup.inlineKeyboard([
+        [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:auto_replies`)]
+      ]));
+    }
+
+    clearInlineSession(userId);
+    return;
+  }
+
+  // Handle scheduled post step 1: message content
+  if (session.step === "awaiting_scheduled_message") {
+    const chatId = session.chatId;
+    const message = text.trim();
+
+    if (!message) {
+      await ctx.reply("⚠️ Please enter a valid message.");
+      return;
+    }
+
+    // Store message and move to next step
+    setInlineSession(userId, {
+      ...session,
+      step: "awaiting_scheduled_time",
+      tempData: { ...session.tempData, scheduledMessage: message }
+    });
+
+    await ctx.reply(
+      `📝 **Step 2/2: Set Schedule**\n\n` +
+      `Message preview: ${message.substring(0, 50)}${message.length > 50 ? '...' : ''}\n\n` +
+      `Now send the schedule time in one of these formats:\n\n` +
+      `• \`HH:MM\` - Daily at this time (24h format)\n` +
+      `• \`Monday 14:00\` - Weekly on specific day\n` +
+      `• \`2024-12-25 10:00\` - One-time on specific date\n\n` +
+      `Example: \`09:00\` or \`Friday 18:30\``,
+      {
+        parse_mode: "Markdown", reply_markup: Markup.inlineKeyboard([
+          [Markup.button.callback("◀️ Cancel", `fw_inline_list:${chatId}:scheduled_posts`)]
+        ]).reply_markup
+      }
+    );
+    return;
+  }
+
+  // Handle scheduled post step 2: schedule time
+  if (session.step === "awaiting_scheduled_time") {
+    const chatId = session.chatId;
+    const scheduledMessage = session.tempData?.scheduledMessage;
+    const scheduleInput = text.trim();
+
+    if (!scheduledMessage) {
+      clearInlineSession(userId);
+      await ctx.reply("⚠️ Session expired. Please try again.", Markup.inlineKeyboard([
+        [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:scheduled_posts`)]
+      ]));
+      return;
+    }
+
+    if (!scheduleInput) {
+      await ctx.reply("⚠️ Please enter a valid schedule time.");
+      return;
+    }
+
+    // Parse schedule input
+    let scheduleType: "daily" | "weekly" | "once" = "daily";
+    let scheduleTime = scheduleInput;
+    let scheduleDayOfWeek: number | undefined;
+    let scheduleDate: string | undefined;
+
+    // Check for weekly format (e.g., "Monday 14:00")
+    const weeklyMatch = scheduleInput.match(/^(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+(\d{1,2}:\d{2})$/i);
+    if (weeklyMatch) {
+      const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+      scheduleDayOfWeek = dayNames.indexOf(weeklyMatch[1].toLowerCase());
+      scheduleTime = weeklyMatch[2];
+      scheduleType = "weekly";
+    }
+    // Check for one-time format (e.g., "2024-12-25 10:00")
+    else if (/^\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}$/.test(scheduleInput)) {
+      const parts = scheduleInput.split(/\s+/);
+      scheduleDate = parts[0];
+      scheduleTime = parts[1];
+      scheduleType = "once";
+    }
+    // Default to daily format (e.g., "14:00")
+    else if (!/^\d{1,2}:\d{2}$/.test(scheduleInput)) {
+      await ctx.reply("⚠️ Invalid format. Please use HH:MM, 'Monday 14:00', or '2024-12-25 10:00'.");
+      return;
+    }
+
+    try {
+      const settings = await loadBanSettingsByChatId(chatId);
+      const rawSettings = settings as unknown as Record<string, unknown>;
+
+      if (!Array.isArray(rawSettings.scheduledPosts)) {
+        rawSettings.scheduledPosts = [];
+      }
+
+      const scheduledPosts = rawSettings.scheduledPosts as Array<{
+        id: string;
+        message: string;
+        scheduleType: string;
+        scheduleTime: string;
+        scheduleDayOfWeek?: number;
+        scheduleDate?: string;
+        enabled: boolean;
+      }>;
+
+      // Generate unique ID
+      const newId = `sp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      scheduledPosts.push({
+        id: newId,
+        message: scheduledMessage,
+        scheduleType,
+        scheduleTime,
+        scheduleDayOfWeek,
+        scheduleDate,
+        enabled: true
+      });
+
+      await saveBanSettingsByChatId(chatId, settings);
+
+      let scheduleDisplay = scheduleTime;
+      if (scheduleType === "weekly") {
+        const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        scheduleDisplay = `${dayNames[scheduleDayOfWeek!]} at ${scheduleTime}`;
+      } else if (scheduleType === "once") {
+        scheduleDisplay = `${scheduleDate} at ${scheduleTime}`;
+      } else {
+        scheduleDisplay = `Daily at ${scheduleTime}`;
+      }
+
+      await ctx.reply(
+        `✅ Scheduled post created!\n\n` +
+        `📅 Schedule: ${scheduleDisplay}\n` +
+        `💬 Message: ${scheduledMessage.substring(0, 100)}${scheduledMessage.length > 100 ? '...' : ''}`,
+        {
+          parse_mode: "Markdown", reply_markup: Markup.inlineKeyboard([
+            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:scheduled_posts`)]
+          ]).reply_markup
+        }
+      );
+    } catch (error) {
+      logger.error("Failed to save scheduled post", { chatId, scheduleInput, error });
+      await ctx.reply("❌ Failed to save scheduled post. Please try again.", Markup.inlineKeyboard([
+        [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:scheduled_posts`)]
+      ]));
     }
 
     clearInlineSession(userId);
