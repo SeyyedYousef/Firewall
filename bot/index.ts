@@ -2610,7 +2610,7 @@ async function showInlineAdvanced(ctx: Context, chatId: string): Promise<void> {
   const isPremium = isGroupPremium(chatId);
   const premiumOnlyFeatureIds = ["mandatory_join", "mandatory_add"];
 
-  // Build status line
+  // Build status line - count enabled features
   const enabledCount = ADVANCED_FEATURES.filter(f => {
     if (f.settingsKey && rawGeneral) {
       return rawGeneral[f.settingsKey] === true;
@@ -2618,6 +2618,12 @@ async function showInlineAdvanced(ctx: Context, chatId: string): Promise<void> {
     if (f.banSettingsKey && rawBan?.rules) {
       const rules = rawBan.rules as Record<string, unknown>;
       return rules[f.banSettingsKey] === true;
+    }
+    if (f.banSettingsRootKey && rawBan) {
+      return rawBan[f.banSettingsRootKey] === true;
+    }
+    if (f.id === "temp_media" && rawBan) {
+      return (rawBan as any).tempMediaEnabled === true;
     }
     return false;
   }).length;
@@ -2629,60 +2635,32 @@ Configure advanced protection features for your group.
 📊 <b>Status:</b> ${enabledCount} features enabled
 ${!isPremium ? `\n⭐ Features marked with ⭐ require Premium` : ""}
 
-<i>Tap a feature to toggle or configure it.</i>`;
+<i>Tap a feature to configure it.</i>`;
 
   const rows: any[] = [];
 
-  // Build 2-column layout
+  // Build 2-column layout - NO status emojis on buttons
   for (let i = 0; i < ADVANCED_FEATURES.length; i += 2) {
     const f1 = ADVANCED_FEATURES[i];
     const f2 = ADVANCED_FEATURES[i + 1];
 
     const row: any[] = [];
 
-    // Feature 1
-    let status1 = "❌";
-    if (f1.settingsKey && rawGeneral?.[f1.settingsKey] === true) {
-      status1 = "✅";
-    } else if (f1.banSettingsKey && rawBan?.rules) {
-      const rules = rawBan.rules as Record<string, unknown>;
-      if (rules[f1.banSettingsKey] === true) status1 = "✅";
-    } else if (f1.banSettingsRootKey && rawBan) {
-      if (rawBan[f1.banSettingsRootKey] === true) status1 = "✅";
-    } else if (f1.id === "temp_media" && rawBan) {
-      const tempMediaEnabled = (rawBan as any).tempMediaEnabled === true;
-      status1 = tempMediaEnabled ? "✅" : "❌";
-    }
-
     // Add premium lock badge for premium-only features
     const isPremiumOnly1 = premiumOnlyFeatureIds.includes(f1.id);
     const premiumBadge1 = isPremiumOnly1 && !isPremium ? " ⭐" : "";
 
-    const callback1 = f1.hasSubMenu
-      ? `fw_adv_${f1.id}:${chatId}`
-      : `fw_adv_toggle:${chatId}:${f1.id}`;
-    row.push(Markup.button.callback(`${f1.icon} ${f1.title}${premiumBadge1} ${status1}`, callback1));
+    // All features now go to submenu (hasSubMenu = true for all)
+    const callback1 = `fw_adv_${f1.id}:${chatId}`;
+    row.push(Markup.button.callback(`${f1.icon} ${f1.title}${premiumBadge1}`, callback1));
 
     // Feature 2 (if exists)
     if (f2) {
-      let status2 = "❌";
-      if (f2.settingsKey && rawGeneral?.[f2.settingsKey] === true) {
-        status2 = "✅";
-      } else if (f2.banSettingsKey && rawBan?.rules) {
-        const rules = rawBan.rules as Record<string, unknown>;
-        if (rules[f2.banSettingsKey] === true) status2 = "✅";
-      } else if (f2.banSettingsRootKey && rawBan) {
-        if (rawBan[f2.banSettingsRootKey] === true) status2 = "✅";
-      }
-
-      // Add premium lock badge for premium-only features
       const isPremiumOnly2 = premiumOnlyFeatureIds.includes(f2.id);
       const premiumBadge2 = isPremiumOnly2 && !isPremium ? " ⭐" : "";
 
-      const callback2 = f2.hasSubMenu
-        ? `fw_adv_${f2.id}:${chatId}`
-        : `fw_adv_toggle:${chatId}:${f2.id}`;
-      row.push(Markup.button.callback(`${f2.icon} ${f2.title}${premiumBadge2} ${status2}`, callback2));
+      const callback2 = `fw_adv_${f2.id}:${chatId}`;
+      row.push(Markup.button.callback(`${f2.icon} ${f2.title}${premiumBadge2}`, callback2));
     }
 
     rows.push(row);
@@ -2781,6 +2759,8 @@ async function showTempMediaSettings(ctx: Context, chatId: string): Promise<void
   const tempMediaSettings = (rawBan?.tempMedia as Record<string, unknown>) ?? {};
 
   const deleteMinutes = (tempMediaSettings.deleteMinutes as number) ?? 20;
+  // userType: "all" = all members, "nonadmin" = non-admins only (default)
+  const userType = (tempMediaSettings.userType as string) ?? "nonadmin";
   const mediaTypes = {
     gif: tempMediaSettings.gif !== false,
     sticker: tempMediaSettings.sticker !== false,
@@ -2791,10 +2771,11 @@ async function showTempMediaSettings(ctx: Context, chatId: string): Promise<void
   };
 
   if (!tempMediaEnabled) {
-    // Show enable prompt
+    // Show enable prompt with nice description
     const message = `⏰ <b>Temporary Media</b>
 
-• When enabled, media will be auto-deleted after a set time
+• By enabling this feature
+• Media will be auto-deleted after a set time
 • This helps prevent group filtering issues
 
 <b>Status:</b> ❌ Disabled
@@ -2802,7 +2783,7 @@ async function showTempMediaSettings(ctx: Context, chatId: string): Promise<void
 <i>Enable this feature to configure media types and delete time.</i>`;
 
     const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback("✅ Enable Temp Media", `fw_adv_tm_master:${chatId}:on`)],
+      [Markup.button.callback("Temp Media ❌", `fw_adv_tm_master:${chatId}:on`)],
       [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
     ]);
 
@@ -2810,41 +2791,44 @@ async function showTempMediaSettings(ctx: Context, chatId: string): Promise<void
     return;
   }
 
-  // Show full settings
+  // Show full settings when enabled
+  const userTypeLabel = userType === "all" ? "All Members" : "Non-Admins";
   const message = `⏰ <b>Temporary Media</b>
 
-• Media will be auto-deleted after <b>${deleteMinutes} minutes</b>
-• This helps prevent group filtering issues
-
-<b>Media Types:</b>`;
+• By enabling this feature
+• Media will be auto-deleted after a set time
+• This helps prevent group filtering issues`;
 
   const rows: any[] = [];
 
   // Master toggle
-  rows.push([Markup.button.callback(`⏰ Temp Media ✅`, `fw_adv_tm_master:${chatId}:off`)]);
+  rows.push([Markup.button.callback(`Temp Media ✅`, `fw_adv_tm_master:${chatId}:off`)]);
 
   // Media type toggles (2 per row)
   rows.push([
-    Markup.button.callback(`🎬 GIF ${mediaTypes.gif ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:gif`),
-    Markup.button.callback(`🎭 Sticker ${mediaTypes.sticker ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:sticker`),
+    Markup.button.callback(`GIF ${mediaTypes.gif ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:gif`),
+    Markup.button.callback(`Sticker ${mediaTypes.sticker ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:sticker`),
   ]);
   rows.push([
-    Markup.button.callback(`🎥 Video ${mediaTypes.video ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:video`),
-    Markup.button.callback(`📷 Photo ${mediaTypes.photo ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:photo`),
+    Markup.button.callback(`Video ${mediaTypes.video ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:video`),
+    Markup.button.callback(`Photo ${mediaTypes.photo ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:photo`),
   ]);
   rows.push([
-    Markup.button.callback(`📁 File ${mediaTypes.file ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:file`),
-    Markup.button.callback(`🔊 Audio ${mediaTypes.audio ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:audio`),
+    Markup.button.callback(`File ${mediaTypes.file ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:file`),
+    Markup.button.callback(`Audio ${mediaTypes.audio ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:audio`),
   ]);
 
   // Time selector
-  rows.push([Markup.button.callback(`⏱️ Delete Time: ${deleteMinutes} min`, `fw_adv_tm_time_show:${chatId}`)]);
+  rows.push([Markup.button.callback(`Delete Time: ${deleteMinutes} min`, `fw_adv_tm_time_show:${chatId}`)]);
   rows.push([
-    Markup.button.callback("◁◁", `fw_adv_tm_time:${chatId}:downfast`),
-    Markup.button.callback("◁", `fw_adv_tm_time:${chatId}:down`),
-    Markup.button.callback("▷", `fw_adv_tm_time:${chatId}:up`),
-    Markup.button.callback("▷▷", `fw_adv_tm_time:${chatId}:upfast`),
+    Markup.button.callback("《", `fw_adv_tm_time:${chatId}:downfast`),
+    Markup.button.callback("〈", `fw_adv_tm_time:${chatId}:down`),
+    Markup.button.callback("〉", `fw_adv_tm_time:${chatId}:up`),
+    Markup.button.callback("》", `fw_adv_tm_time:${chatId}:upfast`),
   ]);
+
+  // User type toggle
+  rows.push([Markup.button.callback(`User Type: ${userTypeLabel}`, `fw_adv_tm_usertype:${chatId}`)]);
 
   // Back button
   rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
@@ -2855,7 +2839,6 @@ async function showTempMediaSettings(ctx: Context, chatId: string): Promise<void
 
 // Temp Media master toggle
 bot.action(/^fw_adv_tm_master:(-?\d+):(on|off)$/, async (ctx) => {
-  await ctx.answerCbQuery();
   const data = (ctx.callbackQuery as any)?.data ?? "";
   const match = data.match(/^fw_adv_tm_master:(-?\d+):(on|off)$/);
   const chatId = match?.[1];
@@ -2877,12 +2860,21 @@ bot.action(/^fw_adv_tm_master:(-?\d+):(on|off)$/, async (ctx) => {
         photo: true,
         file: false,
         audio: false,
+        userType: "nonadmin", // default: non-admins only
       };
     }
 
     await saveBanSettingsByChatId(chatId, settings);
+
+    // Show notification
+    if (action === "on") {
+      await ctx.answerCbQuery("✅ Temp Media enabled!", { show_alert: false });
+    } else {
+      await ctx.answerCbQuery("❌ Temp Media disabled!", { show_alert: false });
+    }
   } catch (error) {
     logger.error("Failed to toggle temp media", { chatId, error });
+    await ctx.answerCbQuery("Failed to save settings", { show_alert: true });
   }
 
   await showTempMediaSettings(ctx, chatId);
@@ -2952,6 +2944,49 @@ bot.action(/^fw_adv_tm_time:(-?\d+):(up|down|upfast|downfast)$/, async (ctx) => 
     await saveBanSettingsByChatId(chatId, settings);
   } catch (error) {
     logger.error("Failed to adjust temp media time", { chatId, direction, error });
+  }
+
+  await showTempMediaSettings(ctx, chatId);
+});
+
+// Temp Media user type toggle
+bot.action(/^fw_adv_tm_usertype:(-?\d+)$/, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_tm_usertype:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.tempMedia) {
+      rawSettings.tempMedia = { userType: "nonadmin" };
+    }
+    const tempMedia = rawSettings.tempMedia as Record<string, unknown>;
+
+    // Toggle between "all" and "nonadmin"
+    const currentType = (tempMedia.userType as string) ?? "nonadmin";
+    const newType = currentType === "all" ? "nonadmin" : "all";
+    tempMedia.userType = newType;
+
+    await saveBanSettingsByChatId(chatId, settings);
+
+    // Show notification with alert for important change
+    if (newType === "all") {
+      await ctx.answerCbQuery(
+        "Set to All Members!\n\nIn this mode, media sent by bot admins will also be automatically deleted",
+        { show_alert: true }
+      );
+    } else {
+      await ctx.answerCbQuery(
+        "Set to Non-Admins!\n\nAdmin media will not be deleted",
+        { show_alert: true }
+      );
+    }
+  } catch (error) {
+    logger.error("Failed to toggle temp media user type", { chatId, error });
+    await ctx.answerCbQuery("Failed to save settings", { show_alert: true });
   }
 
   await showTempMediaSettings(ctx, chatId);
