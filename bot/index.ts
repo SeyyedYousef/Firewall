@@ -2675,6 +2675,56 @@ ${!isPremium ? `\n⭐ Features marked with ⭐ require Premium` : ""}
 
 // Old toggle handler removed - now handled by general router below
 
+// ========== TEMP MEDIA HANDLERS (before general router) ==========
+// Temp Media master toggle - MUST be before general router
+bot.action(/^fw_adv_tm_master:(-?\d+):(on|off)$/, async (ctx) => {
+  logger.info("TM_MASTER handler triggered", { data: (ctx.callbackQuery as any)?.data });
+
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_tm_master:(-?\d+):(on|off)$/);
+  const chatId = match?.[1];
+  const action = match?.[2];
+
+  if (!chatId || !action) {
+    await ctx.answerCbQuery("Error: missing parameters");
+    return;
+  }
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    rawSettings.tempMediaEnabled = action === "on";
+
+    // Initialize tempMedia settings if enabling
+    if (action === "on" && !rawSettings.tempMedia) {
+      rawSettings.tempMedia = {
+        deleteMinutes: 20,
+        gif: true,
+        sticker: true,
+        video: true,
+        photo: true,
+        file: false,
+        audio: false,
+        userType: "nonadmin",
+      };
+    }
+
+    await saveBanSettingsByChatId(chatId, settings);
+
+    if (action === "on") {
+      await ctx.answerCbQuery("✅ Temp Media enabled!", { show_alert: false });
+    } else {
+      await ctx.answerCbQuery("❌ Temp Media disabled!", { show_alert: false });
+    }
+  } catch (error) {
+    logger.error("Failed to toggle temp media", { chatId, error });
+    await ctx.answerCbQuery("Failed to save settings", { show_alert: true });
+    return;
+  }
+
+  await showTempMediaSettings(ctx, chatId);
+});
+
 // General handler router for all advanced features
 bot.action(/^fw_adv_([a-z_]+):(-?\d+)$/, async (ctx) => {
   await ctx.answerCbQuery();
@@ -2868,48 +2918,7 @@ async function showTempMediaSettings(ctx: Context, chatId: string): Promise<void
   await replyOrEditRoot(ctx, message, keyboard);
 }
 
-// Temp Media master toggle
-bot.action(/^fw_adv_tm_master:(-?\d+):(on|off)$/, async (ctx) => {
-  const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(/^fw_adv_tm_master:(-?\d+):(on|off)$/);
-  const chatId = match?.[1];
-  const action = match?.[2];
-  if (!chatId || !action) return;
-
-  try {
-    const settings = await loadBanSettingsByChatId(chatId);
-    const rawSettings = settings as unknown as Record<string, unknown>;
-    rawSettings.tempMediaEnabled = action === "on";
-
-    // Initialize tempMedia settings if enabling
-    if (action === "on" && !rawSettings.tempMedia) {
-      rawSettings.tempMedia = {
-        deleteMinutes: 20,
-        gif: true,
-        sticker: true,
-        video: true,
-        photo: true,
-        file: false,
-        audio: false,
-        userType: "nonadmin", // default: non-admins only
-      };
-    }
-
-    await saveBanSettingsByChatId(chatId, settings);
-
-    // Show notification
-    if (action === "on") {
-      await ctx.answerCbQuery("✅ Temp Media enabled!", { show_alert: false });
-    } else {
-      await ctx.answerCbQuery("❌ Temp Media disabled!", { show_alert: false });
-    }
-  } catch (error) {
-    logger.error("Failed to toggle temp media", { chatId, error });
-    await ctx.answerCbQuery("Failed to save settings", { show_alert: true });
-  }
-
-  await showTempMediaSettings(ctx, chatId);
-});
+// NOTE: fw_adv_tm_master handler is now registered BEFORE general router (line ~2678)
 
 // Temp Media type toggle
 bot.action(/^fw_adv_tm_type:(-?\d+):([a-z]+)$/, async (ctx) => {
