@@ -2828,16 +2828,26 @@ bot.action(/^fw_adv_([a-z_]+):(-?\d+)$/, async (ctx) => {
 // Handler is now managed by the general router above
 
 async function showTempMediaSettings(ctx: Context, chatId: string): Promise<void> {
+  logger.info("showTempMediaSettings called", { chatId });
+
   let banSettings;
   try {
     banSettings = await loadBanSettingsByChatId(chatId);
-  } catch {
+  } catch (error) {
+    logger.error("Failed to load ban settings in showTempMediaSettings", { chatId, error });
     banSettings = null;
   }
 
   const rawBan = banSettings as unknown as Record<string, unknown> | null;
   const tempMediaEnabled = rawBan?.tempMediaEnabled === true;
   const tempMediaSettings = (rawBan?.tempMedia as Record<string, unknown>) ?? {};
+
+  logger.info("showTempMediaSettings state", {
+    chatId,
+    tempMediaEnabled,
+    hasRawBan: !!rawBan,
+    tempMediaEnabledRaw: rawBan?.tempMediaEnabled
+  });
 
   const deleteMinutes = (tempMediaSettings.deleteMinutes as number) ?? 20;
   // userType: "all" = all members, "nonadmin" = non-admins only (default)
