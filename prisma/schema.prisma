@@ -506,3 +506,38 @@ model Referral {
   @@index([referrerId, activatedAt])
   @@index([referredUserId])
 }
+
+// Tabchi (Spam Bot) Detection - Cross-group tracking
+model TabchiRecord {
+  id             String    @id @default(uuid())
+  telegramUserId String    @unique
+  username       String?
+  firstName      String?
+  lastName       String?
+  detectionType  String    // cross_group, single_group, bot_adder, message_pattern
+  confidence     Int       @default(50) // 0-100 score
+  groupsAffected Int       @default(1)
+  detectedAt     DateTime  @default(now())
+  lastSeenAt     DateTime  @default(now())
+  removedAt      DateTime? // Set when admin removes from list
+  removedBy      String?   // Admin who removed
+  metadata       Json?
+
+  @@index([detectedAt])
+  @@index([confidence])
+  @@index([removedAt])
+}
+
+// Whitelist for users that should never be flagged as tabchi
+model TabchiWhitelist {
+  id             String   @id @default(uuid())
+  telegramUserId String   @unique
+  addedBy        String
+  groupId        String?  // If null, applies globally
+  reason         String?
+  addedAt        DateTime @default(now())
+
+  @@index([telegramUserId])
+  @@index([groupId])
+}
+

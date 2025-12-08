@@ -137,6 +137,75 @@ export const chatMemberHandler: UpdateHandler = {
         }
       }
 
+      // Tabchi detection - check if user is known tabchi and restrict if enabled
+      if (databaseAvailable && !user.is_bot) {
+        try {
+          const { loadBanSettingsByChatId } = await import("../../../server/db/groupSettingsRepository.js");
+          const banSettings = await loadBanSettingsByChatId(chatId);
+
+          if (banSettings.rules.banTabchi?.enabled) {
+            const { isKnownTabchi, isWhitelisted } = await import("../../../server/services/tabchiService.js");
+
+            // Check if user is whitelisted (never flag)
+            if (await isWhitelisted(user.id.toString(), chatId)) {
+              logger.debug("user is whitelisted, skipping tabchi check", { chatId, userId: user.id });
+            } else {
+              // Check if user is known tabchi
+              const tabchiCheck = await isKnownTabchi(user.id.toString());
+
+              if (tabchiCheck.isTabchi && tabchiCheck.confidence >= 70) {
+                // Restrict the user permanently (silent)
+                await ctx.telegram.restrictChatMember(
+                  ctx.chat.id,
+                  user.id,
+                  {
+                    permissions: {
+                      can_send_messages: false,
+                      can_send_audios: false,
+                      can_send_documents: false,
+                      can_send_photos: false,
+                      can_send_videos: false,
+                      can_send_video_notes: false,
+                      can_send_voice_notes: false,
+                      can_send_polls: false,
+                      can_invite_users: false,
+                      can_pin_messages: false,
+                      can_manage_topics: false,
+                      can_change_info: false,
+                      can_add_web_page_previews: false,
+                    },
+                  } as any,
+                );
+
+                actions.push({
+                  type: "record_moderation",
+                  ruleId: "system:tabchi_blocked",
+                  userId: user.id,
+                  actions: ["permanent_restrict"],
+                  reason: `Known tabchi detected: ${tabchiCheck.detectionType} (${tabchiCheck.confidence}%)`,
+                  metadata: {
+                    detectionType: tabchiCheck.detectionType,
+                    confidence: tabchiCheck.confidence,
+                  },
+                });
+
+                logger.info("tabchi blocked on join", {
+                  chatId,
+                  userId: user.id,
+                  detectionType: tabchiCheck.detectionType,
+                  confidence: tabchiCheck.confidence,
+                });
+
+                // Skip welcome message for tabchi
+                return { actions: ensureActions(actions) };
+              }
+            }
+          }
+        } catch (error) {
+          logger.warn("failed to check tabchi status on join", { chatId, userId: user.id, error });
+        }
+      }
+
       // Send welcome message if enabled
       if (databaseAvailable && !user.is_bot) {
         try {

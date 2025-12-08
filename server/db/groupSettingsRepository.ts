@@ -6,6 +6,9 @@ export const BAN_RULE_KEYS = [
   "banLinks",
   "banBots",
   "banBotInviters",
+  "banTabchi",
+  "banAdvertiser",
+  "banSuspiciousBio",
   "banDomains",
   "banUsernames",
   "banHashtags",
@@ -178,6 +181,7 @@ const DEFAULT_ACTIVE_RULES = new Set<BanRuleKey>([
   "banDomains",
   "banBots",
   "banBotInviters",
+  "banTabchi",
   "banForward",
   "banForwardChannels",
 ]);

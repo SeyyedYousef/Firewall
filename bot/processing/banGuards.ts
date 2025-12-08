@@ -494,6 +494,25 @@ export async function evaluateBanGuards(ctx: GroupChatContext): Promise<Processi
       reason,
       severity: "medium",
     });
+
+    // Track violation for cross-group tabchi detection
+    try {
+      const { analyzeAndFlagIfTabchi } = await import("../../server/services/tabchiService.js");
+      const username = (message.from as any)?.username;
+      const firstName = (message.from as any)?.first_name;
+
+      // This will check cross-group patterns and flag as tabchi if threshold reached
+      const flagged = await analyzeAndFlagIfTabchi(userId.toString(), username, firstName);
+      if (flagged) {
+        logger.info("user flagged as tabchi based on cross-group violations", {
+          chatId,
+          userId,
+          triggeredRules: triggered,
+        });
+      }
+    } catch (error) {
+      logger.debug("failed to analyze for tabchi", { chatId, userId, error });
+    }
   }
 
   return ensureActions(actions);

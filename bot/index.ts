@@ -335,6 +335,9 @@ const INLINE_LOCK_ITEMS: InlineLockItem[] = [
   // Page 3: Bots, Games & Advanced (11 items)
   { id: "bots", keys: ["banBots"], label: "🤖 Bots", page: 3 },
   { id: "bot_inviters", keys: ["banBotInviters"], label: "👥 Bot Inviters", page: 3 },
+  { id: "tabchi", keys: ["banTabchi"], label: "🚫 Tabchi", page: 3 },
+  { id: "advertiser", keys: ["banAdvertiser"], label: "📢 Advertisers", page: 3 },
+  { id: "suspicious_bio", keys: ["banSuspiciousBio"], label: "📝 Suspicious Bio", page: 3 },
   { id: "phones", keys: ["banPhones"], label: "📞 Phone Numbers", page: 3 },
   { id: "games", keys: ["banGames"], label: "🎮 Games", page: 3 },
   { id: "polls", keys: ["banPolls"], label: "📊 Polls", page: 3 },
@@ -346,6 +349,91 @@ const INLINE_LOCK_ITEMS: InlineLockItem[] = [
 ];
 
 const INLINE_LOCK_PAGE_SIZE = 6;
+
+// ============================================
+// HELP SECTION CONFIGURATION
+// ============================================
+
+type HelpSectionId =
+  | "lock_management" | "settings" | "tabchi" | "user_panel"
+  | "user_penalties" | "promote_demote" | "word_filter" | "cleanup"
+  | "mandatory_add" | "welcome" | "mandatory_membership"
+  | "activity_stats" | "entertainment";
+
+type HelpSectionConfig = {
+  id: HelpSectionId;
+  icon: string;
+  title: string;
+  implemented: boolean;
+};
+
+const HELP_SECTIONS: HelpSectionConfig[] = [
+  { id: "lock_management", icon: "🔒", title: "Lock Management", implemented: true },
+  { id: "settings", icon: "⚙️", title: "Settings", implemented: false },
+  { id: "tabchi", icon: "📢", title: "Tabchi (Channels)", implemented: false },
+  { id: "user_panel", icon: "👤", title: "User Panel", implemented: false },
+  { id: "user_penalties", icon: "⚠️", title: "User Penalties", implemented: false },
+  { id: "promote_demote", icon: "👑", title: "Promote & Demote", implemented: false },
+  { id: "word_filter", icon: "🚷", title: "Word Filter", implemented: false },
+  { id: "cleanup", icon: "🧹", title: "Cleanup", implemented: false },
+  { id: "mandatory_add", icon: "➕", title: "Mandatory Add", implemented: false },
+  { id: "welcome", icon: "👋", title: "Welcome", implemented: false },
+  { id: "mandatory_membership", icon: "📌", title: "Mandatory Membership", implemented: false },
+  { id: "activity_stats", icon: "📊", title: "Activity Statistics", implemented: false },
+  { id: "entertainment", icon: "🎮", title: "Entertainment & Utilities", implemented: false },
+];
+
+type LockHelpData = {
+  id: string;
+  name: string;
+  icon: string;
+  whatItDoes: string;
+  example: string;
+  commandAlias: string;
+  miniAppPath: string;
+  whenToUse: string;
+  limitations: string;
+};
+
+const LOCK_HELP_DATA: LockHelpData[] = [
+  // Links & Content
+  { id: "links", name: "Telegram Links", icon: "🔗", whatItDoes: "Blocks all Telegram links (t.me, telegram.me)", example: "t.me/example", commandAlias: "link", miniAppPath: "Home → Settings → Lock Management → Links", whenToUse: "Prevent spam and unauthorized promotion", limitations: "Also blocks legitimate sharing links" },
+  { id: "domains", name: "External URLs", icon: "🌐", whatItDoes: "Blocks all external website URLs", example: "google.com", commandAlias: "site", miniAppPath: "Home → Settings → Lock Management → Domains", whenToUse: "Prevent external link spam and phishing", limitations: "Blocks all URLs including safe ones" },
+  { id: "usernames", name: "Usernames/Mentions", icon: "👤", whatItDoes: "Blocks @username mentions", example: "@username", commandAlias: "username", miniAppPath: "Home → Settings → Lock Management → Usernames", whenToUse: "Prevent tagging spam and promotion", limitations: "May affect legitimate mentions" },
+  { id: "hashtags", name: "Hashtags", icon: "#️⃣", whatItDoes: "Blocks messages containing #hashtags", example: "#trending", commandAlias: "hashtag", miniAppPath: "Home → Settings → Lock Management → Hashtags", whenToUse: "Prevent hashtag spam", limitations: "Blocks all hashtags" },
+  { id: "latin", name: "English/Latin Text", icon: "🔤", whatItDoes: "Blocks messages with Latin alphabet", example: "Hello, ABC", commandAlias: "english", miniAppPath: "Home → Settings → Lock Management → Latin", whenToUse: "Enforce non-English only groups", limitations: "Blocks any Latin characters" },
+  { id: "persian", name: "Persian/Arabic Text", icon: "🔡", whatItDoes: "Blocks messages with Persian/Arabic script", example: "سلام", commandAlias: "persian", miniAppPath: "Home → Settings → Lock Management → Persian", whenToUse: "Enforce non-Persian groups", limitations: "Blocks all Arabic script" },
+  { id: "text_patterns", name: "Text Patterns", icon: "📝", whatItDoes: "Blocks plain text messages", example: "Any text message", commandAlias: "text", miniAppPath: "Home → Settings → Lock Management → Text Patterns", whenToUse: "Media-only groups", limitations: "Blocks all text" },
+  { id: "emojis", name: "Messages with Emojis", icon: "😀", whatItDoes: "Blocks messages containing emojis", example: "Hello 😀", commandAlias: "emoji", miniAppPath: "Home → Settings → Lock Management → Emojis", whenToUse: "Professional/formal groups", limitations: "Blocks any emoji usage" },
+  { id: "forward", name: "Forwarded Messages", icon: "↪️", whatItDoes: "Blocks all forwarded messages", example: "Forwarded message", commandAlias: "forward", miniAppPath: "Home → Settings → Lock Management → Forward", whenToUse: "Prevent content from elsewhere", limitations: "Use Forward Whitelist for exceptions" },
+  { id: "forward_channels", name: "Channel Forwards", icon: "📢", whatItDoes: "Blocks messages forwarded from channels", example: "Forwarded from @channel", commandAlias: "channelforward", miniAppPath: "Home → Settings → Lock Management → Forward Channels", whenToUse: "Block channel promotions", limitations: "User forwards still allowed" },
+  // Media & Files
+  { id: "photos", name: "Photos", icon: "🖼️", whatItDoes: "Blocks image uploads", example: "[Photo]", commandAlias: "photo", miniAppPath: "Home → Settings → Lock Management → Photos", whenToUse: "Text-only discussions", limitations: "Blocks all images" },
+  { id: "videos", name: "Videos", icon: "🎬", whatItDoes: "Blocks video uploads", example: "[Video]", commandAlias: "video", miniAppPath: "Home → Settings → Lock Management → Videos", whenToUse: "Reduce media clutter", limitations: "Blocks all video content" },
+  { id: "audio", name: "Audio Files", icon: "🎵", whatItDoes: "Blocks audio file uploads", example: "[Audio.mp3]", commandAlias: "audio", miniAppPath: "Home → Settings → Lock Management → Audio", whenToUse: "Prevent music sharing", limitations: "Blocks all audio files" },
+  { id: "voice", name: "Voice Messages", icon: "🎤", whatItDoes: "Blocks voice notes", example: "[Voice Note]", commandAlias: "voice", miniAppPath: "Home → Settings → Lock Management → Voice", whenToUse: "Keep discussions readable", limitations: "Blocks all voice messages" },
+  { id: "gif", name: "GIFs/Animations", icon: "🎞️", whatItDoes: "Blocks animated GIFs", example: "[GIF]", commandAlias: "gif", miniAppPath: "Home → Settings → Lock Management → GIF", whenToUse: "Reduce visual noise", limitations: "Blocks all animations" },
+  { id: "stickers", name: "Stickers", icon: "🎨", whatItDoes: "Blocks sticker messages", example: "[Sticker]", commandAlias: "sticker", miniAppPath: "Home → Settings → Lock Management → Stickers", whenToUse: "Professional groups", limitations: "Blocks all stickers" },
+  { id: "files", name: "Files/Documents", icon: "📁", whatItDoes: "Blocks document uploads", example: "[document.pdf]", commandAlias: "file", miniAppPath: "Home → Settings → Lock Management → Files", whenToUse: "Prevent file sharing", limitations: "Blocks all documents" },
+  { id: "location", name: "Locations", icon: "📍", whatItDoes: "Blocks location sharing", example: "[Location]", commandAlias: "location", miniAppPath: "Home → Settings → Lock Management → Location", whenToUse: "Privacy concerns", limitations: "Blocks all location shares" },
+  { id: "apps", name: "Apps/Software", icon: "📱", whatItDoes: "Blocks app/software messages", example: "[App Message]", commandAlias: "app", miniAppPath: "Home → Settings → Lock Management → Apps", whenToUse: "Block third-party integrations", limitations: "May affect legitimate apps" },
+  { id: "inline_keyboards", name: "Inline Keyboards", icon: "⌨️", whatItDoes: "Blocks messages with inline buttons", example: "[Buttons]", commandAlias: "inline", miniAppPath: "Home → Settings → Lock Management → Inline Keyboards", whenToUse: "Block bot interactions", limitations: "Blocks all inline buttons" },
+  { id: "emoji_only", name: "Emoji-Only Messages", icon: "😊", whatItDoes: "Blocks messages with only emojis", example: "😀😀😀", commandAlias: "emojionly", miniAppPath: "Home → Settings → Lock Management → Emoji Only", whenToUse: "Prevent emoji spam", limitations: "Only pure emoji messages" },
+  { id: "captionless", name: "Media Without Caption", icon: "🚫", whatItDoes: "Blocks media without captions", example: "[Photo no text]", commandAlias: "nocaption", miniAppPath: "Home → Settings → Lock Management → Captionless", whenToUse: "Require context for media", limitations: "All uncaptioned media" },
+  // Bots & Advanced
+  { id: "bots", name: "Bot Messages", icon: "🤖", whatItDoes: "Blocks messages from other bots", example: "@OtherBot message", commandAlias: "bot", miniAppPath: "Home → Settings → Lock Management → Bots", whenToUse: "Single-bot groups", limitations: "Blocks all bot messages" },
+  { id: "bot_inviters", name: "Bot Inviters", icon: "👥", whatItDoes: "Bans users who add bots", example: "User adds @SpamBot", commandAlias: "botinviter", miniAppPath: "Home → Settings → Lock Management → Bot Inviters", whenToUse: "Prevent bot spam", limitations: "User gets banned" },
+  { id: "phones", name: "Phone Numbers", icon: "📞", whatItDoes: "Blocks phone numbers", example: "+1234567890", commandAlias: "phone", miniAppPath: "Home → Settings → Lock Management → Phones", whenToUse: "Prevent contact sharing", limitations: "Blocks all phone formats" },
+  { id: "games", name: "Games", icon: "🎮", whatItDoes: "Blocks Telegram games", example: "[Game]", commandAlias: "game", miniAppPath: "Home → Settings → Lock Management → Games", whenToUse: "Focus on discussions", limitations: "Blocks all games" },
+  { id: "polls", name: "Polls", icon: "📊", whatItDoes: "Blocks poll creation", example: "[Poll]", commandAlias: "poll", miniAppPath: "Home → Settings → Lock Management → Polls", whenToUse: "Admin-only polling", limitations: "Blocks all polls" },
+  { id: "slash_commands", name: "Slash Commands", icon: "⚡", whatItDoes: "Blocks /command messages", example: "/start, /help", commandAlias: "slash", miniAppPath: "Home → Settings → Lock Management → Slash Commands", whenToUse: "Prevent command spam", limitations: "Blocks all /commands" },
+  { id: "cyrillic", name: "Cyrillic Text", icon: "🔠", whatItDoes: "Blocks Cyrillic alphabet messages", example: "Привет", commandAlias: "cyrillic", miniAppPath: "Home → Settings → Lock Management → Cyrillic", whenToUse: "Non-Russian groups", limitations: "Blocks all Cyrillic" },
+  { id: "chinese", name: "Chinese Text", icon: "🈯", whatItDoes: "Blocks Chinese characters", example: "你好", commandAlias: "chinese", miniAppPath: "Home → Settings → Lock Management → Chinese", whenToUse: "Non-Chinese groups", limitations: "Blocks all Chinese text" },
+  { id: "user_replies", name: "User Replies", icon: "💬", whatItDoes: "Blocks reply messages", example: "Reply to message", commandAlias: "reply", miniAppPath: "Home → Settings → Lock Management → User Replies", whenToUse: "Linear conversation only", limitations: "All reply messages" },
+  { id: "cross_replies", name: "Cross-Chat Replies", icon: "🔀", whatItDoes: "Blocks replies from other chats", example: "External reply", commandAlias: "crossreply", miniAppPath: "Home → Settings → Lock Management → Cross Replies", whenToUse: "Isolated discussions", limitations: "External replies only" },
+];
+
+const HELP_LOCKS_PAGE_SIZE = 8;
 
 const INLINE_LIST_CONFIGS: InlineListConfig[] = [
   {
@@ -1785,6 +1873,121 @@ async function showInlineGroupMenu(ctx: Context, chatId: string): Promise<void> 
   const title = group?.title ?? chatId;
   const message = `🛠 Group Management Panel\n\nGroup: ${title}\n\nChoose a section to manage:`;
   await replyOrEditRoot(ctx, message, buildInlineGroupMenuKeyboard(chatId));
+}
+
+// ============================================
+// HELP SECTION KEYBOARDS AND DISPLAY FUNCTIONS
+// ============================================
+
+function buildInlineHelpKeyboard(chatId: string): InlineKeyboard {
+  const rows: any[] = [];
+
+  // Build help section buttons (2 per row)
+  for (let i = 0; i < HELP_SECTIONS.length; i += 2) {
+    const row: any[] = [];
+    for (let j = 0; j < 2 && i + j < HELP_SECTIONS.length; j++) {
+      const section = HELP_SECTIONS[i + j];
+      const label = `${section.icon} ${section.title}`;
+      row.push(Markup.button.callback(label, `fw_help_section:${chatId}:${section.id}`));
+    }
+    rows.push(row);
+  }
+
+  rows.push([Markup.button.callback("◀️ Back to Panel", `fw_inline_menu:${chatId}`)]);
+  return Markup.inlineKeyboard(rows);
+}
+
+async function showInlineHelp(ctx: Context, chatId: string): Promise<void> {
+  const groups = listGroups();
+  const group = groups.find((g) => g.chatId === chatId) ?? null;
+  const title = group?.title ?? chatId;
+
+  const message = `❓ <b>Help Center</b>\n\nGroup: ${title}\n\nSelect a topic to learn more:`;
+  await replyOrEditRoot(ctx, message, buildInlineHelpKeyboard(chatId));
+}
+
+function buildHelpLocksKeyboard(chatId: string, page: number): InlineKeyboard {
+  const totalPages = Math.ceil(LOCK_HELP_DATA.length / HELP_LOCKS_PAGE_SIZE);
+  const currentPage = Math.min(Math.max(page, 1), totalPages);
+  const startIndex = (currentPage - 1) * HELP_LOCKS_PAGE_SIZE;
+  const endIndex = Math.min(startIndex + HELP_LOCKS_PAGE_SIZE, LOCK_HELP_DATA.length);
+  const pageItems = LOCK_HELP_DATA.slice(startIndex, endIndex);
+
+  const rows: any[] = [];
+
+  // Build lock buttons (2 per row)
+  for (let i = 0; i < pageItems.length; i += 2) {
+    const row: any[] = [];
+    for (let j = 0; j < 2 && i + j < pageItems.length; j++) {
+      const lock = pageItems[i + j];
+      const label = `${lock.icon} ${lock.name}`;
+      row.push(Markup.button.callback(label, `fw_help_lock:${chatId}:${lock.id}`));
+    }
+    rows.push(row);
+  }
+
+  // Navigation row
+  const navRow: any[] = [];
+  if (currentPage > 1) {
+    navRow.push(Markup.button.callback("◀️ Previous", `fw_help_locks:${chatId}:${currentPage - 1}`));
+  }
+  if (currentPage < totalPages) {
+    navRow.push(Markup.button.callback("▶️ Next", `fw_help_locks:${chatId}:${currentPage + 1}`));
+  }
+  if (navRow.length > 0) {
+    rows.push(navRow);
+  }
+
+  rows.push([Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)]);
+  return Markup.inlineKeyboard(rows);
+}
+
+async function showHelpLocks(ctx: Context, chatId: string, page: number): Promise<void> {
+  const totalPages = Math.ceil(LOCK_HELP_DATA.length / HELP_LOCKS_PAGE_SIZE);
+  const currentPage = Math.min(Math.max(page, 1), totalPages);
+
+  const message = `🔒 <b>Lock Management Help</b>\n\nPage ${currentPage}/${totalPages}\n\nSelect a lock to learn more about it:`;
+  await replyOrEditRoot(ctx, message, buildHelpLocksKeyboard(chatId, currentPage));
+}
+
+async function showHelpLockDetail(ctx: Context, chatId: string, lockId: string): Promise<void> {
+  const lock = LOCK_HELP_DATA.find((l) => l.id === lockId);
+  if (!lock) {
+    await replyOrEditRoot(ctx, "Lock not found.", buildHelpLocksKeyboard(chatId, 1));
+    return;
+  }
+
+  const lines: string[] = [];
+  lines.push(`${lock.icon} <b>${lock.name}</b>`);
+  lines.push("");
+  lines.push(`<b>📝 What does it do?</b>`);
+  lines.push(lock.whatItDoes);
+  lines.push("");
+  lines.push(`<b>📌 Example:</b>`);
+  lines.push(`<code>${lock.example}</code>`);
+  lines.push("");
+  lines.push(`<b>✅ How to Enable:</b>`);
+  lines.push(`• Inline: Settings → Locks → ${lock.name}`);
+  lines.push(`• Command: <code>!lock ${lock.commandAlias}</code>`);
+  lines.push("");
+  lines.push(`<b>❌ How to Disable:</b>`);
+  lines.push(`• Command: <code>!unlock ${lock.commandAlias}</code>`);
+  lines.push("");
+  lines.push(`<b>📱 Mini App Path:</b>`);
+  lines.push(lock.miniAppPath);
+  lines.push("");
+  lines.push(`<b>💡 When to Use:</b>`);
+  lines.push(lock.whenToUse);
+  lines.push("");
+  lines.push(`<b>⚠️ Limitations:</b>`);
+  lines.push(lock.limitations);
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback("◀️ Back to Locks", `fw_help_locks:${chatId}:1`)],
+    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+  ]);
+
+  await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
 }
 
 function buildInlineLocksKeyboard(chatId: string, page: number, settings: GroupBanSettingsRecord): InlineKeyboard {
@@ -5361,6 +5564,81 @@ bot.action(INLINE_LIST_DETAIL_REGEX, async (ctx) => {
     return;
   }
   await showInlineListDetail(ctx, chatId, listId);
+});
+
+// ============================================
+// HELP SECTION CALLBACK HANDLERS
+// ============================================
+
+// Main Help menu handler
+bot.action(INLINE_HELP_REGEX, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(INLINE_HELP_REGEX);
+  const chatId = match?.[1];
+  if (!chatId) {
+    await showInlineGroupSelection(ctx);
+    return;
+  }
+  await showInlineHelp(ctx, chatId);
+});
+
+// Help section handler (handles all 13 sections)
+bot.action(/^fw_help_section:(-?\d+):([a-z_]+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_help_section:(-?\d+):([a-z_]+)$/);
+  const chatId = match?.[1];
+  const sectionId = match?.[2];
+  if (!chatId || !sectionId) return;
+
+  // Find the section
+  const section = HELP_SECTIONS.find((s) => s.id === sectionId);
+  if (!section) {
+    await ctx.answerCbQuery("Section not found", { show_alert: true });
+    return;
+  }
+
+  // If Lock Management, show the locks submenu
+  if (sectionId === "lock_management") {
+    await showHelpLocks(ctx, chatId, 1);
+    return;
+  }
+
+  // For unimplemented sections, show "coming soon" message
+  if (!section.implemented) {
+    const message = `${section.icon} <b>${section.title}</b>\n\n🚧 This help section is coming soon!\n\nWe're working on documenting this feature.`;
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+    ]);
+    await replyOrEditRoot(ctx, message, keyboard);
+    return;
+  }
+});
+
+// Lock Management submenu handler (paginated list of locks)
+bot.action(/^fw_help_locks:(-?\d+):(\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_help_locks:(-?\d+):(\d+)$/);
+  const chatId = match?.[1];
+  const pageRaw = match?.[2];
+  const page = pageRaw ? Number.parseInt(pageRaw, 10) || 1 : 1;
+  if (!chatId) return;
+
+  await showHelpLocks(ctx, chatId, page);
+});
+
+// Individual lock detail handler
+bot.action(/^fw_help_lock:(-?\d+):([a-z_]+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_help_lock:(-?\d+):([a-z_]+)$/);
+  const chatId = match?.[1];
+  const lockId = match?.[2];
+  if (!chatId || !lockId) return;
+
+  await showHelpLockDetail(ctx, chatId, lockId);
 });
 
 // Note: The INLINE_LIST_ADD_REGEX handler with interactive session is defined earlier in the file
