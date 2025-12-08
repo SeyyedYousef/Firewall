@@ -50,18 +50,18 @@ async function buildWelcomeActions(ctx: GroupChatContext): Promise<ProcessingAct
     try {
       const { recordMembershipEvent } = await import("../../../server/db/mutateRepository.js");
       const groupTitle = ctx.chat && "title" in ctx.chat ? ctx.chat.title : undefined;
-      
+
       // Determine inviter: if message.from is different from the member and not a bot, they're the inviter
       const messageFrom = (ctx.message as any)?.from;
       const inviterUserId = messageFrom?.id;
       const inviterIsBot = messageFrom?.is_bot;
-      
+
       for (const member of members) {
         // If the inviter is different from the member being added, record them as inviter
         const effectiveInviter = inviterUserId && !inviterIsBot && inviterUserId !== member.id
           ? inviterUserId.toString()
           : null;
-        
+
         await recordMembershipEvent({
           chatId: ctx.chat.id.toString(),
           userId: member.id.toString(),
@@ -77,14 +77,14 @@ async function buildWelcomeActions(ctx: GroupChatContext): Promise<ProcessingAct
           groupTitle,
         });
       }
-      logger.debug("recorded membership join events", { 
-        chatId: ctx.chat.id, 
-        count: members.length 
+      logger.debug("recorded membership join events", {
+        chatId: ctx.chat.id,
+        count: members.length
       });
     } catch (error) {
-      logger.warn("failed to record membership events", { 
-        chatId: ctx.chat.id, 
-        error 
+      logger.warn("failed to record membership events", {
+        chatId: ctx.chat.id,
+        error
       });
     }
   }
@@ -98,9 +98,9 @@ async function buildWelcomeActions(ctx: GroupChatContext): Promise<ProcessingAct
         return [];
       }
     } catch (error) {
-      logger.debug("failed to load general settings, proceeding with welcome", { 
-        chatId: ctx.chat.id, 
-        error 
+      logger.debug("failed to load general settings, proceeding with welcome", {
+        chatId: ctx.chat.id,
+        error
       });
     }
   }
@@ -116,14 +116,14 @@ async function buildWelcomeActions(ctx: GroupChatContext): Promise<ProcessingAct
       ctx.chat && "title" in ctx.chat
         ? (ctx.chat.title ?? "")
         : ctx.chat && "username" in ctx.chat
-        ? (ctx.chat.username ?? String(ctx.chat.id))
-        : String(ctx.chat?.id ?? ""),
+          ? (ctx.chat.username ?? String(ctx.chat.id))
+          : String(ctx.chat?.id ?? ""),
     count: members.length.toString(),
   };
 
   // Try to load custom welcome message from database
   let welcomeTemplate = content.messages.welcome ?? "Welcome to the group.";
-  
+
   if (databaseAvailable) {
     try {
       const customTexts = await import("../../../server/db/groupSettingsRepository.js").then(
@@ -134,9 +134,9 @@ async function buildWelcomeActions(ctx: GroupChatContext): Promise<ProcessingAct
       }
     } catch (error) {
       // Fall back to default template if custom text loading fails
-      logger.debug("failed to load custom welcome message, using default", { 
-        chatId: ctx.chat.id, 
-        error 
+      logger.debug("failed to load custom welcome message, using default", {
+        chatId: ctx.chat.id,
+        error
       });
     }
   }
@@ -205,7 +205,7 @@ async function buildLeaveActions(ctx: GroupChatContext): Promise<ProcessingActio
     try {
       const { recordMembershipEvent } = await import("../../../server/db/mutateRepository.js");
       const groupTitle = ctx.chat && "title" in ctx.chat ? ctx.chat.title : undefined;
-      
+
       await recordMembershipEvent({
         chatId: ctx.chat.id.toString(),
         userId: leftMember.id.toString(),
@@ -217,14 +217,14 @@ async function buildLeaveActions(ctx: GroupChatContext): Promise<ProcessingActio
         },
         groupTitle,
       });
-      logger.debug("recorded membership leave event", { 
-        chatId: ctx.chat.id, 
-        userId: leftMember.id 
+      logger.debug("recorded membership leave event", {
+        chatId: ctx.chat.id,
+        userId: leftMember.id
       });
     } catch (error) {
-      logger.warn("failed to record membership leave event", { 
-        chatId: ctx.chat.id, 
-        error 
+      logger.warn("failed to record membership leave event", {
+        chatId: ctx.chat.id,
+        error
       });
     }
   }
@@ -254,8 +254,8 @@ function buildOnboardingActions(ctx: GroupChatContext): ProcessingAction[] {
       ctx.chat && "title" in ctx.chat
         ? (ctx.chat.title ?? String(ctx.chat.id))
         : ctx.chat && "username" in ctx.chat
-        ? (ctx.chat.username ?? String(ctx.chat.id))
-        : String(ctx.chat?.id ?? ""),
+          ? (ctx.chat.username ?? String(ctx.chat.id))
+          : String(ctx.chat?.id ?? ""),
     trial_days: settings.freeTrialDays,
   };
   const threadId = typeof ctx.message?.message_thread_id === "number" ? ctx.message.message_thread_id : undefined;
@@ -445,7 +445,11 @@ async function enforceUserVerificationForNewMembers(ctx: GroupChatContext): Prom
 
   try {
     const general = await loadGeneralSettingsByChatId(ctx.chat.id.toString());
-    if (!general.userVerificationEnabled) {
+    const rawSettings = general as Record<string, unknown>;
+    const verificationMode = (rawSettings.userVerificationMode as string) ?? "disabled";
+
+    // Only apply in-group verification for "all" mode
+    if (verificationMode !== "all") {
       return;
     }
   } catch (error) {
@@ -484,13 +488,19 @@ async function enforceUserVerificationForNewMembers(ctx: GroupChatContext): Prom
       );
 
       const callbackData = `fw_verify_member:${ctx.chat.id}:${numericId}`;
+      const userDisplayName = resolveUserDisplayName(member);
       const text =
-        "To send messages in this group, please confirm that you are not a bot.\n\nTap the button below to verify.";
+        `🔒 <b>Verification Required</b>\n\n` +
+        `Hello <b>${userDisplayName}</b>, to send messages in this group you must confirm you're not a bot.\n\n` +
+        `<i>Verification type (captcha) is a simple question.\nBots usually cannot answer it accurately.</i>`;
 
       await ctx.telegram.sendMessage(
         ctx.chat.id,
         text,
-        Markup.inlineKeyboard([[Markup.button.callback("I am not a bot", callbackData)]]),
+        {
+          parse_mode: "HTML",
+          ...Markup.inlineKeyboard([[Markup.button.callback("🤖 I am not a robot", callbackData)]]),
+        },
       );
     } catch (error) {
       logger.warn("failed to apply user verification restrictions", {
@@ -625,10 +635,10 @@ async function recordInviteCredits(ctx: GroupChatContext): Promise<void> {
       recordInvite(ctx.chat.id, inviterUserId);
     }
 
-    logger.info("invite credits recorded", { 
-      chatId: ctx.chat.id, 
-      inviterUserId, 
-      newMembersCount: realNewMembers.length 
+    logger.info("invite credits recorded", {
+      chatId: ctx.chat.id,
+      inviterUserId,
+      newMembersCount: realNewMembers.length
     });
 
   } catch (error) {

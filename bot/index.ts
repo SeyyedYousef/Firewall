@@ -1522,6 +1522,184 @@ const FIREWALL_TOGGLE_REGEX = new RegExp(`^${escapeRegExp(actionId("ownerFirewal
 const FIREWALL_DELETE_REGEX = new RegExp(`^${escapeRegExp(actionId("ownerFirewallDelete"))}:(.+)$`);
 const FIREWALL_EDIT_REGEX = new RegExp(`^${escapeRegExp(actionId("ownerFirewallEdit"))}:(.+)$`);
 const VERIFY_MEMBER_REGEX = /^fw_verify_member:(-?\d+):(-?\d+)$/;
+// Incoming verification captcha patterns
+const VERIFY_CAPTCHA_REGEX = /^fw_verify_captcha:(-?\d+):(\d+)$/;
+
+// In-memory session for incoming verification captcha
+const incomingVerificationSessions = new Map<string, {
+  chatId: string;
+  correctAnswer: number;
+  createdAt: number;
+}>();
+
+function generateMathCaptcha(): { question: string; answer: number; options: number[] } {
+  const a = Math.floor(Math.random() * 20) + 1;
+  const b = Math.floor(Math.random() * 20) + 1;
+  const answer = a + b;
+  const question = `What is ${a} + ${b}?`;
+
+  // Generate 7 wrong answers
+  const wrongAnswers = new Set<number>();
+  while (wrongAnswers.size < 7) {
+    const wrong = answer + Math.floor(Math.random() * 21) - 10;
+    if (wrong !== answer && wrong > 0) {
+      wrongAnswers.add(wrong);
+    }
+  }
+
+  // Combine and shuffle
+  const options = [...wrongAnswers, answer].sort(() => Math.random() - 0.5);
+  return { question, answer, options };
+}
+
+// Handle /start deep link for incoming verification (start=-chatId)
+async function handleIncomingVerificationStart(ctx: Context, chatId: string): Promise<boolean> {
+  const userId = ctx.from?.id?.toString();
+  if (!userId) return false;
+
+  // Check if this group has incoming verification enabled
+  try {
+    const generalSettings = await loadGeneralSettingsByChatId(chatId);
+    const rawSettings = generalSettings as Record<string, unknown>;
+    const verificationMode = (rawSettings.userVerificationMode as string) ?? "disabled";
+
+    if (verificationMode !== "incoming") {
+      return false;
+    }
+  } catch (error) {
+    logger.warn("failed to check incoming verification settings", { chatId, error });
+    return false;
+  }
+
+  // Generate captcha
+  const captcha = generateMathCaptcha();
+  const userDisplayName = resolveUserDisplayName(ctx.from!);
+
+  // Store session
+  incomingVerificationSessions.set(userId, {
+    chatId,
+    correctAnswer: captcha.answer,
+    createdAt: Date.now(),
+  });
+
+  // Build answer buttons (2 per row)
+  const rows: any[] = [];
+  for (let i = 0; i < captcha.options.length; i += 2) {
+    const row: any[] = [];
+    row.push(Markup.button.callback(
+      String(captcha.options[i]),
+      `fw_verify_captcha:${chatId}:${captcha.options[i]}`
+    ));
+    if (captcha.options[i + 1] !== undefined) {
+      row.push(Markup.button.callback(
+        String(captcha.options[i + 1]),
+        `fw_verify_captcha:${chatId}:${captcha.options[i + 1]}`
+      ));
+    }
+    rows.push(row);
+  }
+
+  const message = `👋 Hello <b>${userDisplayName}</b>!\n\n` +
+    `To verify your membership request, please answer the following question:\n\n` +
+    `<b>${captcha.question}</b>`;
+
+  await ctx.reply(message, {
+    parse_mode: "HTML",
+    ...Markup.inlineKeyboard(rows),
+  });
+
+  return true;
+}
+
+// Captcha answer callback handler
+bot.action(VERIFY_CAPTCHA_REGEX, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(VERIFY_CAPTCHA_REGEX);
+  const chatId = match?.[1];
+  const selectedAnswer = match?.[2];
+  if (!chatId || !selectedAnswer) return;
+
+  const userId = ctx.from?.id?.toString();
+  if (!userId) return;
+
+  const session = incomingVerificationSessions.get(userId);
+  if (!session || session.chatId !== chatId) {
+    await ctx.answerCbQuery("Session expired. Please try again.", { show_alert: true });
+    return;
+  }
+
+  const selectedNum = parseInt(selectedAnswer, 10);
+  if (selectedNum !== session.correctAnswer) {
+    await ctx.answerCbQuery("❌ Incorrect answer. Please try again.", { show_alert: true });
+
+    // Generate new captcha
+    const captcha = generateMathCaptcha();
+    session.correctAnswer = captcha.answer;
+
+    const rows: any[] = [];
+    for (let i = 0; i < captcha.options.length; i += 2) {
+      const row: any[] = [];
+      row.push(Markup.button.callback(
+        String(captcha.options[i]),
+        `fw_verify_captcha:${chatId}:${captcha.options[i]}`
+      ));
+      if (captcha.options[i + 1] !== undefined) {
+        row.push(Markup.button.callback(
+          String(captcha.options[i + 1]),
+          `fw_verify_captcha:${chatId}:${captcha.options[i + 1]}`
+        ));
+      }
+      rows.push(row);
+    }
+
+    const userDisplayName = resolveUserDisplayName(ctx.from!);
+    const message = `👋 Hello <b>${userDisplayName}</b>!\n\n` +
+      `To verify your membership request, please answer the following question:\n\n` +
+      `<b>${captcha.question}</b>`;
+
+    try {
+      await ctx.editMessageText(message, {
+        parse_mode: "HTML",
+        reply_markup: Markup.inlineKeyboard(rows).reply_markup,
+      });
+    } catch {
+      // Ignore edit errors
+    }
+    return;
+  }
+
+  // Correct answer - generate one-time invite link
+  await ctx.answerCbQuery("✅ Correct!", { show_alert: false });
+  incomingVerificationSessions.delete(userId);
+
+  try {
+    const numericChatId = parseInt(chatId, 10);
+    const inviteLink = await ctx.telegram.createChatInviteLink(numericChatId, {
+      member_limit: 1,
+      expire_date: Math.floor(Date.now() / 1000) + 86400, // 24 hours
+    });
+
+    const successMessage = `✅ <b>Your request has been approved!</b>\n\n` +
+      `You can join the group using the temporary link below.\n` +
+      `This link can only be used once and will expire after that.\n\n` +
+      `🔗 <b>Temporary Link:</b>\n${inviteLink.invite_link}`;
+
+    await ctx.editMessageText(successMessage, {
+      parse_mode: "HTML",
+    });
+
+    logger.info("incoming verification completed, invite link generated", {
+      chatId,
+      userId,
+    });
+  } catch (error) {
+    logger.error("failed to generate invite link for incoming verification", { chatId, userId, error });
+    await ctx.editMessageText(
+      "❌ Sorry, there was an error generating the invite link. Please contact the group admin.",
+      { parse_mode: "HTML" }
+    );
+  }
+});
 
 // Inline panel callback patterns
 const INLINE_GROUP_REGEX = /^fw_inline_group:(-?\d+)$/;
@@ -2564,18 +2742,18 @@ type AdvancedFeature = {
 const ADVANCED_FEATURES: AdvancedFeature[] = [
   // Row 1
   { id: "temp_media", title: "Temp Media", icon: "⏰", hasSubMenu: true },
-  { id: "verification", title: "Verification", icon: "✅", settingsKey: "userVerificationEnabled" },
-  { id: "anti_betrayal", title: "Anti-Betrayal", icon: "🛡️", banSettingsRootKey: "antiBetrayal" },
+  { id: "verification", title: "Verification", icon: "✅", hasSubMenu: true },
+  { id: "anti_betrayal", title: "Anti-Betrayal", icon: "🛡️", banSettingsRootKey: "antiBetrayal", hasSubMenu: true },
   // Row 2
   { id: "mandatory_join", title: "Mandatory Join", icon: "📋", hasSubMenu: true },
-  { id: "mandatory_add", title: "Mandatory Add", icon: "➕", banSettingsRootKey: "mandatoryAdd" },
+  { id: "mandatory_add", title: "Mandatory Add", icon: "➕", banSettingsRootKey: "mandatoryAdd", hasSubMenu: true },
   { id: "welcome", title: "Welcome", icon: "👋", settingsKey: "welcomeEnabled", hasSubMenu: true },
   // Row 3
   { id: "warning", title: "Warnings", icon: "⚠️", settingsKey: "warningEnabled", hasSubMenu: true },
   { id: "anti_ad", title: "Anti-Ad", icon: "🚫", banSettingsKey: "blockLinks" },
-  { id: "strict_mode", title: "Strict Mode", icon: "🔒", settingsKey: "countAdminViolationsEnabled" },
+  { id: "strict_mode", title: "Strict Lock", icon: "🔒", hasSubMenu: true },
   // Row 4
-  { id: "auto_lock", title: "Auto Lock", icon: "🔐", settingsKey: "autoDeleteEnabled" },
+  { id: "auto_lock", title: "Auto Lock", icon: "🔐", hasSubMenu: true },
   { id: "flood", title: "Flood Protection", icon: "💬", hasSubMenu: true },
   { id: "lock_limit", title: "Lock Limit", icon: "📊", hasSubMenu: true },
   // Row 5
@@ -2608,7 +2786,7 @@ async function showInlineAdvanced(ctx: Context, chatId: string): Promise<void> {
 
   // Check if group is premium
   const isPremium = isGroupPremium(chatId);
-  const premiumOnlyFeatureIds = ["mandatory_join", "mandatory_add"];
+  const premiumOnlyFeatureIds = ["mandatory_join", "mandatory_add", "auto_lock"];
 
   // Build status line - count enabled features
   const enabledCount = ADVANCED_FEATURES.filter(f => {
@@ -2723,6 +2901,49 @@ bot.action(/^fw_adv_tm_master:(-?\d+):(on|off)$/, async (ctx) => {
   await showTempMediaSettings(ctx, chatId);
 });
 
+// Temp Media user type toggle - MUST be before general router
+bot.action(/^fw_adv_tm_usertype:(-?\d+)$/, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_tm_usertype:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.tempMedia) {
+      rawSettings.tempMedia = { userType: "nonadmin" };
+    }
+    const tempMedia = rawSettings.tempMedia as Record<string, unknown>;
+
+    // Toggle between "all" and "nonadmin"
+    const currentType = (tempMedia.userType as string) ?? "nonadmin";
+    const newType = currentType === "all" ? "nonadmin" : "all";
+    tempMedia.userType = newType;
+
+    await saveBanSettingsByChatId(chatId, settings);
+
+    // Show notification with alert for important change
+    if (newType === "all") {
+      await ctx.answerCbQuery(
+        "Set to All Members!\n\nIn this mode, media sent by bot admins will also be automatically deleted",
+        { show_alert: true }
+      );
+    } else {
+      await ctx.answerCbQuery(
+        "Set to Non-Admins!\n\nAdmin media will not be deleted",
+        { show_alert: true }
+      );
+    }
+  } catch (error) {
+    logger.error("Failed to toggle temp media user type", { chatId, error });
+    await ctx.answerCbQuery("Failed to save settings", { show_alert: true });
+  }
+
+  await showTempMediaSettings(ctx, chatId);
+});
+
 // General handler router for all advanced features
 bot.action(/^fw_adv_([a-z_]+):(-?\d+)$/, async (ctx) => {
   await ctx.answerCbQuery();
@@ -2756,6 +2977,15 @@ bot.action(/^fw_adv_([a-z_]+):(-?\d+)$/, async (ctx) => {
         break;
       case "mandatory_join":
         await showMandatoryJoinSettings(ctx, chatId);
+        break;
+      case "anti_betrayal":
+        await showAntiBetrayalSettings(ctx, chatId);
+        break;
+      case "mandatory_add":
+        await showMandatoryAddSettings(ctx, chatId);
+        break;
+      case "strict_mode":
+        await showStrictLockSettings(ctx, chatId);
         break;
       case "lock_limit":
       case "permissions":
@@ -2987,10 +3217,264 @@ bot.action(/^fw_adv_tm_time:(-?\d+):(up|down|upfast|downfast)$/, async (ctx) => 
   await showTempMediaSettings(ctx, chatId);
 });
 
-// Temp Media user type toggle
-bot.action(/^fw_adv_tm_usertype:(-?\d+)$/, async (ctx) => {
+// NOTE: fw_adv_tm_usertype handler is now registered BEFORE general router (line ~2726)
+
+// ========== VERIFICATION SUB-MENU ==========
+bot.action(/^fw_adv_verification:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
   const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(/^fw_adv_tm_usertype:(-?\d+)$/);
+  const match = data.match(/^fw_adv_verification:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  await showVerificationSettings(ctx, chatId);
+});
+
+async function showVerificationSettings(ctx: Context, chatId: string): Promise<void> {
+  let generalSettings;
+  try {
+    generalSettings = await loadGeneralSettingsByChatId(chatId);
+  } catch {
+    generalSettings = null;
+  }
+
+  const rawGeneral = generalSettings as Record<string, unknown> | null;
+  const verificationMode = (rawGeneral?.userVerificationMode as string) ?? "disabled";
+
+  const isAllUsers = verificationMode === "all";
+  const isIncoming = verificationMode === "incoming";
+
+  const message = `✅ <b>User Verification</b>
+
+With this feature you can:
+• Verify all users currently in the group
+• Verify new users before they can join
+
+<b>Verification type (captcha)</b> is a simple question.
+Bots usually cannot answer it accurately.
+
+<b>Status:</b> ${verificationMode === "disabled" ? "❌ Disabled" : verificationMode === "all" ? "✅ All Users" : "✅ Incoming Users"}`;
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback(
+      `${isAllUsers ? "✅ " : ""}Verify All Group Members`,
+      `fw_adv_verification_mode:${chatId}:all`
+    )],
+    [Markup.button.callback(
+      `${isIncoming ? "✅ " : ""}Verify Incoming Users`,
+      `fw_adv_verification_mode:${chatId}:incoming`
+    )],
+    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+  ]);
+
+  await replyOrEditRoot(ctx, message, keyboard);
+}
+
+bot.action(/^fw_adv_verification_mode:(-?\d+):(all|incoming|disabled)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_verification_mode:(-?\d+):(all|incoming|disabled)$/);
+  const chatId = match?.[1];
+  const mode = match?.[2] as "all" | "incoming" | "disabled";
+  if (!chatId || !mode) return;
+
+  try {
+    const settings = await loadGeneralSettingsByChatId(chatId);
+    const rawSettings = settings as Record<string, unknown>;
+
+    // If clicking the same mode, toggle it off
+    const currentMode = (rawSettings.userVerificationMode as string) ?? "disabled";
+    if (currentMode === mode) {
+      rawSettings.userVerificationMode = "disabled";
+      rawSettings.userVerificationEnabled = false;
+    } else {
+      rawSettings.userVerificationMode = mode;
+      rawSettings.userVerificationEnabled = true;
+    }
+
+    await saveGeneralSettingsByChatId(chatId, settings);
+
+    // Show success message for incoming mode with gateway link
+    if (rawSettings.userVerificationMode === "incoming") {
+      const botInfo = await ctx.telegram.getMe();
+      const gatewayLink = `https://t.me/${botInfo.username}?start=-${chatId}`;
+
+      await ctx.answerCbQuery("Incoming users verification enabled!", { show_alert: true });
+
+      // Show the gateway link info
+      const infoMessage = `✅ <b>Incoming Users Verification Enabled</b>
+
+• From now on, you can use the gateway link instead of your group's regular invite link.
+• Place this gateway link in your public channels and groups.
+• Using the gateway link instead of regular invite helps prevent bot accounts from joining.
+
+<b>Gateway Link:</b>
+<code>${gatewayLink}</code>
+
+<i>Share this link to verify new members before they can join.</i>`;
+
+      await ctx.editMessageText(infoMessage, {
+        parse_mode: "HTML",
+        reply_markup: Markup.inlineKeyboard([
+          [Markup.button.callback("◀️ Back to Verification", `fw_adv_verification:${chatId}`)]
+        ]).reply_markup
+      });
+      return;
+    }
+  } catch (error) {
+    logger.error("Failed to toggle verification mode", { chatId, error });
+  }
+
+  await showVerificationSettings(ctx, chatId);
+});
+
+// ========== ANTI-BETRAYAL SUB-MENU ==========
+bot.action(/^fw_adv_anti_betrayal:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_anti_betrayal:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  await showAntiBetrayalSettings(ctx, chatId);
+});
+
+async function showAntiBetrayalSettings(ctx: Context, chatId: string): Promise<void> {
+  let banSettings;
+  try {
+    banSettings = await loadBanSettingsByChatId(chatId);
+  } catch {
+    banSettings = null;
+  }
+
+  const rawBan = banSettings as unknown as Record<string, unknown> | null;
+  const antiBetrayalEnabled = rawBan?.antiBetrayal === true;
+  const antiBetrayalSettings = (rawBan?.antiBetrayalSettings as Record<string, unknown>) ?? {};
+
+  // Default values
+  const detectionMode = (antiBetrayalSettings.detectionMode as string) ?? "simple";
+  const betrayalType = (antiBetrayalSettings.betrayalType as string) ?? "ban";
+  const timeBase = (antiBetrayalSettings.timeBase as number) ?? 10;
+  const allowedCount = (antiBetrayalSettings.allowedCount as number) ?? 8;
+
+  if (!antiBetrayalEnabled) {
+    // Show enable prompt with description
+    const message = `🛡️ <b>Anti-Betrayal Lock</b>
+
+• In this section, the owner can:
+• Set the limit for banning members
+★ Admins who ban more than the allowed number
+~ will be <b>demoted</b> by the bot!
+
+<b>Status:</b> ❌ Disabled
+
+<i>Enable this feature to configure anti-betrayal settings.</i>`;
+
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback("Anti-Betrayal Lock ❌", `fw_adv_ab_master:${chatId}:on`)],
+      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+    ]);
+
+    await replyOrEditRoot(ctx, message, keyboard);
+    return;
+  }
+
+  // Show full settings when enabled
+  const detectionModeLabel = detectionMode === "simple" ? "Simple" : "Advanced";
+  const betrayalTypeLabel = betrayalType === "ban" ? "Ban" : betrayalType === "mute" ? "Mute" : "Silence";
+
+  const message = `🛡️ <b>Anti-Betrayal Lock</b>
+
+• In this section, the owner can:
+• Set the limit for banning members
+★ Admins who ban more than the allowed number
+~ will be <b>demoted</b> by the bot!
+
+<b>Status:</b> ✅ Enabled`;
+
+  const rows: any[] = [];
+
+  // Master toggle
+  rows.push([Markup.button.callback(`Anti-Betrayal Lock ✅`, `fw_adv_ab_master:${chatId}:off`)]);
+
+  // Detection Mode
+  rows.push([Markup.button.callback(`Detection Mode: ${detectionModeLabel}`, `fw_adv_ab_detection:${chatId}`)]);
+
+  // Betrayal Type
+  rows.push([Markup.button.callback(`Betrayal Type: ${betrayalTypeLabel}`, `fw_adv_ab_type:${chatId}`)]);
+
+  // Time Base
+  rows.push([Markup.button.callback(`Time Base: ${timeBase} min`, `fw_adv_ab_time_show:${chatId}`)]);
+  rows.push([
+    Markup.button.callback("《", `fw_adv_ab_time:${chatId}:downfast`),
+    Markup.button.callback("〈", `fw_adv_ab_time:${chatId}:down`),
+    Markup.button.callback("〉", `fw_adv_ab_time:${chatId}:up`),
+    Markup.button.callback("》", `fw_adv_ab_time:${chatId}:upfast`),
+  ]);
+
+  // Allowed Count
+  rows.push([Markup.button.callback(`Allowed Count: ${allowedCount}`, `fw_adv_ab_count_show:${chatId}`)]);
+  rows.push([
+    Markup.button.callback("《", `fw_adv_ab_count:${chatId}:downfast`),
+    Markup.button.callback("〈", `fw_adv_ab_count:${chatId}:down`),
+    Markup.button.callback("〉", `fw_adv_ab_count:${chatId}:up`),
+    Markup.button.callback("》", `fw_adv_ab_count:${chatId}:upfast`),
+  ]);
+
+  // Back button
+  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
+
+  const keyboard = Markup.inlineKeyboard(rows);
+  await replyOrEditRoot(ctx, message, keyboard);
+}
+
+// Anti-Betrayal master toggle
+bot.action(/^fw_adv_ab_master:(-?\d+):(on|off)$/, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_ab_master:(-?\d+):(on|off)$/);
+  const chatId = match?.[1];
+  const action = match?.[2];
+
+  if (!chatId || !action) {
+    await ctx.answerCbQuery("Error: missing parameters");
+    return;
+  }
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    rawSettings.antiBetrayal = action === "on";
+
+    // Initialize antiBetrayalSettings if enabling
+    if (action === "on" && !rawSettings.antiBetrayalSettings) {
+      rawSettings.antiBetrayalSettings = {
+        detectionMode: "simple",
+        betrayalType: "ban",
+        timeBase: 10,
+        allowedCount: 8,
+      };
+    }
+
+    await saveBanSettingsByChatId(chatId, settings);
+
+    if (action === "on") {
+      await ctx.answerCbQuery("✅ Anti-Betrayal Lock enabled!", { show_alert: false });
+    } else {
+      await ctx.answerCbQuery("❌ Anti-Betrayal Lock disabled!", { show_alert: false });
+    }
+  } catch (error) {
+    logger.error("Failed to toggle anti-betrayal", { chatId, error });
+    await ctx.answerCbQuery("Failed to save settings", { show_alert: true });
+    return;
+  }
+
+  await showAntiBetrayalSettings(ctx, chatId);
+});
+
+// Anti-Betrayal detection mode toggle
+bot.action(/^fw_adv_ab_detection:(-?\d+)$/, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_ab_detection:(-?\d+)$/);
   const chatId = match?.[1];
   if (!chatId) return;
 
@@ -2998,36 +3482,889 @@ bot.action(/^fw_adv_tm_usertype:(-?\d+)$/, async (ctx) => {
     const settings = await loadBanSettingsByChatId(chatId);
     const rawSettings = settings as unknown as Record<string, unknown>;
 
-    if (!rawSettings.tempMedia) {
-      rawSettings.tempMedia = { userType: "nonadmin" };
+    if (!rawSettings.antiBetrayalSettings) {
+      rawSettings.antiBetrayalSettings = { detectionMode: "simple" };
     }
-    const tempMedia = rawSettings.tempMedia as Record<string, unknown>;
+    const abSettings = rawSettings.antiBetrayalSettings as Record<string, unknown>;
 
-    // Toggle between "all" and "nonadmin"
-    const currentType = (tempMedia.userType as string) ?? "nonadmin";
-    const newType = currentType === "all" ? "nonadmin" : "all";
-    tempMedia.userType = newType;
+    // Toggle between "simple" and "advanced"
+    const currentMode = (abSettings.detectionMode as string) ?? "simple";
+    const newMode = currentMode === "simple" ? "advanced" : "simple";
+    abSettings.detectionMode = newMode;
 
     await saveBanSettingsByChatId(chatId, settings);
 
-    // Show notification with alert for important change
-    if (newType === "all") {
+    if (newMode === "advanced") {
       await ctx.answerCbQuery(
-        "Set to All Members!\n\nIn this mode, media sent by bot admins will also be automatically deleted",
+        "Set to Advanced Mode!\n\nIn this mode, bans are tracked with more detailed analysis",
         { show_alert: true }
       );
     } else {
       await ctx.answerCbQuery(
-        "Set to Non-Admins!\n\nAdmin media will not be deleted",
+        "Set to Simple Mode!\n\nBasic ban counting within the time window",
         { show_alert: true }
       );
     }
   } catch (error) {
-    logger.error("Failed to toggle temp media user type", { chatId, error });
+    logger.error("Failed to toggle anti-betrayal detection mode", { chatId, error });
     await ctx.answerCbQuery("Failed to save settings", { show_alert: true });
   }
 
-  await showTempMediaSettings(ctx, chatId);
+  await showAntiBetrayalSettings(ctx, chatId);
+});
+
+// Anti-Betrayal type toggle
+bot.action(/^fw_adv_ab_type:(-?\d+)$/, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_ab_type:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.antiBetrayalSettings) {
+      rawSettings.antiBetrayalSettings = { betrayalType: "ban" };
+    }
+    const abSettings = rawSettings.antiBetrayalSettings as Record<string, unknown>;
+
+    // Cycle through types: ban -> mute -> silence -> ban
+    const types = ["ban", "mute", "silence"];
+    const currentType = (abSettings.betrayalType as string) ?? "ban";
+    const currentIndex = types.indexOf(currentType);
+    const nextIndex = (currentIndex + 1) % types.length;
+    abSettings.betrayalType = types[nextIndex];
+
+    await saveBanSettingsByChatId(chatId, settings);
+
+    await ctx.answerCbQuery(
+      `Betrayal Type set to: ${types[nextIndex].charAt(0).toUpperCase() + types[nextIndex].slice(1)}`,
+      { show_alert: false }
+    );
+  } catch (error) {
+    logger.error("Failed to toggle anti-betrayal type", { chatId, error });
+    await ctx.answerCbQuery("Failed to save settings", { show_alert: true });
+  }
+
+  await showAntiBetrayalSettings(ctx, chatId);
+});
+
+// Anti-Betrayal time adjustment
+bot.action(/^fw_adv_ab_time:(-?\d+):(up|down|upfast|downfast)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_ab_time:(-?\d+):(up|down|upfast|downfast)$/);
+  const chatId = match?.[1];
+  const direction = match?.[2];
+  if (!chatId || !direction) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.antiBetrayalSettings) {
+      rawSettings.antiBetrayalSettings = { timeBase: 10 };
+    }
+    const abSettings = rawSettings.antiBetrayalSettings as Record<string, unknown>;
+    let currentMinutes = (abSettings.timeBase as number) ?? 10;
+
+    // Adjust time
+    const adjustments: Record<string, number> = {
+      up: 5,
+      down: -5,
+      upfast: 30,
+      downfast: -30,
+    };
+
+    currentMinutes += adjustments[direction] ?? 0;
+    currentMinutes = Math.max(1, Math.min(1440, currentMinutes)); // 1 min to 24 hours
+    abSettings.timeBase = currentMinutes;
+
+    await saveBanSettingsByChatId(chatId, settings);
+  } catch (error) {
+    logger.error("Failed to adjust anti-betrayal time", { chatId, direction, error });
+  }
+
+  await showAntiBetrayalSettings(ctx, chatId);
+});
+
+// Anti-Betrayal allowed count adjustment
+bot.action(/^fw_adv_ab_count:(-?\d+):(up|down|upfast|downfast)$/, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_ab_count:(-?\d+):(up|down|upfast|downfast)$/);
+  const chatId = match?.[1];
+  const direction = match?.[2];
+  if (!chatId || !direction) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.antiBetrayalSettings) {
+      rawSettings.antiBetrayalSettings = { allowedCount: 8 };
+    }
+    const abSettings = rawSettings.antiBetrayalSettings as Record<string, unknown>;
+    let currentCount = (abSettings.allowedCount as number) ?? 8;
+
+    // Adjust count
+    const adjustments: Record<string, number> = {
+      up: 1,
+      down: -1,
+      upfast: 5,
+      downfast: -5,
+    };
+
+    currentCount += adjustments[direction] ?? 0;
+    currentCount = Math.max(1, Math.min(100, currentCount)); // 1 to 100
+    const oldCount = (abSettings.allowedCount as number) ?? 8;
+    abSettings.allowedCount = currentCount;
+
+    await saveBanSettingsByChatId(chatId, settings);
+
+    // Show alert when count changes
+    const change = currentCount - oldCount;
+    if (change !== 0) {
+      const changeText = change > 0 ? `increased by ${change}` : `decreased by ${Math.abs(change)}`;
+      await ctx.answerCbQuery(
+        `📊 Allowed ban count ${changeText}!\n\n📌 Group admins can ban up to ${currentCount} users within the ${(abSettings.timeBase as number) ?? 10} minute time window`,
+        { show_alert: true }
+      );
+    } else {
+      await ctx.answerCbQuery();
+    }
+  } catch (error) {
+    logger.error("Failed to adjust anti-betrayal count", { chatId, direction, error });
+    await ctx.answerCbQuery("Failed to save settings", { show_alert: true });
+  }
+
+  await showAntiBetrayalSettings(ctx, chatId);
+});
+
+// ========== MANDATORY ADD SUB-MENU ==========
+bot.action(/^fw_adv_mandatory_add:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_mandatory_add:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  await showMandatoryAddSettings(ctx, chatId);
+});
+
+async function showMandatoryAddSettings(ctx: Context, chatId: string): Promise<void> {
+  // Check premium status first
+  if (!isGroupPremium(chatId)) {
+    const message = `➕ <b>Mandatory Add Lock</b>
+
+• By enabling this feature
+★ The bot forces group users to add members
+★ To have permission to chat in the group
+
+⭐ <b>This is a Premium feature</b>
+
+<i>Upgrade to Premium to enable this feature.</i>`;
+
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback("⭐ Upgrade to Premium", `fw_inline_menu:${chatId}`)],
+      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+    ]);
+
+    await replyOrEditRoot(ctx, message, keyboard);
+    return;
+  }
+
+  let banSettings;
+  try {
+    banSettings = await loadBanSettingsByChatId(chatId);
+  } catch {
+    banSettings = null;
+  }
+
+  const rawBan = banSettings as unknown as Record<string, unknown> | null;
+  const mandatoryAddEnabled = rawBan?.mandatoryAdd === true;
+  const mandatoryAddSettings = (rawBan?.mandatoryAddSettings as Record<string, unknown>) ?? {};
+
+  // Default values
+  const requiredCount = (mandatoryAddSettings.requiredCount as number) ?? 3;
+  const deleteTime = (mandatoryAddSettings.deleteTime as number) ?? 1;
+  const addMode = (mandatoryAddSettings.addMode as string) ?? "all";
+  const messageText = (mandatoryAddSettings.messageText as string) ?? "default";
+
+  if (!mandatoryAddEnabled) {
+    // Show enable prompt with description
+    const message = `➕ <b>Mandatory Add Lock</b>
+
+• By enabling this feature
+★ The bot forces group users to add members
+★ To have permission to chat in the group
+
+<b>Status:</b> ❌ Disabled
+
+<i>Enable this feature to configure mandatory add settings.</i>`;
+
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback("Mandatory Add Lock ❌", `fw_adv_ma_master:${chatId}:on`)],
+      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+    ]);
+
+    await replyOrEditRoot(ctx, message, keyboard);
+    return;
+  }
+
+  // Show full settings when enabled
+  const addModeLabel = addMode === "all" ? "All Messages" : addMode === "media" ? "Media Only" : "Text Only";
+  const messageTextLabel = messageText === "default" ? "Default" : "Custom";
+
+  const message = `➕ <b>Mandatory Add Lock</b>
+
+• By enabling this feature
+★ The bot forces group users to add members
+★ To have permission to chat in the group
+
+<b>Status:</b> ✅ Enabled`;
+
+  const rows: any[] = [];
+
+  // Master toggle
+  rows.push([Markup.button.callback(`Mandatory Add Lock ✅`, `fw_adv_ma_master:${chatId}:off`)]);
+
+  // Required Count section
+  rows.push([Markup.button.callback(`Required Count`, `fw_adv_ma_count_show:${chatId}`)]);
+  rows.push([
+    Markup.button.callback("−", `fw_adv_ma_count:${chatId}:down`),
+    Markup.button.callback(`Count: ${requiredCount}`, `fw_adv_ma_count_show:${chatId}`),
+    Markup.button.callback("+", `fw_adv_ma_count:${chatId}:up`),
+  ]);
+
+  // Bot Message Delete Time section
+  rows.push([Markup.button.callback(`Bot Message Delete Time`, `fw_adv_ma_time_show:${chatId}`)]);
+  rows.push([
+    Markup.button.callback("−", `fw_adv_ma_time:${chatId}:down`),
+    Markup.button.callback(`${deleteTime} min`, `fw_adv_ma_time_show:${chatId}`),
+    Markup.button.callback("+", `fw_adv_ma_time:${chatId}:up`),
+  ]);
+
+  // Add Mode
+  rows.push([Markup.button.callback(`Mandatory Add Mode: ${addModeLabel}`, `fw_adv_ma_mode:${chatId}`)]);
+
+  // Message Text
+  rows.push([Markup.button.callback(`• Mandatory Add Message: ${messageTextLabel}`, `fw_adv_ma_text:${chatId}`)]);
+
+  // Back button
+  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
+
+  const keyboard = Markup.inlineKeyboard(rows);
+  await replyOrEditRoot(ctx, message, keyboard);
+}
+
+// Mandatory Add master toggle
+bot.action(/^fw_adv_ma_master:(-?\d+):(on|off)$/, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_ma_master:(-?\d+):(on|off)$/);
+  const chatId = match?.[1];
+  const action = match?.[2];
+
+  if (!chatId || !action) {
+    await ctx.answerCbQuery("Error: missing parameters");
+    return;
+  }
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    rawSettings.mandatoryAdd = action === "on";
+
+    // Initialize mandatoryAddSettings if enabling
+    if (action === "on" && !rawSettings.mandatoryAddSettings) {
+      rawSettings.mandatoryAddSettings = {
+        requiredCount: 3,
+        deleteTime: 1,
+        addMode: "all",
+        messageText: "default",
+      };
+    }
+
+    await saveBanSettingsByChatId(chatId, settings);
+
+    if (action === "on") {
+      await ctx.answerCbQuery("✅ Mandatory Add Lock enabled!", { show_alert: false });
+    } else {
+      await ctx.answerCbQuery("❌ Mandatory Add Lock disabled!", { show_alert: false });
+    }
+  } catch (error) {
+    logger.error("Failed to toggle mandatory add", { chatId, error });
+    await ctx.answerCbQuery("Failed to save settings", { show_alert: true });
+    return;
+  }
+
+  await showMandatoryAddSettings(ctx, chatId);
+});
+
+// Mandatory Add required count adjustment
+bot.action(/^fw_adv_ma_count:(-?\d+):(up|down)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_ma_count:(-?\d+):(up|down)$/);
+  const chatId = match?.[1];
+  const direction = match?.[2];
+  if (!chatId || !direction) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.mandatoryAddSettings) {
+      rawSettings.mandatoryAddSettings = { requiredCount: 3 };
+    }
+    const maSettings = rawSettings.mandatoryAddSettings as Record<string, unknown>;
+    let currentCount = (maSettings.requiredCount as number) ?? 3;
+
+    // Adjust count
+    currentCount += direction === "up" ? 1 : -1;
+    currentCount = Math.max(1, Math.min(20, currentCount)); // 1 to 20
+    maSettings.requiredCount = currentCount;
+
+    await saveBanSettingsByChatId(chatId, settings);
+  } catch (error) {
+    logger.error("Failed to adjust mandatory add count", { chatId, direction, error });
+  }
+
+  await showMandatoryAddSettings(ctx, chatId);
+});
+
+// Mandatory Add delete time adjustment
+bot.action(/^fw_adv_ma_time:(-?\d+):(up|down)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_ma_time:(-?\d+):(up|down)$/);
+  const chatId = match?.[1];
+  const direction = match?.[2];
+  if (!chatId || !direction) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.mandatoryAddSettings) {
+      rawSettings.mandatoryAddSettings = { deleteTime: 1 };
+    }
+    const maSettings = rawSettings.mandatoryAddSettings as Record<string, unknown>;
+    let currentTime = (maSettings.deleteTime as number) ?? 1;
+
+    // Adjust time
+    currentTime += direction === "up" ? 1 : -1;
+    currentTime = Math.max(1, Math.min(60, currentTime)); // 1 to 60 minutes
+    maSettings.deleteTime = currentTime;
+
+    await saveBanSettingsByChatId(chatId, settings);
+  } catch (error) {
+    logger.error("Failed to adjust mandatory add delete time", { chatId, direction, error });
+  }
+
+  await showMandatoryAddSettings(ctx, chatId);
+});
+
+// Mandatory Add mode toggle
+bot.action(/^fw_adv_ma_mode:(-?\d+)$/, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_ma_mode:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.mandatoryAddSettings) {
+      rawSettings.mandatoryAddSettings = { addMode: "all" };
+    }
+    const maSettings = rawSettings.mandatoryAddSettings as Record<string, unknown>;
+
+    // Cycle through modes: all -> media -> text -> all
+    const modes = ["all", "media", "text"];
+    const currentMode = (maSettings.addMode as string) ?? "all";
+    const currentIndex = modes.indexOf(currentMode);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    maSettings.addMode = modes[nextIndex];
+
+    await saveBanSettingsByChatId(chatId, settings);
+
+    const modeLabels: Record<string, string> = {
+      all: "All Messages",
+      media: "Media Only",
+      text: "Text Only",
+    };
+    await ctx.answerCbQuery(
+      `Mandatory Add Mode set to: ${modeLabels[modes[nextIndex]]}`,
+      { show_alert: false }
+    );
+  } catch (error) {
+    logger.error("Failed to toggle mandatory add mode", { chatId, error });
+    await ctx.answerCbQuery("Failed to save settings", { show_alert: true });
+  }
+
+  await showMandatoryAddSettings(ctx, chatId);
+});
+
+// Mandatory Add message text toggle
+bot.action(/^fw_adv_ma_text:(-?\d+)$/, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_ma_text:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.mandatoryAddSettings) {
+      rawSettings.mandatoryAddSettings = { messageText: "default" };
+    }
+    const maSettings = rawSettings.mandatoryAddSettings as Record<string, unknown>;
+
+    // Toggle between default and custom (for now just toggle)
+    const currentText = (maSettings.messageText as string) ?? "default";
+    const newText = currentText === "default" ? "custom" : "default";
+    maSettings.messageText = newText;
+
+    await saveBanSettingsByChatId(chatId, settings);
+
+    if (newText === "custom") {
+      await ctx.answerCbQuery(
+        "Custom message mode enabled!\n\nUse /setmandatorymsg command to set your custom message.",
+        { show_alert: true }
+      );
+    } else {
+      await ctx.answerCbQuery(
+        "Default message restored!",
+        { show_alert: false }
+      );
+    }
+  } catch (error) {
+    logger.error("Failed to toggle mandatory add message text", { chatId, error });
+    await ctx.answerCbQuery("Failed to save settings", { show_alert: true });
+  }
+
+  await showMandatoryAddSettings(ctx, chatId);
+});
+
+// ========== STRICT LOCK (REPEATED MESSAGE) SUB-MENU ==========
+bot.action(/^fw_adv_strict_mode:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_strict_mode:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  await showStrictLockSettings(ctx, chatId);
+});
+
+async function showStrictLockSettings(ctx: Context, chatId: string): Promise<void> {
+  let banSettings;
+  try {
+    banSettings = await loadBanSettingsByChatId(chatId);
+  } catch {
+    banSettings = null;
+  }
+
+  const rawBan = banSettings as unknown as Record<string, unknown> | null;
+  const strictLockEnabled = rawBan?.strictLock === true;
+  const strictLockSettings = (rawBan?.strictLockSettings as Record<string, unknown>) ?? {};
+
+  // Default values
+  const punishmentMode = (strictLockSettings.punishmentMode as string) ?? "mute";
+  const messageCount = (strictLockSettings.messageCount as number) ?? 7;
+
+  if (!strictLockEnabled) {
+    // Show enable prompt with description
+    const message = `🔒 <b>Strict Lock (Repeated Messages)</b>
+
+• By enabling this feature
+★ You can set the repeated message limit
+★ Users who send more than the allowed limit
+★ Will be punished as configured
+★ Time unit for repeated messages is 3 seconds
+
+<b>Status:</b> ❌ Disabled
+
+<i>Enable this feature to configure settings.</i>`;
+
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback("Repeated Message Lock ❌", `fw_adv_sl_master:${chatId}:on`)],
+      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+    ]);
+
+    await replyOrEditRoot(ctx, message, keyboard);
+    return;
+  }
+
+  // Show full settings when enabled
+  const message = `🔒 <b>Strict Lock (Repeated Messages)</b>
+
+• By enabling this feature
+★ You can set the repeated message limit
+★ Users who send more than the allowed limit
+★ Will be punished as configured
+★ Time unit for repeated messages is 3 seconds
+
+<b>Status:</b> ✅ Enabled`;
+
+  const rows: any[] = [];
+
+  // Master toggle
+  rows.push([Markup.button.callback(`Repeated Message Lock ✅`, `fw_adv_sl_master:${chatId}:off`)]);
+
+  // Punishment mode options (radio buttons style)
+  const modes = [
+    { id: "ban", label: "Ban" },
+    { id: "mute", label: "Mute" },
+    { id: "warn", label: "Warn" },
+    { id: "tempmute", label: "Temp Mute" },
+  ];
+
+  for (const mode of modes) {
+    const isSelected = punishmentMode === mode.id;
+    const icon = isSelected ? "✅" : "❌";
+    rows.push([Markup.button.callback(`• Repeated Message Mode: ${mode.label} ${icon}`, `fw_adv_sl_mode:${chatId}:${mode.id}`)]);
+  }
+
+  // Message count
+  rows.push([Markup.button.callback(`• Repeated Message Count: ${messageCount}`, `fw_adv_sl_count_show:${chatId}`)]);
+  rows.push([
+    Markup.button.callback("−", `fw_adv_sl_count:${chatId}:down`),
+    Markup.button.callback("+", `fw_adv_sl_count:${chatId}:up`),
+  ]);
+
+  // Back button
+  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
+
+  const keyboard = Markup.inlineKeyboard(rows);
+  await replyOrEditRoot(ctx, message, keyboard);
+}
+
+// Strict Lock master toggle
+bot.action(/^fw_adv_sl_master:(-?\d+):(on|off)$/, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_sl_master:(-?\d+):(on|off)$/);
+  const chatId = match?.[1];
+  const action = match?.[2];
+
+  if (!chatId || !action) {
+    await ctx.answerCbQuery("Error: missing parameters");
+    return;
+  }
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    rawSettings.strictLock = action === "on";
+
+    // Initialize strictLockSettings if enabling
+    if (action === "on" && !rawSettings.strictLockSettings) {
+      rawSettings.strictLockSettings = {
+        punishmentMode: "mute",
+        messageCount: 7,
+      };
+    }
+
+    await saveBanSettingsByChatId(chatId, settings);
+
+    if (action === "on") {
+      await ctx.answerCbQuery("✅ Repeated Message Lock enabled!", { show_alert: false });
+    } else {
+      await ctx.answerCbQuery("❌ Repeated Message Lock disabled!", { show_alert: false });
+    }
+  } catch (error) {
+    logger.error("Failed to toggle strict lock", { chatId, error });
+    await ctx.answerCbQuery("Failed to save settings", { show_alert: true });
+    return;
+  }
+
+  await showStrictLockSettings(ctx, chatId);
+});
+
+// Strict Lock punishment mode toggle
+bot.action(/^fw_adv_sl_mode:(-?\d+):(ban|mute|warn|tempmute)$/, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_sl_mode:(-?\d+):(ban|mute|warn|tempmute)$/);
+  const chatId = match?.[1];
+  const mode = match?.[2];
+  if (!chatId || !mode) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.strictLockSettings) {
+      rawSettings.strictLockSettings = { punishmentMode: "mute" };
+    }
+    const slSettings = rawSettings.strictLockSettings as Record<string, unknown>;
+    slSettings.punishmentMode = mode;
+
+    await saveBanSettingsByChatId(chatId, settings);
+
+    const modeLabels: Record<string, string> = {
+      ban: "Ban",
+      mute: "Mute",
+      warn: "Warn",
+      tempmute: "Temp Mute",
+    };
+    await ctx.answerCbQuery(
+      `Punishment mode set to: ${modeLabels[mode]}`,
+      { show_alert: false }
+    );
+  } catch (error) {
+    logger.error("Failed to set strict lock mode", { chatId, mode, error });
+    await ctx.answerCbQuery("Failed to save settings", { show_alert: true });
+  }
+
+  await showStrictLockSettings(ctx, chatId);
+});
+
+// Strict Lock message count adjustment
+bot.action(/^fw_adv_sl_count:(-?\d+):(up|down)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_sl_count:(-?\d+):(up|down)$/);
+  const chatId = match?.[1];
+  const direction = match?.[2];
+  if (!chatId || !direction) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.strictLockSettings) {
+      rawSettings.strictLockSettings = { messageCount: 7 };
+    }
+    const slSettings = rawSettings.strictLockSettings as Record<string, unknown>;
+    let currentCount = (slSettings.messageCount as number) ?? 7;
+
+    // Adjust count
+    currentCount += direction === "up" ? 1 : -1;
+    currentCount = Math.max(2, Math.min(20, currentCount)); // 2 to 20
+    slSettings.messageCount = currentCount;
+
+    await saveBanSettingsByChatId(chatId, settings);
+  } catch (error) {
+    logger.error("Failed to adjust strict lock count", { chatId, direction, error });
+  }
+
+  await showStrictLockSettings(ctx, chatId);
+});
+
+// ========== MANDATORY JOIN SUB-MENU ==========
+bot.action(/^fw_adv_mandatory_join:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_mandatory_join:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  await showMandatoryJoinSettings(ctx, chatId);
+});
+
+async function showMandatoryJoinSettings(ctx: Context, chatId: string): Promise<void> {
+  // Check premium status first
+  const isPremium = isGroupPremium(chatId);
+
+  if (!isPremium) {
+    // Show premium upsell message
+    const message = `📋 <b>Mandatory Membership</b>
+
+• With this feature enabled:
+• You can register a group or channel in the bot
+• The bot forces users to join it
+• Before they can chat in the group
+
+⭐ <b>Premium Feature</b>
+This is one of the premium features.
+To use it, you need to get Premium for this group.
+
+<i>Upgrade to Premium to unlock this feature.</i>`;
+
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback("⭐ Get Premium", `fw_premium:${chatId}`)],
+      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+    ]);
+
+    await replyOrEditRoot(ctx, message, keyboard);
+    return;
+  }
+
+  // Premium group - load settings
+  let banSettings;
+  try {
+    banSettings = await loadBanSettingsByChatId(chatId);
+  } catch {
+    banSettings = null;
+  }
+
+  const rawBan = banSettings as unknown as Record<string, unknown> | null;
+  const mandatoryJoinEnabled = rawBan?.mandatoryJoinEnabled === true;
+  const mandatorySettings = (rawBan?.mandatoryJoinSettings as Record<string, unknown>) ?? {};
+
+  // Default values
+  const targetChannel = (mandatorySettings.targetChannel as string) ?? "";
+  const deleteTime = (mandatorySettings.deleteTime as number) ?? 45;
+  const customMessage = (mandatorySettings.customMessage as string) ?? "";
+
+  if (!mandatoryJoinEnabled) {
+    // Show enable prompt with description
+    const message = `📋 <b>Mandatory Membership</b>
+
+• With this feature enabled:
+• You can register a group or channel in the bot
+• The bot forces users to join it
+• Before they can chat in the group
+
+<b>Status:</b> ❌ Disabled
+
+<i>Enable this feature to configure mandatory membership settings.</i>`;
+
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback("Mandatory Membership ❌", `fw_adv_mj_master:${chatId}:on`)],
+      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+    ]);
+
+    await replyOrEditRoot(ctx, message, keyboard);
+    return;
+  }
+
+  // Show full settings when enabled
+  const targetLabel = targetChannel ? targetChannel : "Not set";
+  const messageLabel = customMessage ? "Custom" : "Default";
+
+  const message = `📋 <b>Mandatory Membership</b>
+
+• With this feature enabled:
+• You can register a group or channel in the bot
+• The bot forces users to join it
+• Before they can chat in the group
+
+<b>Status:</b> ✅ Enabled`;
+
+  const rows: any[] = [];
+
+  // Master toggle
+  rows.push([Markup.button.callback(`Mandatory Membership ✅`, `fw_adv_mj_master:${chatId}:off`)]);
+
+  // Target channel
+  rows.push([Markup.button.callback(`• Target: ${targetLabel}`, `fw_adv_mj_target_show:${chatId}`)]);
+
+  // Navigation for target
+  rows.push([
+    Markup.button.callback("《", `fw_adv_mj_target:${chatId}:first`),
+    Markup.button.callback("〈", `fw_adv_mj_target:${chatId}:prev`),
+    Markup.button.callback("〉", `fw_adv_mj_target:${chatId}:next`),
+    Markup.button.callback("》", `fw_adv_mj_target:${chatId}:last`),
+  ]);
+
+  // Delete time
+  rows.push([Markup.button.callback(`• Bot Message Delete Time: ${deleteTime} sec`, `fw_adv_mj_time_show:${chatId}`)]);
+  rows.push([
+    Markup.button.callback("《", `fw_adv_mj_time:${chatId}:downfast`),
+    Markup.button.callback("〈", `fw_adv_mj_time:${chatId}:down`),
+    Markup.button.callback("〉", `fw_adv_mj_time:${chatId}:up`),
+    Markup.button.callback("》", `fw_adv_mj_time:${chatId}:upfast`),
+  ]);
+
+  // Custom message
+  rows.push([Markup.button.callback(`• Membership Message Text: ${messageLabel}`, `fw_adv_mj_message:${chatId}`)]);
+
+  // Back button
+  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
+
+  const keyboard = Markup.inlineKeyboard(rows);
+  await replyOrEditRoot(ctx, message, keyboard);
+}
+
+// Mandatory Join master toggle
+bot.action(/^fw_adv_mj_master:(-?\d+):(on|off)$/, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_mj_master:(-?\d+):(on|off)$/);
+  const chatId = match?.[1];
+  const action = match?.[2];
+
+  if (!chatId || !action) {
+    await ctx.answerCbQuery("Error: missing parameters");
+    return;
+  }
+
+  // Check premium
+  if (!isGroupPremium(chatId)) {
+    await ctx.answerCbQuery("⭐ This is a Premium feature. Upgrade to enable it!", { show_alert: true });
+    return;
+  }
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    rawSettings.mandatoryJoinEnabled = action === "on";
+
+    // Initialize mandatoryJoinSettings if enabling
+    if (action === "on" && !rawSettings.mandatoryJoinSettings) {
+      rawSettings.mandatoryJoinSettings = {
+        targetChannel: "",
+        deleteTime: 45,
+        customMessage: "",
+      };
+    }
+
+    await saveBanSettingsByChatId(chatId, settings);
+
+    if (action === "on") {
+      await ctx.answerCbQuery("✅ Mandatory Membership enabled!", { show_alert: false });
+    } else {
+      await ctx.answerCbQuery("❌ Mandatory Membership disabled!", { show_alert: false });
+    }
+  } catch (error) {
+    logger.error("Failed to toggle mandatory join", { chatId, error });
+    await ctx.answerCbQuery("Failed to save settings", { show_alert: true });
+    return;
+  }
+
+  await showMandatoryJoinSettings(ctx, chatId);
+});
+
+// Mandatory Join delete time adjustment
+bot.action(/^fw_adv_mj_time:(-?\d+):(up|down|upfast|downfast)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_mj_time:(-?\d+):(up|down|upfast|downfast)$/);
+  const chatId = match?.[1];
+  const direction = match?.[2];
+  if (!chatId || !direction) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.mandatoryJoinSettings) {
+      rawSettings.mandatoryJoinSettings = { deleteTime: 45 };
+    }
+    const mjSettings = rawSettings.mandatoryJoinSettings as Record<string, unknown>;
+    let currentSeconds = (mjSettings.deleteTime as number) ?? 45;
+
+    // Adjust time
+    const adjustments: Record<string, number> = {
+      up: 5,
+      down: -5,
+      upfast: 30,
+      downfast: -30,
+    };
+
+    currentSeconds += adjustments[direction] ?? 0;
+    currentSeconds = Math.max(5, Math.min(300, currentSeconds)); // 5 sec to 5 minutes
+    mjSettings.deleteTime = currentSeconds;
+
+    await saveBanSettingsByChatId(chatId, settings);
+  } catch (error) {
+    logger.error("Failed to adjust mandatory join time", { chatId, direction, error });
+  }
+
+  await showMandatoryJoinSettings(ctx, chatId);
 });
 
 // ========== WELCOME SUB-MENU ==========
@@ -3051,19 +4388,21 @@ async function showWelcomeSettings(ctx: Context, chatId: string): Promise<void> 
 
   const rawGeneral = generalSettings as Record<string, unknown> | null;
   const welcomeEnabled = rawGeneral?.welcomeEnabled === true;
+  const welcomeSettings = (rawGeneral?.welcomeSettings as Record<string, unknown>) ?? {};
+  const autoDeleteEnabled = (welcomeSettings.autoDeleteEnabled as boolean) ?? false;
+  const customMessage = (welcomeSettings.customMessage as string) ?? "";
 
   if (!welcomeEnabled) {
+    // Disabled state
     const message = `👋 <b>Welcome Message</b>
 
-• Automatically greet new members when they join
-• Customize the welcome message
+• In this section you can customize
+• welcome messages to your liking!
 
-<b>Status:</b> ❌ Disabled
-
-<i>Enable this feature to configure welcome settings.</i>`;
+<b>Status:</b> ❌ Disabled`;
 
     const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback("✅ Enable Welcome", `fw_adv_welcome_toggle:${chatId}:on`)],
+      [Markup.button.callback("• Welcome: ❌", `fw_adv_welcome_toggle:${chatId}:on`)],
       [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
     ]);
 
@@ -3071,18 +4410,57 @@ async function showWelcomeSettings(ctx: Context, chatId: string): Promise<void> 
     return;
   }
 
-  const message = `👋 <b>Welcome Message</b>
+  // Enabled state - show current welcome message preview and settings
+  // Get group info for preview
+  let groupTitle = "Group Name";
+  try {
+    const chat = await ctx.telegram.getChat(parseInt(chatId, 10));
+    if ("title" in chat) {
+      groupTitle = chat.title;
+    }
+  } catch {
+    // Use default
+  }
 
-• New members will receive a welcome message
-• Configure the message text and options
+  const userName = ctx.from?.first_name ?? "User";
+  const currentDate = new Date();
+  const timeStr = currentDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+  const dateStr = currentDate.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
 
-<b>Status:</b> ✅ Enabled`;
+  // Default welcome message template
+  const defaultMessage = `Hello {user}
+Welcome to {group} 🌿
+Time: ${timeStr} (${dateStr})`;
 
-  const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("👋 Welcome ✅", `fw_adv_welcome_toggle:${chatId}:off`)],
-    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
-  ]);
+  const previewMessage = customMessage || defaultMessage;
+  const displayedPreview = previewMessage
+    .replace("{user}", userName)
+    .replace("{group}", groupTitle);
 
+  const autoDeleteLabel = autoDeleteEnabled ? "Enabled" : "Disabled";
+
+  const message = `<b>Current Welcome Message Text ↓</b>
+
+${displayedPreview}`;
+
+  const rows: any[] = [];
+
+  // Master toggle
+  rows.push([Markup.button.callback("• Welcome: ✅", `fw_adv_welcome_toggle:${chatId}:off`)]);
+
+  // Configure message
+  rows.push([Markup.button.callback("• Configure Welcome Message", `fw_adv_welcome_config:${chatId}`)]);
+
+  // View/Preview message
+  rows.push([Markup.button.callback("View Welcome Message", `fw_adv_welcome_preview:${chatId}`)]);
+
+  // Auto-delete toggle
+  rows.push([Markup.button.callback(`• Auto-Delete Welcome Message: ${autoDeleteLabel}`, `fw_adv_welcome_autodelete:${chatId}`)]);
+
+  // Back button
+  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
+
+  const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
 }
 
@@ -3098,13 +4476,164 @@ bot.action(/^fw_adv_welcome_toggle:(-?\d+):(on|off)$/, async (ctx) => {
     const settings = await loadGeneralSettingsByChatId(chatId);
     const rawSettings = settings as Record<string, unknown>;
     rawSettings.welcomeEnabled = action === "on";
+
+    // Initialize welcomeSettings if enabling
+    if (action === "on" && !rawSettings.welcomeSettings) {
+      rawSettings.welcomeSettings = {
+        customMessage: "",
+        autoDeleteEnabled: false,
+        autoDeleteDelay: 60,
+      };
+    }
+
     await saveGeneralSettingsByChatId(chatId, settings);
+
+    if (action === "on") {
+      await ctx.answerCbQuery("✅ Welcome Message enabled!", { show_alert: false });
+    } else {
+      await ctx.answerCbQuery("❌ Welcome Message disabled!", { show_alert: false });
+    }
   } catch (error) {
     logger.error("Failed to toggle welcome", { chatId, error });
   }
 
   await showWelcomeSettings(ctx, chatId);
 });
+
+// Welcome auto-delete toggle
+bot.action(/^fw_adv_welcome_autodelete:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_welcome_autodelete:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  try {
+    const settings = await loadGeneralSettingsByChatId(chatId);
+    const rawSettings = settings as Record<string, unknown>;
+
+    if (!rawSettings.welcomeSettings) {
+      rawSettings.welcomeSettings = { autoDeleteEnabled: false };
+    }
+    const welcomeSettings = rawSettings.welcomeSettings as Record<string, unknown>;
+    const currentValue = welcomeSettings.autoDeleteEnabled === true;
+    welcomeSettings.autoDeleteEnabled = !currentValue;
+
+    await saveGeneralSettingsByChatId(chatId, settings);
+
+    if (!currentValue) {
+      await ctx.answerCbQuery("✅ Auto-Delete enabled! Welcome messages will be deleted after 60 seconds.", { show_alert: true });
+    } else {
+      await ctx.answerCbQuery("❌ Auto-Delete disabled!", { show_alert: false });
+    }
+  } catch (error) {
+    logger.error("Failed to toggle welcome auto-delete", { chatId, error });
+  }
+
+  await showWelcomeSettings(ctx, chatId);
+});
+
+// Welcome preview handler
+bot.action(/^fw_adv_welcome_preview:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_welcome_preview:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  try {
+    let generalSettings;
+    try {
+      generalSettings = await loadGeneralSettingsByChatId(chatId);
+    } catch {
+      generalSettings = null;
+    }
+
+    const rawGeneral = generalSettings as Record<string, unknown> | null;
+    const welcomeSettings = (rawGeneral?.welcomeSettings as Record<string, unknown>) ?? {};
+    const customMessage = (welcomeSettings.customMessage as string) ?? "";
+
+    // Get group info
+    let groupTitle = "Group Name";
+    try {
+      const chat = await ctx.telegram.getChat(parseInt(chatId, 10));
+      if ("title" in chat) {
+        groupTitle = chat.title;
+      }
+    } catch {
+      // Use default
+    }
+
+    const userName = ctx.from?.first_name ?? "User";
+    const currentDate = new Date();
+    const timeStr = currentDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+    const dateStr = currentDate.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+
+    const defaultMessage = `Hello {user}
+Welcome to {group} 🌿
+Time: ${timeStr} (${dateStr})`;
+
+    const previewMessage = customMessage || defaultMessage;
+    const displayedPreview = previewMessage
+      .replace("{user}", userName)
+      .replace("{group}", groupTitle);
+
+    // Send as a separate message (preview)
+    await ctx.reply(displayedPreview, { parse_mode: "HTML" });
+  } catch (error) {
+    logger.error("Failed to preview welcome message", { chatId, error });
+    await ctx.reply("Failed to generate preview.");
+  }
+});
+
+// Welcome configure message handler
+bot.action(/^fw_adv_welcome_config:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_welcome_config:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  const message = `📝 <b>Configure Welcome Message</b>
+
+You can use the following placeholders in your message:
+• <code>{user}</code> - User's name
+• <code>{group}</code> - Group name
+
+<b>Example:</b>
+<code>Hello {user}!
+Welcome to {group} 🎉
+We're happy to have you here!</code>
+
+Reply to this message with your custom welcome text.
+Or send <code>default</code> to reset to the default message.`;
+
+  // Set session state to wait for welcome message input
+  const userId = ctx.from?.id?.toString();
+  if (userId) {
+    welcomeConfigSessions.set(userId, { chatId, createdAt: Date.now() });
+  }
+
+  await ctx.reply(message, {
+    parse_mode: "HTML",
+    reply_markup: Markup.inlineKeyboard([
+      [Markup.button.callback("❌ Cancel", `fw_adv_welcome:${chatId}`)]
+    ]).reply_markup
+  });
+});
+
+// Store for welcome config sessions
+const welcomeConfigSessions = new Map<string, { chatId: string; createdAt: number }>();
+
+// Clean up old sessions periodically (5 minute timeout)
+setInterval(() => {
+  const now = Date.now();
+  for (const [userId, session] of welcomeConfigSessions.entries()) {
+    if (now - session.createdAt > 5 * 60 * 1000) {
+      welcomeConfigSessions.delete(userId);
+    }
+  }
+}, 60000);
 
 // ========== WARNING SUB-MENU ==========
 bot.action(/^fw_adv_warning:(-?\d+)$/, async (ctx) => {
@@ -3252,6 +4781,323 @@ bot.action(/^fw_adv_warning_penalty:(-?\d+)$/, async (ctx) => {
   }
 
   await showWarningSettings(ctx, chatId);
+});
+
+// ========== STRICT LOCK SUB-MENU ==========
+bot.action(/^fw_adv_strict_mode:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_strict_mode:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  await showStrictLockSettings(ctx, chatId);
+});
+
+async function showStrictLockSettings(ctx: Context, chatId: string): Promise<void> {
+  let banSettings;
+  try {
+    banSettings = await loadBanSettingsByChatId(chatId);
+  } catch {
+    banSettings = null;
+  }
+
+  const rawBan = banSettings as unknown as Record<string, unknown> | null;
+  const strictLockEnabled = rawBan?.strictLockEnabled === true;
+  const strictLockSettings = (rawBan?.strictLockSettings as Record<string, unknown>) ?? {};
+
+  // Content type flags
+  const contentTypes = {
+    forward: (strictLockSettings.forward as boolean) ?? false,
+    link: (strictLockSettings.link as boolean) ?? false,
+    gif: (strictLockSettings.gif as boolean) ?? false,
+    id: (strictLockSettings.id as boolean) ?? false,
+    sticker: (strictLockSettings.sticker as boolean) ?? false,
+    selfieVideo: (strictLockSettings.selfieVideo as boolean) ?? false,
+    animatedSticker: (strictLockSettings.animatedSticker as boolean) ?? false,
+    profanity: (strictLockSettings.profanity as boolean) ?? false,
+    voice: (strictLockSettings.voice as boolean) ?? false,
+    english: (strictLockSettings.english as boolean) ?? false,
+    music: (strictLockSettings.music as boolean) ?? false,
+    file: (strictLockSettings.file as boolean) ?? false,
+    photo: (strictLockSettings.photo as boolean) ?? false,
+  };
+
+  const penaltyMode = (strictLockSettings.penaltyMode as string) ?? "warning";
+  const penaltyCount = (strictLockSettings.penaltyCount as number) ?? 5;
+  const deleteTime = (strictLockSettings.deleteTime as number) ?? 10;
+
+  if (!strictLockEnabled) {
+    // Disabled state
+    const message = `🔒 <b>Strict Lock</b>
+
+• In this section you can set
+• penalty types for sending different messages!
+
+<b>Status:</b> ❌ Disabled`;
+
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback("Strict Lock: ❌", `fw_adv_sl_master:${chatId}:on`)],
+      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+    ]);
+
+    await replyOrEditRoot(ctx, message, keyboard);
+    return;
+  }
+
+  // Enabled state - show all settings
+  const message = `🔒 <b>Strict Lock</b>
+
+• In this section you can set
+• penalty types for sending different messages!
+
+<b>Status:</b> ✅ Enabled`;
+
+  const rows: any[] = [];
+
+  // Master toggle
+  rows.push([Markup.button.callback("Strict Lock: ✅", `fw_adv_sl_master:${chatId}:off`)]);
+
+  // Content type toggles (2 per row)
+  const icon = (enabled: boolean) => enabled ? "✅" : "❌";
+
+  rows.push([
+    Markup.button.callback(`Forward ${icon(contentTypes.forward)}`, `fw_adv_sl_type:${chatId}:forward`),
+    Markup.button.callback(`Link ${icon(contentTypes.link)}`, `fw_adv_sl_type:${chatId}:link`),
+  ]);
+  rows.push([
+    Markup.button.callback(`GIF ${icon(contentTypes.gif)}`, `fw_adv_sl_type:${chatId}:gif`),
+    Markup.button.callback(`ID ${icon(contentTypes.id)}`, `fw_adv_sl_type:${chatId}:id`),
+  ]);
+  rows.push([
+    Markup.button.callback(`Sticker ${icon(contentTypes.sticker)}`, `fw_adv_sl_type:${chatId}:sticker`),
+    Markup.button.callback(`Selfie Video ${icon(contentTypes.selfieVideo)}`, `fw_adv_sl_type:${chatId}:selfieVideo`),
+  ]);
+  rows.push([
+    Markup.button.callback(`Animated Sticker ${icon(contentTypes.animatedSticker)}`, `fw_adv_sl_type:${chatId}:animatedSticker`),
+  ]);
+  rows.push([
+    Markup.button.callback(`Profanity ${icon(contentTypes.profanity)}`, `fw_adv_sl_type:${chatId}:profanity`),
+    Markup.button.callback(`Voice ${icon(contentTypes.voice)}`, `fw_adv_sl_type:${chatId}:voice`),
+  ]);
+  rows.push([
+    Markup.button.callback(`English ${icon(contentTypes.english)}`, `fw_adv_sl_type:${chatId}:english`),
+    Markup.button.callback(`Music ${icon(contentTypes.music)}`, `fw_adv_sl_type:${chatId}:music`),
+  ]);
+  rows.push([
+    Markup.button.callback(`File ${icon(contentTypes.file)}`, `fw_adv_sl_type:${chatId}:file`),
+    Markup.button.callback(`Photo ${icon(contentTypes.photo)}`, `fw_adv_sl_type:${chatId}:photo`),
+  ]);
+
+  // Penalty mode
+  rows.push([Markup.button.callback(`Penalty Mode: ${penaltyMode}`, `fw_adv_sl_penalty:${chatId}`)]);
+
+  // Penalty count
+  rows.push([
+    Markup.button.callback("−", `fw_adv_sl_count:${chatId}:down`),
+    Markup.button.callback(String(penaltyCount), `fw_adv_sl_count_show:${chatId}`),
+    Markup.button.callback("+", `fw_adv_sl_count:${chatId}:up`),
+  ]);
+
+  // Delete time
+  rows.push([Markup.button.callback(`• Bot Message Delete Time: ${deleteTime} min`, `fw_adv_sl_deltime_show:${chatId}`)]);
+  rows.push([
+    Markup.button.callback("《", `fw_adv_sl_deltime:${chatId}:downfast`),
+    Markup.button.callback("〈", `fw_adv_sl_deltime:${chatId}:down`),
+    Markup.button.callback("〉", `fw_adv_sl_deltime:${chatId}:up`),
+    Markup.button.callback("》", `fw_adv_sl_deltime:${chatId}:upfast`),
+  ]);
+
+  // Back button
+  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
+
+  const keyboard = Markup.inlineKeyboard(rows);
+  await replyOrEditRoot(ctx, message, keyboard);
+}
+
+// Strict Lock master toggle
+bot.action(/^fw_adv_sl_master:(-?\d+):(on|off)$/, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_sl_master:(-?\d+):(on|off)$/);
+  const chatId = match?.[1];
+  const action = match?.[2];
+
+  if (!chatId || !action) {
+    await ctx.answerCbQuery("Error: missing parameters");
+    return;
+  }
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    rawSettings.strictLockEnabled = action === "on";
+
+    // Initialize strictLockSettings if enabling
+    if (action === "on" && !rawSettings.strictLockSettings) {
+      rawSettings.strictLockSettings = {
+        forward: false,
+        link: false,
+        gif: false,
+        id: false,
+        sticker: false,
+        selfieVideo: false,
+        animatedSticker: false,
+        profanity: false,
+        voice: false,
+        english: false,
+        music: false,
+        file: false,
+        photo: false,
+        penaltyMode: "warning",
+        penaltyCount: 5,
+        deleteTime: 10,
+      };
+    }
+
+    await saveBanSettingsByChatId(chatId, settings);
+
+    if (action === "on") {
+      await ctx.answerCbQuery("✅ Strict Lock enabled!", { show_alert: false });
+    } else {
+      await ctx.answerCbQuery("❌ Strict Lock disabled!", { show_alert: false });
+    }
+  } catch (error) {
+    logger.error("Failed to toggle strict lock", { chatId, error });
+    await ctx.answerCbQuery("Failed to save settings", { show_alert: true });
+    return;
+  }
+
+  await showStrictLockSettings(ctx, chatId);
+});
+
+// Strict Lock content type toggle
+bot.action(/^fw_adv_sl_type:(-?\d+):([a-zA-Z]+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_sl_type:(-?\d+):([a-zA-Z]+)$/);
+  const chatId = match?.[1];
+  const contentType = match?.[2];
+  if (!chatId || !contentType) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.strictLockSettings) {
+      rawSettings.strictLockSettings = {};
+    }
+    const slSettings = rawSettings.strictLockSettings as Record<string, unknown>;
+    const currentValue = slSettings[contentType] === true;
+    slSettings[contentType] = !currentValue;
+
+    await saveBanSettingsByChatId(chatId, settings);
+  } catch (error) {
+    logger.error("Failed to toggle strict lock type", { chatId, contentType, error });
+  }
+
+  await showStrictLockSettings(ctx, chatId);
+});
+
+// Strict Lock penalty mode cycle
+bot.action(/^fw_adv_sl_penalty:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_sl_penalty:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.strictLockSettings) {
+      rawSettings.strictLockSettings = { penaltyMode: "warning" };
+    }
+    const slSettings = rawSettings.strictLockSettings as Record<string, unknown>;
+
+    // Cycle through penalties
+    const penalties = ["warning", "mute", "kick", "ban"];
+    const currentPenalty = (slSettings.penaltyMode as string) ?? "warning";
+    const currentIndex = penalties.indexOf(currentPenalty);
+    const nextIndex = (currentIndex + 1) % penalties.length;
+    slSettings.penaltyMode = penalties[nextIndex];
+
+    await saveBanSettingsByChatId(chatId, settings);
+  } catch (error) {
+    logger.error("Failed to cycle strict lock penalty", { chatId, error });
+  }
+
+  await showStrictLockSettings(ctx, chatId);
+});
+
+// Strict Lock penalty count adjustment
+bot.action(/^fw_adv_sl_count:(-?\d+):(up|down)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_sl_count:(-?\d+):(up|down)$/);
+  const chatId = match?.[1];
+  const direction = match?.[2];
+  if (!chatId || !direction) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.strictLockSettings) {
+      rawSettings.strictLockSettings = { penaltyCount: 5 };
+    }
+    const slSettings = rawSettings.strictLockSettings as Record<string, unknown>;
+    let currentCount = (slSettings.penaltyCount as number) ?? 5;
+
+    currentCount += direction === "up" ? 1 : -1;
+    currentCount = Math.max(1, Math.min(20, currentCount)); // 1 to 20
+    slSettings.penaltyCount = currentCount;
+
+    await saveBanSettingsByChatId(chatId, settings);
+  } catch (error) {
+    logger.error("Failed to adjust strict lock count", { chatId, direction, error });
+  }
+
+  await showStrictLockSettings(ctx, chatId);
+});
+
+// Strict Lock delete time adjustment
+bot.action(/^fw_adv_sl_deltime:(-?\d+):(up|down|upfast|downfast)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_sl_deltime:(-?\d+):(up|down|upfast|downfast)$/);
+  const chatId = match?.[1];
+  const direction = match?.[2];
+  if (!chatId || !direction) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.strictLockSettings) {
+      rawSettings.strictLockSettings = { deleteTime: 10 };
+    }
+    const slSettings = rawSettings.strictLockSettings as Record<string, unknown>;
+    let currentMinutes = (slSettings.deleteTime as number) ?? 10;
+
+    // Adjust time
+    const adjustments: Record<string, number> = {
+      up: 1,
+      down: -1,
+      upfast: 5,
+      downfast: -5,
+    };
+
+    currentMinutes += adjustments[direction] ?? 0;
+    currentMinutes = Math.max(1, Math.min(60, currentMinutes)); // 1 min to 60 minutes
+    slSettings.deleteTime = currentMinutes;
+
+    await saveBanSettingsByChatId(chatId, settings);
+  } catch (error) {
+    logger.error("Failed to adjust strict lock delete time", { chatId, direction, error });
+  }
+
+  await showStrictLockSettings(ctx, chatId);
 });
 
 // ========== FLOOD PROTECTION SUB-MENU ==========
@@ -4824,6 +6670,21 @@ bot.on("message", async (ctx, next) => {
 
 bot.on("text", async (ctx, next) => {
   if (isPrivateChat(ctx)) {
+    const text = ctx.message?.text ?? "";
+
+    // Check for incoming verification /start deep link (/start -chatId)
+    const startMatch = text.match(/^\/start\s+(-?\d+)$/);
+    if (startMatch) {
+      const chatId = startMatch[1];
+      // Handle incoming verification if payload is a negative number (group chat ID)
+      if (chatId.startsWith("-")) {
+        const handled = await handleIncomingVerificationStart(ctx, chatId);
+        if (handled) {
+          return; // Don't continue to other handlers
+        }
+      }
+    }
+
     if (typeof next === "function") {
       await next();
     }
@@ -5450,11 +7311,50 @@ bot.on("text", async (ctx) => {
     return;
   }
 
-  if (!(await ensureOwnerAccess(ctx))) {
+  const text = ctx.message.text.trim();
+  const userId = ctx.from?.id?.toString();
+
+  // Check for welcome config session (before owner check so all admins can use it)
+  if (userId && welcomeConfigSessions.has(userId)) {
+    const session = welcomeConfigSessions.get(userId)!;
+    welcomeConfigSessions.delete(userId);
+
+    try {
+      const settings = await loadGeneralSettingsByChatId(session.chatId);
+      const rawSettings = settings as Record<string, unknown>;
+
+      if (!rawSettings.welcomeSettings) {
+        rawSettings.welcomeSettings = {};
+      }
+      const welcomeSettings = rawSettings.welcomeSettings as Record<string, unknown>;
+
+      if (text.toLowerCase() === "default") {
+        welcomeSettings.customMessage = "";
+        await saveGeneralSettingsByChatId(session.chatId, settings);
+        await ctx.reply("✅ Welcome message reset to default!", {
+          reply_markup: Markup.inlineKeyboard([
+            [Markup.button.callback("◀️ Back to Welcome Settings", `fw_adv_welcome:${session.chatId}`)]
+          ]).reply_markup
+        });
+      } else {
+        welcomeSettings.customMessage = text;
+        await saveGeneralSettingsByChatId(session.chatId, settings);
+        await ctx.reply("✅ Welcome message updated successfully!", {
+          reply_markup: Markup.inlineKeyboard([
+            [Markup.button.callback("◀️ Back to Welcome Settings", `fw_adv_welcome:${session.chatId}`)]
+          ]).reply_markup
+        });
+      }
+    } catch (error) {
+      logger.error("Failed to save welcome message", { chatId: session.chatId, error });
+      await ctx.reply("❌ Failed to save welcome message. Please try again.");
+    }
     return;
   }
 
-  const text = ctx.message.text.trim();
+  if (!(await ensureOwnerAccess(ctx))) {
+    return;
+  }
 
   switch (ownerSession.state) {
     case "awaitingAddAdmin": {

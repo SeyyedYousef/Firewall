@@ -27,29 +27,29 @@ function hasChatMemberUpdate(ctx: GroupChatContext): boolean {
   if (!update || typeof update !== "object") {
     return false;
   }
-  
+
   // chat_member update is for regular users joining/leaving
   // my_chat_member is for the bot itself (handled by myChatMemberHandler)
   if (!("chat_member" in update)) {
     return false;
   }
-  
+
   const chatMember = update.chat_member;
   if (!chatMember) {
     return false;
   }
-  
+
   // Make sure this is not about the bot itself
   const newMember = chatMember.new_chat_member;
   if (!newMember || !newMember.user) {
     return false;
   }
-  
+
   // Check if the user is the bot itself
   if (ctx.botInfo && newMember.user.id === ctx.botInfo.id) {
     return false;
   }
-  
+
   return true;
 }
 
@@ -83,22 +83,22 @@ export const chatMemberHandler: UpdateHandler = {
   async handle(ctx) {
     const update = ctx.update as any;
     const chatMember = update.chat_member;
-    
+
     if (!chatMember) {
       return { actions: ensureActions([]) };
     }
-    
+
     const oldStatus = chatMember.old_chat_member?.status as ChatMemberStatus | undefined;
     const newStatus = chatMember.new_chat_member?.status as ChatMemberStatus | undefined;
     const user = chatMember.new_chat_member?.user;
-    
+
     if (!user) {
       return { actions: ensureActions([]) };
     }
-    
+
     const chatId = ctx.chat.id.toString();
     const actions: ProcessingAction[] = [];
-    
+
     // Handle user joining
     if (isJoinTransition(oldStatus, newStatus)) {
       logger.info("chat_member: user joined group", {
@@ -108,7 +108,7 @@ export const chatMemberHandler: UpdateHandler = {
         oldStatus,
         newStatus,
       });
-      
+
       // Record membership event to database
       if (databaseAvailable && !user.is_bot) {
         try {
@@ -116,7 +116,7 @@ export const chatMemberHandler: UpdateHandler = {
           const groupTitle = ctx.chat && "title" in ctx.chat ? ctx.chat.title : undefined;
           const inviterUserId = chatMember.from?.id;
           const inviterIsBot = chatMember.from?.is_bot;
-          
+
           await recordMembershipEvent({
             chatId,
             userId: user.id.toString(),
@@ -136,26 +136,26 @@ export const chatMemberHandler: UpdateHandler = {
           logger.warn("failed to record chat_member join event", { chatId, error });
         }
       }
-      
+
       // Send welcome message if enabled
       if (databaseAvailable && !user.is_bot) {
         try {
           const generalSettings = await loadGeneralSettingsByChatId(chatId);
-          
+
           if (!generalSettings.welcomeEnabled) {
             logger.debug("welcome messages disabled for group (chat_member)", { chatId });
           } else {
             // Build welcome message
             const userDisplayName = resolveUserDisplayName(user);
             const groupTitle = ctx.chat && "title" in ctx.chat ? ctx.chat.title : String(ctx.chat.id);
-            
+
             const replacements = {
               user: userDisplayName,
               name: userDisplayName,
               group: groupTitle,
               count: "1",
             };
-            
+
             // Try to load custom welcome message
             let welcomeTemplate = content.messages.welcome ?? "Welcome to the group.";
             try {
@@ -167,17 +167,17 @@ export const chatMemberHandler: UpdateHandler = {
             } catch (error) {
               logger.debug("failed to load custom welcome message (chat_member), using default", { chatId, error });
             }
-            
+
             const welcomeText = renderTemplate(welcomeTemplate, replacements).trim();
             const messageBody = welcomeText.length > 0 ? welcomeText : `Welcome ${userDisplayName}!`;
-            
+
             actions.push({
               type: "send_message",
               text: messageBody,
               parseMode: "HTML",
               autoDeleteSeconds: 60,
             });
-            
+
             // Record the welcome message as a bot action
             actions.push({
               type: "record_moderation",
@@ -191,20 +191,23 @@ export const chatMemberHandler: UpdateHandler = {
                 firstName: user.first_name ?? null,
               },
             });
-            
+
             logger.info("sending welcome message for chat_member join", { chatId, userId: user.id });
           }
         } catch (error) {
           logger.debug("failed to check welcome settings (chat_member)", { chatId, error });
         }
       }
-      
-      // Apply user verification if enabled
+
+      // Apply user verification if mode is "all" (verify existing group members)
       if (databaseAvailable && !user.is_bot) {
         try {
           const generalSettings = await loadGeneralSettingsByChatId(chatId);
-          
-          if (generalSettings.userVerificationEnabled) {
+          const rawSettings = generalSettings as Record<string, unknown>;
+          const verificationMode = (rawSettings.userVerificationMode as string) ?? "disabled";
+
+          // Only apply in-group verification for "all" mode
+          if (verificationMode === "all") {
             // Restrict the user until they verify
             await ctx.telegram.restrictChatMember(
               ctx.chat.id,
@@ -227,22 +230,28 @@ export const chatMemberHandler: UpdateHandler = {
                 },
               } as any,
             );
-            
+
             const callbackData = `fw_verify_member:${ctx.chat.id}:${user.id}`;
+            const userDisplayName = resolveUserDisplayName(user);
             const verificationText =
-              "To send messages in this group, please confirm that you are not a bot.\n\nTap the button below to verify.";
-            
+              `🔒 <b>Verification Required</b>\n\n` +
+              `Hello <b>${userDisplayName}</b>, to send messages in this group you must confirm you're not a bot.\n\n` +
+              `<i>Verification type (captcha) is a simple question.\nBots usually cannot answer it accurately.</i>`;
+
             await ctx.telegram.sendMessage(
               ctx.chat.id,
               verificationText,
-              Markup.inlineKeyboard([[Markup.button.callback("I am not a bot", callbackData)]]),
+              {
+                parse_mode: "HTML",
+                ...Markup.inlineKeyboard([[Markup.button.callback("🤖 I am not a robot", callbackData)]]),
+              },
             );
-            
+
             logger.info("user verification applied for chat_member join", {
               chatId,
               userId: user.id,
             });
-            
+
             // Record this as a bot action
             actions.push({
               type: "record_moderation",
@@ -264,7 +273,7 @@ export const chatMemberHandler: UpdateHandler = {
           });
         }
       }
-      
+
       actions.push({
         type: "log",
         level: "info",
@@ -276,7 +285,7 @@ export const chatMemberHandler: UpdateHandler = {
         },
       });
     }
-    
+
     // Handle user leaving
     if (isLeaveTransition(oldStatus, newStatus)) {
       logger.info("chat_member: user left group", {
@@ -286,13 +295,13 @@ export const chatMemberHandler: UpdateHandler = {
         oldStatus,
         newStatus,
       });
-      
+
       // Record membership event to database
       if (databaseAvailable && !user.is_bot) {
         try {
           const { recordMembershipEvent } = await import("../../../server/db/mutateRepository.js");
           const groupTitle = ctx.chat && "title" in ctx.chat ? ctx.chat.title : undefined;
-          
+
           await recordMembershipEvent({
             chatId,
             userId: user.id.toString(),
@@ -310,7 +319,7 @@ export const chatMemberHandler: UpdateHandler = {
           logger.warn("failed to record chat_member leave event", { chatId, error });
         }
       }
-      
+
       actions.push({
         type: "log",
         level: "info",
@@ -322,7 +331,7 @@ export const chatMemberHandler: UpdateHandler = {
         },
       });
     }
-    
+
     if (actions.length === 0) {
       return {
         actions: ensureActions([
@@ -335,7 +344,7 @@ export const chatMemberHandler: UpdateHandler = {
         ]),
       };
     }
-    
+
     return { actions: ensureActions(actions) };
   },
 };

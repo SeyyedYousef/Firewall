@@ -59,6 +59,9 @@ export type GroupBanSettingsRecord = {
 
 export type AutoWarningPenalty = "delete" | "mute" | "kick";
 
+// Verification modes: disabled, all (in-group button), incoming (bot captcha)
+export type UserVerificationMode = "disabled" | "all" | "incoming";
+
 export type AutoWarningConfigRecord = {
   threshold: number;
   retentionDays: number;
@@ -80,6 +83,7 @@ export type GroupGeneralSettingsRecord = {
   countAdminsOnly: boolean;
   deleteAdminViolations: boolean;
   userVerificationEnabled: boolean;
+  userVerificationMode: UserVerificationMode;
   userVerificationSchedule: TimeRangeSetting;
   disablePublicCommands: boolean;
   disablePublicCommandsSchedule: TimeRangeSetting;
@@ -366,6 +370,7 @@ function createDefaultGeneralSettings(): GroupGeneralSettingsRecord {
     countAdminsOnly: false,
     deleteAdminViolations: false,
     userVerificationEnabled: false,
+    userVerificationMode: "disabled",
     userVerificationSchedule: createDefaultTimeRange(),
     disablePublicCommands: false,
     disablePublicCommandsSchedule: createDefaultTimeRange(),
@@ -486,6 +491,12 @@ function normalizeGeneralSettings(input: unknown): GroupGeneralSettingsRecord {
   }
 
   result.defaultPenalty = sanitizePenalty(candidate.defaultPenalty, base.defaultPenalty);
+
+  // Sanitize verification mode
+  const verificationModeValue = (candidate as { userVerificationMode?: unknown }).userVerificationMode;
+  if (typeof verificationModeValue === "string" && ["disabled", "all", "incoming"].includes(verificationModeValue)) {
+    result.userVerificationMode = verificationModeValue as UserVerificationMode;
+  }
 
   return result;
 }
