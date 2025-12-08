@@ -2991,6 +2991,7 @@ bot.action(/^fw_adv_([a-z_]+):(-?\d+)$/, async (ctx) => {
         await showStrictLockSettings(ctx, chatId);
         break;
       case "lock_limit":
+      case "auto_lock":
       case "permissions":
       case "cleanup":
       case "timezone":
@@ -4370,6 +4371,71 @@ bot.action(/^fw_adv_mj_time:(-?\d+):(up|down|upfast|downfast)$/, async (ctx) => 
   await showMandatoryJoinSettings(ctx, chatId);
 });
 
+// Mandatory Join target navigation (placeholder - shows alert since target selection needs more complex UI)
+bot.action(/^fw_adv_mj_target:(-?\d+):(first|prev|next|last)$/, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_mj_target:(-?\d+):(first|prev|next|last)$/);
+  const chatId = match?.[1];
+  const direction = match?.[2];
+  if (!chatId || !direction) return;
+
+  // For now, show an alert explaining how to set the target channel
+  await ctx.answerCbQuery(
+    "ℹ️ To set the target channel:\n1. Add the bot to your channel as admin\n2. Forward a message from that channel here\n\nThe bot will automatically detect the channel.",
+    { show_alert: true }
+  );
+});
+
+// Mandatory Join message configuration
+bot.action(/^fw_adv_mj_message:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_mj_message:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  const message = `📝 <b>Configure Membership Message</b>
+
+You can use the following placeholders:
+• <code>{user}</code> - User's name
+• <code>{group}</code> - Group name
+• <code>{channel}</code> - Target channel name
+
+<b>Example:</b>
+<code>Hello {user}!
+To chat in {group}, you must first join our channel.
+Click below to join!</code>
+
+Reply to this message with your custom message text.
+Or send <code>default</code> to reset to the default message.`;
+
+  // Set session state to wait for message input
+  const userId = ctx.from?.id?.toString();
+  if (userId) {
+    mandatoryJoinMessageSessions.set(userId, { chatId, createdAt: Date.now() });
+  }
+
+  await ctx.reply(message, {
+    parse_mode: "HTML",
+    reply_markup: Markup.inlineKeyboard([
+      [Markup.button.callback("❌ Cancel", `fw_adv_mandatory_join:${chatId}`)]
+    ]).reply_markup
+  });
+});
+
+// Store for mandatory join message config sessions
+const mandatoryJoinMessageSessions = new Map<string, { chatId: string; createdAt: number }>();
+
+// Clean up old sessions periodically (5 minute timeout)
+setInterval(() => {
+  const now = Date.now();
+  for (const [userId, session] of mandatoryJoinMessageSessions.entries()) {
+    if (now - session.createdAt > 5 * 60 * 1000) {
+      mandatoryJoinMessageSessions.delete(userId);
+    }
+  }
+}, 60000);
+
 // ========== WELCOME SUB-MENU ==========
 bot.action(/^fw_adv_welcome:(-?\d+)$/, async (ctx) => {
   await ctx.answerCbQuery();
@@ -5086,6 +5152,63 @@ Select a timezone below:`;
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
+});
+
+// ========== DISPLAY-ONLY BUTTON HANDLERS ==========
+// These buttons are for display purposes only (showing current values)
+// They should show an alert when clicked
+
+// Generic handler for all display-only (_show) buttons in advanced settings
+bot.action(/^fw_adv_[a-z_]+_show:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery("ℹ️ This is a display button. Use the +/- buttons to adjust the value.", { show_alert: true });
+});
+
+// Specific handlers for count/time display buttons
+bot.action(/^fw_adv_sl_count_show:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery("ℹ️ Use the − and + buttons below to adjust the count.", { show_alert: true });
+});
+
+bot.action(/^fw_adv_mj_target_show:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery("ℹ️ Use the navigation buttons below to select a target channel.", { show_alert: true });
+});
+
+bot.action(/^fw_adv_mj_time_show:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery("ℹ️ Use the arrow buttons below to adjust the delete time.", { show_alert: true });
+});
+
+bot.action(/^fw_adv_ma_count_show:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery("ℹ️ Use the − and + buttons to adjust the required count.", { show_alert: true });
+});
+
+bot.action(/^fw_adv_ma_time_show:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery("ℹ️ Use the − and + buttons to adjust the delete time.", { show_alert: true });
+});
+
+bot.action(/^fw_adv_sl_deltime_show:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery("ℹ️ Use the arrow buttons below to adjust the bot message delete time.", { show_alert: true });
+});
+
+// Catch-all for any fw_adv patterns that don't match specific handlers
+bot.action(/^fw_adv_[a-z_]+:(-?\d+)$/, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_([a-z_]+):(-?\d+)$/);
+  const featureId = match?.[1];
+  const chatId = match?.[2];
+
+  if (!chatId || !featureId) {
+    await ctx.answerCbQuery("Invalid button data");
+    return;
+  }
+
+  // Check if this is a known feature that should have a handler
+  const feature = ADVANCED_FEATURES.find(f => f.id === featureId);
+  if (feature) {
+    // If feature exists but handler wasn't found, show coming soon
+    await ctx.answerCbQuery(`⚙️ ${feature.title} is coming soon!`, { show_alert: false });
+  } else {
+    // Unknown feature ID
+    await ctx.answerCbQuery("ℹ️ This button is for display purposes only.", { show_alert: false });
+  }
 });
 
 bot.action(INLINE_LIST_ADD_REGEX, async (ctx) => {
@@ -6945,6 +7068,44 @@ bot.on("text", async (ctx) => {
     } catch (error) {
       logger.error("Failed to save welcome message", { chatId: session.chatId, error });
       await ctx.reply("❌ Failed to save welcome message. Please try again.");
+    }
+    return;
+  }
+
+  // Check for mandatory join message config session
+  if (userId && mandatoryJoinMessageSessions.has(userId)) {
+    const session = mandatoryJoinMessageSessions.get(userId)!;
+    mandatoryJoinMessageSessions.delete(userId);
+
+    try {
+      const settings = await loadBanSettingsByChatId(session.chatId);
+      const rawSettings = settings as unknown as Record<string, unknown>;
+
+      if (!rawSettings.mandatoryJoinSettings) {
+        rawSettings.mandatoryJoinSettings = {};
+      }
+      const mjSettings = rawSettings.mandatoryJoinSettings as Record<string, unknown>;
+
+      if (text.toLowerCase() === "default") {
+        mjSettings.customMessage = "";
+        await saveBanSettingsByChatId(session.chatId, settings);
+        await ctx.reply("✅ Membership message reset to default!", {
+          reply_markup: Markup.inlineKeyboard([
+            [Markup.button.callback("◀️ Back to Mandatory Join Settings", `fw_adv_mandatory_join:${session.chatId}`)]
+          ]).reply_markup
+        });
+      } else {
+        mjSettings.customMessage = text;
+        await saveBanSettingsByChatId(session.chatId, settings);
+        await ctx.reply("✅ Membership message updated successfully!", {
+          reply_markup: Markup.inlineKeyboard([
+            [Markup.button.callback("◀️ Back to Mandatory Join Settings", `fw_adv_mandatory_join:${session.chatId}`)]
+          ]).reply_markup
+        });
+      }
+    } catch (error) {
+      logger.error("Failed to save mandatory join message", { chatId: session.chatId, error });
+      await ctx.reply("❌ Failed to save message. Please try again.");
     }
     return;
   }
