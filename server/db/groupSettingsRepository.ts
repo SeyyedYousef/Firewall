@@ -290,7 +290,28 @@ function normalizeBanSettings(input: unknown): GroupBanSettingsRecord {
     result.scheduledPosts = rawInput.scheduledPosts;
   }
 
+  // Temp Media settings (preserve as-is for Advanced Settings)
+  if (typeof rawInput.tempMediaEnabled === "boolean") {
+    result.tempMediaEnabled = rawInput.tempMediaEnabled;
+  }
+  if (rawInput.tempMedia && typeof rawInput.tempMedia === "object") {
+    result.tempMedia = rawInput.tempMedia;
+  }
 
+  // Anti-Betrayal setting
+  if (typeof rawInput.antiBetrayal === "boolean") {
+    result.antiBetrayal = rawInput.antiBetrayal;
+  }
+
+  // Mandatory Add setting
+  if (typeof rawInput.mandatoryAdd === "boolean") {
+    result.mandatoryAdd = rawInput.mandatoryAdd;
+  }
+
+  // Lock Features setting
+  if (typeof rawInput.lockFeatures === "boolean") {
+    result.lockFeatures = rawInput.lockFeatures;
+  }
 
   return result as GroupBanSettingsRecord;
 }

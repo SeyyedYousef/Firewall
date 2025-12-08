@@ -2678,8 +2678,6 @@ ${!isPremium ? `\n⭐ Features marked with ⭐ require Premium` : ""}
 // ========== TEMP MEDIA HANDLERS (before general router) ==========
 // Temp Media master toggle - MUST be before general router
 bot.action(/^fw_adv_tm_master:(-?\d+):(on|off)$/, async (ctx) => {
-  logger.info("TM_MASTER handler triggered", { data: (ctx.callbackQuery as any)?.data });
-
   const data = (ctx.callbackQuery as any)?.data ?? "";
   const match = data.match(/^fw_adv_tm_master:(-?\d+):(on|off)$/);
   const chatId = match?.[1];
@@ -2828,26 +2826,16 @@ bot.action(/^fw_adv_([a-z_]+):(-?\d+)$/, async (ctx) => {
 // Handler is now managed by the general router above
 
 async function showTempMediaSettings(ctx: Context, chatId: string): Promise<void> {
-  logger.info("showTempMediaSettings called", { chatId });
-
   let banSettings;
   try {
     banSettings = await loadBanSettingsByChatId(chatId);
-  } catch (error) {
-    logger.error("Failed to load ban settings in showTempMediaSettings", { chatId, error });
+  } catch {
     banSettings = null;
   }
 
   const rawBan = banSettings as unknown as Record<string, unknown> | null;
   const tempMediaEnabled = rawBan?.tempMediaEnabled === true;
   const tempMediaSettings = (rawBan?.tempMedia as Record<string, unknown>) ?? {};
-
-  logger.info("showTempMediaSettings state", {
-    chatId,
-    tempMediaEnabled,
-    hasRawBan: !!rawBan,
-    tempMediaEnabledRaw: rawBan?.tempMediaEnabled
-  });
 
   const deleteMinutes = (tempMediaSettings.deleteMinutes as number) ?? 20;
   // userType: "all" = all members, "nonadmin" = non-admins only (default)
