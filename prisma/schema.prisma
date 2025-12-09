@@ -56,6 +56,7 @@ model Group {
   giveaways         Giveaway[]         @relation("GiveawayGroup")
   creditCodes       CreditRedemptionCode[] @relation("CreditRedemptionGroup")
   warnings          UserWarning[]
+  userPanelSettings UserPanelSettings[]
 
   @@index([ownerId])
 }
@@ -539,5 +540,22 @@ model TabchiWhitelist {
 
   @@index([telegramUserId])
   @@index([groupId])
+}
+
+// User Panel Settings - Per-user lock overrides within a group
+model UserPanelSettings {
+  id             String   @id @default(uuid())
+  groupId        String
+  telegramUserId String
+  nickname       String?  // Optional nickname for this user
+  lockOverrides  Json?    // Map of lockKey -> state ('default' | 'open' | 'locked')
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, telegramUserId])
+  @@index([groupId])
+  @@index([telegramUserId])
 }
 

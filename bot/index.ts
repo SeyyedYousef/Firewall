@@ -61,6 +61,11 @@ import {
   loadGeneralSettingsByChatId,
   saveGeneralSettingsByChatId,
 } from "../server/db/groupSettingsRepository.js";
+import {
+  getUserPanelSettings,
+  setUserLockOverride,
+  type UserLockOverrideState as UserLockState,
+} from "../server/db/userPanelRepository.js";
 import { extractCreditCode, redeemCreditCode } from "../server/services/creditCodeService.js";
 import { recordGroupCreditRenewal } from "../server/services/missionVerificationService.js";
 import {
@@ -351,6 +356,63 @@ const INLINE_LOCK_ITEMS: InlineLockItem[] = [
 const INLINE_LOCK_PAGE_SIZE = 6;
 
 // ============================================
+// USER PANEL CONFIGURATION
+// ============================================
+
+type UserLockOverrideState = 'default' | 'open' | 'locked';
+
+type UserPanelLockItem = {
+  id: string;
+  key: string;
+  label: string;
+};
+
+// Lock items for UserPanel - mirrors INLINE_LOCK_ITEMS but for per-user overrides
+const USER_PANEL_LOCK_ITEMS: UserPanelLockItem[] = [
+  { id: "hyperlink", key: "banLinks", label: "Hyperlink" },
+  { id: "link", key: "banDomains", label: "Link" },
+  { id: "hashtag", key: "banHashtags", label: "Hashtag" },
+  { id: "username", key: "banUsernames", label: "Username" },
+  { id: "persian", key: "banPersian", label: "Persian" },
+  { id: "english", key: "banLatin", label: "English" },
+  { id: "emoji_single", key: "banEmojiOnly", label: "Emoji Single" },
+  { id: "file", key: "banFiles", label: "File" },
+  { id: "inline_keyboard", key: "banInlineKeyboards", label: "Inline Keyboard" },
+  { id: "forward", key: "banForward", label: "Forward" },
+  { id: "media_edit", key: "banMediaEdit", label: "Media Edit" },
+  { id: "message_edit", key: "banMessageEdit", label: "Message Edit" },
+  { id: "voice", key: "banVoice", label: "Voice" },
+  { id: "video", key: "banVideos", label: "Video" },
+  { id: "photo", key: "banPhotos", label: "Photo" },
+  { id: "animated_sticker", key: "banAnimatedStickers", label: "Animated Sticker" },
+  { id: "sticker", key: "banStickers", label: "Sticker" },
+  { id: "gif", key: "banGif", label: "GIF" },
+  { id: "game", key: "banGames", label: "Game" },
+  { id: "music", key: "banAudio", label: "Music" },
+  { id: "selfie_video", key: "banVideoNotes", label: "Selfie Video" },
+];
+
+// Get state icon for UserPanel lock
+function getUserLockStateIcon(state: UserLockOverrideState): string {
+  switch (state) {
+    case 'locked': return '🔐';
+    case 'open': return 'Open';
+    case 'default':
+    default: return '✗';
+  }
+}
+
+// Cycle to next state
+function getNextLockState(current: UserLockOverrideState): UserLockOverrideState {
+  switch (current) {
+    case 'default': return 'open';
+    case 'open': return 'locked';
+    case 'locked': return 'default';
+    default: return 'default';
+  }
+}
+
+// ============================================
 // HELP SECTION CONFIGURATION
 // ============================================
 
@@ -369,13 +431,13 @@ type HelpSectionConfig = {
 
 const HELP_SECTIONS: HelpSectionConfig[] = [
   { id: "lock_management", icon: "🔒", title: "Lock Management", implemented: true },
-  { id: "settings", icon: "⚙️", title: "Settings", implemented: false },
+  { id: "settings", icon: "⚙️", title: "Settings", implemented: true },
   { id: "tabchi", icon: "🚫", title: "Tabchi (Spam Bots)", implemented: true },
-  { id: "user_panel", icon: "👤", title: "User Panel", implemented: false },
+  { id: "user_panel", icon: "👤", title: "User Panel", implemented: true },
   { id: "user_penalties", icon: "⚠️", title: "User Penalties", implemented: true },
-  { id: "promote_demote", icon: "👑", title: "Promote & Demote", implemented: false },
-  { id: "word_filter", icon: "🚷", title: "Word Filter", implemented: false },
-  { id: "cleanup", icon: "🧹", title: "Cleanup", implemented: false },
+  { id: "promote_demote", icon: "👑", title: "Promote & Demote", implemented: true },
+  { id: "word_filter", icon: "🚷", title: "Word Filter", implemented: true },
+  { id: "cleanup", icon: "🧹", title: "Cleanup", implemented: true },
   { id: "mandatory_add", icon: "➕", title: "Mandatory Add", implemented: false },
   { id: "welcome", icon: "👋", title: "Welcome", implemented: false },
   { id: "mandatory_membership", icon: "📌", title: "Mandatory Membership", implemented: false },
@@ -397,43 +459,43 @@ type LockHelpData = {
 
 const LOCK_HELP_DATA: LockHelpData[] = [
   // Links & Content
-  { id: "links", name: "Telegram Links", icon: "🔗", whatItDoes: "Blocks all Telegram links (t.me, telegram.me)", example: "t.me/example", commandAlias: "link", miniAppPath: "Home → Settings → Lock Management → Links", whenToUse: "Prevent spam and unauthorized promotion", limitations: "Also blocks legitimate sharing links" },
-  { id: "domains", name: "External URLs", icon: "🌐", whatItDoes: "Blocks all external website URLs", example: "google.com", commandAlias: "site", miniAppPath: "Home → Settings → Lock Management → Domains", whenToUse: "Prevent external link spam and phishing", limitations: "Blocks all URLs including safe ones" },
-  { id: "usernames", name: "Usernames/Mentions", icon: "👤", whatItDoes: "Blocks @username mentions", example: "@username", commandAlias: "username", miniAppPath: "Home → Settings → Lock Management → Usernames", whenToUse: "Prevent tagging spam and promotion", limitations: "May affect legitimate mentions" },
-  { id: "hashtags", name: "Hashtags", icon: "#️⃣", whatItDoes: "Blocks messages containing #hashtags", example: "#trending", commandAlias: "hashtag", miniAppPath: "Home → Settings → Lock Management → Hashtags", whenToUse: "Prevent hashtag spam", limitations: "Blocks all hashtags" },
-  { id: "latin", name: "English/Latin Text", icon: "🔤", whatItDoes: "Blocks messages with Latin alphabet", example: "Hello, ABC", commandAlias: "english", miniAppPath: "Home → Settings → Lock Management → Latin", whenToUse: "Enforce non-English only groups", limitations: "Blocks any Latin characters" },
-  { id: "persian", name: "Persian/Arabic Text", icon: "🔡", whatItDoes: "Blocks messages with Persian/Arabic script", example: "سلام", commandAlias: "persian", miniAppPath: "Home → Settings → Lock Management → Persian", whenToUse: "Enforce non-Persian groups", limitations: "Blocks all Arabic script" },
-  { id: "text_patterns", name: "Text Patterns", icon: "📝", whatItDoes: "Blocks plain text messages", example: "Any text message", commandAlias: "text", miniAppPath: "Home → Settings → Lock Management → Text Patterns", whenToUse: "Media-only groups", limitations: "Blocks all text" },
-  { id: "emojis", name: "Messages with Emojis", icon: "😀", whatItDoes: "Blocks messages containing emojis", example: "Hello 😀", commandAlias: "emoji", miniAppPath: "Home → Settings → Lock Management → Emojis", whenToUse: "Professional/formal groups", limitations: "Blocks any emoji usage" },
-  { id: "forward", name: "Forwarded Messages", icon: "↪️", whatItDoes: "Blocks all forwarded messages", example: "Forwarded message", commandAlias: "forward", miniAppPath: "Home → Settings → Lock Management → Forward", whenToUse: "Prevent content from elsewhere", limitations: "Use Forward Whitelist for exceptions" },
-  { id: "forward_channels", name: "Channel Forwards", icon: "📢", whatItDoes: "Blocks messages forwarded from channels", example: "Forwarded from @channel", commandAlias: "channelforward", miniAppPath: "Home → Settings → Lock Management → Forward Channels", whenToUse: "Block channel promotions", limitations: "User forwards still allowed" },
+  { id: "links", name: "Telegram Links", icon: "🔗", whatItDoes: "Blocks all Telegram links (t.me, telegram.me)", example: "t.me/example", commandAlias: "link", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Links", whenToUse: "Prevent spam and unauthorized promotion", limitations: "Also blocks legitimate sharing links" },
+  { id: "domains", name: "External URLs", icon: "🌐", whatItDoes: "Blocks all external website URLs", example: "google.com", commandAlias: "site", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Domains", whenToUse: "Prevent external link spam and phishing", limitations: "Blocks all URLs including safe ones" },
+  { id: "usernames", name: "Usernames/Mentions", icon: "👤", whatItDoes: "Blocks @username mentions", example: "@username", commandAlias: "username", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Usernames", whenToUse: "Prevent tagging spam and promotion", limitations: "May affect legitimate mentions" },
+  { id: "hashtags", name: "Hashtags", icon: "#️⃣", whatItDoes: "Blocks messages containing #hashtags", example: "#trending", commandAlias: "hashtag", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Hashtags", whenToUse: "Prevent hashtag spam", limitations: "Blocks all hashtags" },
+  { id: "latin", name: "English/Latin Text", icon: "🔤", whatItDoes: "Blocks messages with Latin alphabet", example: "Hello, ABC", commandAlias: "english", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Latin", whenToUse: "Enforce non-English only groups", limitations: "Blocks any Latin characters" },
+  { id: "persian", name: "Persian/Arabic Text", icon: "🔡", whatItDoes: "Blocks messages with Persian/Arabic script", example: "سلام", commandAlias: "persian", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Persian", whenToUse: "Enforce non-Persian groups", limitations: "Blocks all Arabic script" },
+  { id: "text_patterns", name: "Text Patterns", icon: "📝", whatItDoes: "Blocks plain text messages", example: "Any text message", commandAlias: "text", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Text Patterns", whenToUse: "Media-only groups", limitations: "Blocks all text" },
+  { id: "emojis", name: "Messages with Emojis", icon: "😀", whatItDoes: "Blocks messages containing emojis", example: "Hello 😀", commandAlias: "emoji", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Emojis", whenToUse: "Professional/formal groups", limitations: "Blocks any emoji usage" },
+  { id: "forward", name: "Forwarded Messages", icon: "↪️", whatItDoes: "Blocks all forwarded messages", example: "Forwarded message", commandAlias: "forward", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Forward", whenToUse: "Prevent content from elsewhere", limitations: "Use Forward Whitelist for exceptions" },
+  { id: "forward_channels", name: "Channel Forwards", icon: "📢", whatItDoes: "Blocks messages forwarded from channels", example: "Forwarded from @channel", commandAlias: "channelforward", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Forward Channels", whenToUse: "Block channel promotions", limitations: "User forwards still allowed" },
   // Media & Files
-  { id: "photos", name: "Photos", icon: "🖼️", whatItDoes: "Blocks image uploads", example: "[Photo]", commandAlias: "photo", miniAppPath: "Home → Settings → Lock Management → Photos", whenToUse: "Text-only discussions", limitations: "Blocks all images" },
-  { id: "videos", name: "Videos", icon: "🎬", whatItDoes: "Blocks video uploads", example: "[Video]", commandAlias: "video", miniAppPath: "Home → Settings → Lock Management → Videos", whenToUse: "Reduce media clutter", limitations: "Blocks all video content" },
-  { id: "audio", name: "Audio Files", icon: "🎵", whatItDoes: "Blocks audio file uploads", example: "[Audio.mp3]", commandAlias: "audio", miniAppPath: "Home → Settings → Lock Management → Audio", whenToUse: "Prevent music sharing", limitations: "Blocks all audio files" },
-  { id: "voice", name: "Voice Messages", icon: "🎤", whatItDoes: "Blocks voice notes", example: "[Voice Note]", commandAlias: "voice", miniAppPath: "Home → Settings → Lock Management → Voice", whenToUse: "Keep discussions readable", limitations: "Blocks all voice messages" },
-  { id: "gif", name: "GIFs/Animations", icon: "🎞️", whatItDoes: "Blocks animated GIFs", example: "[GIF]", commandAlias: "gif", miniAppPath: "Home → Settings → Lock Management → GIF", whenToUse: "Reduce visual noise", limitations: "Blocks all animations" },
-  { id: "stickers", name: "Stickers", icon: "🎨", whatItDoes: "Blocks sticker messages", example: "[Sticker]", commandAlias: "sticker", miniAppPath: "Home → Settings → Lock Management → Stickers", whenToUse: "Professional groups", limitations: "Blocks all stickers" },
-  { id: "files", name: "Files/Documents", icon: "📁", whatItDoes: "Blocks document uploads", example: "[document.pdf]", commandAlias: "file", miniAppPath: "Home → Settings → Lock Management → Files", whenToUse: "Prevent file sharing", limitations: "Blocks all documents" },
-  { id: "location", name: "Locations", icon: "📍", whatItDoes: "Blocks location sharing", example: "[Location]", commandAlias: "location", miniAppPath: "Home → Settings → Lock Management → Location", whenToUse: "Privacy concerns", limitations: "Blocks all location shares" },
-  { id: "apps", name: "Apps/Software", icon: "📱", whatItDoes: "Blocks app/software messages", example: "[App Message]", commandAlias: "app", miniAppPath: "Home → Settings → Lock Management → Apps", whenToUse: "Block third-party integrations", limitations: "May affect legitimate apps" },
-  { id: "inline_keyboards", name: "Inline Keyboards", icon: "⌨️", whatItDoes: "Blocks messages with inline buttons", example: "[Buttons]", commandAlias: "inline", miniAppPath: "Home → Settings → Lock Management → Inline Keyboards", whenToUse: "Block bot interactions", limitations: "Blocks all inline buttons" },
-  { id: "emoji_only", name: "Emoji-Only Messages", icon: "😊", whatItDoes: "Blocks messages with only emojis", example: "😀😀😀", commandAlias: "emojionly", miniAppPath: "Home → Settings → Lock Management → Emoji Only", whenToUse: "Prevent emoji spam", limitations: "Only pure emoji messages" },
-  { id: "captionless", name: "Media Without Caption", icon: "🚫", whatItDoes: "Blocks media without captions", example: "[Photo no text]", commandAlias: "nocaption", miniAppPath: "Home → Settings → Lock Management → Captionless", whenToUse: "Require context for media", limitations: "All uncaptioned media" },
+  { id: "photos", name: "Photos", icon: "🖼️", whatItDoes: "Blocks image uploads", example: "[Photo]", commandAlias: "photo", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Photos", whenToUse: "Text-only discussions", limitations: "Blocks all images" },
+  { id: "videos", name: "Videos", icon: "🎬", whatItDoes: "Blocks video uploads", example: "[Video]", commandAlias: "video", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Videos", whenToUse: "Reduce media clutter", limitations: "Blocks all video content" },
+  { id: "audio", name: "Audio Files", icon: "🎵", whatItDoes: "Blocks audio file uploads", example: "[Audio.mp3]", commandAlias: "audio", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Audio", whenToUse: "Prevent music sharing", limitations: "Blocks all audio files" },
+  { id: "voice", name: "Voice Messages", icon: "🎤", whatItDoes: "Blocks voice notes", example: "[Voice Note]", commandAlias: "voice", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Voice", whenToUse: "Keep discussions readable", limitations: "Blocks all voice messages" },
+  { id: "gif", name: "GIFs/Animations", icon: "🎞️", whatItDoes: "Blocks animated GIFs", example: "[GIF]", commandAlias: "gif", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → GIF", whenToUse: "Reduce visual noise", limitations: "Blocks all animations" },
+  { id: "stickers", name: "Stickers", icon: "🎨", whatItDoes: "Blocks sticker messages", example: "[Sticker]", commandAlias: "sticker", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Stickers", whenToUse: "Professional groups", limitations: "Blocks all stickers" },
+  { id: "files", name: "Files/Documents", icon: "📁", whatItDoes: "Blocks document uploads", example: "[document.pdf]", commandAlias: "file", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Files", whenToUse: "Prevent file sharing", limitations: "Blocks all documents" },
+  { id: "location", name: "Locations", icon: "📍", whatItDoes: "Blocks location sharing", example: "[Location]", commandAlias: "location", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Location", whenToUse: "Privacy concerns", limitations: "Blocks all location shares" },
+  { id: "apps", name: "Apps/Software", icon: "📱", whatItDoes: "Blocks app/software messages", example: "[App Message]", commandAlias: "app", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Apps", whenToUse: "Block third-party integrations", limitations: "May affect legitimate apps" },
+  { id: "inline_keyboards", name: "Inline Keyboards", icon: "⌨️", whatItDoes: "Blocks messages with inline buttons", example: "[Buttons]", commandAlias: "inline", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Inline Keyboards", whenToUse: "Block bot interactions", limitations: "Blocks all inline buttons" },
+  { id: "emoji_only", name: "Emoji-Only Messages", icon: "😊", whatItDoes: "Blocks messages with only emojis", example: "😀😀😀", commandAlias: "emojionly", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Emoji Only", whenToUse: "Prevent emoji spam", limitations: "Only pure emoji messages" },
+  { id: "captionless", name: "Media Without Caption", icon: "🚫", whatItDoes: "Blocks media without captions", example: "[Photo no text]", commandAlias: "nocaption", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Captionless", whenToUse: "Require context for media", limitations: "All uncaptioned media" },
   // Bots & Advanced
-  { id: "bots", name: "Bot Messages", icon: "🤖", whatItDoes: "Blocks messages from other bots", example: "@OtherBot message", commandAlias: "bot", miniAppPath: "Home → Settings → Lock Management → Bots", whenToUse: "Single-bot groups", limitations: "Blocks all bot messages" },
-  { id: "bot_inviters", name: "Bot Inviters", icon: "👥", whatItDoes: "Bans users who add bots", example: "User adds @SpamBot", commandAlias: "botinviter", miniAppPath: "Home → Settings → Lock Management → Bot Inviters", whenToUse: "Prevent bot spam", limitations: "User gets banned" },
-  { id: "tabchi", name: "Tabchi Detection", icon: "🚫", whatItDoes: "Detects and bans users who promote other groups/channels", example: "User advertising in multiple groups", commandAlias: "tabchi", miniAppPath: "Home → Settings → Lock Management → Tabchi", whenToUse: "Prevent cross-group advertising", limitations: "May affect legitimate promoters" },
-  { id: "advertiser", name: "Advertisers", icon: "📢", whatItDoes: "Detects and blocks advertising behavior patterns", example: "User sending promotional content", commandAlias: "advertiser", miniAppPath: "Home → Settings → Lock Management → Advertisers", whenToUse: "Block spam/ad accounts", limitations: "Uses behavior analysis" },
-  { id: "suspicious_bio", name: "Suspicious Bio", icon: "📝", whatItDoes: "Blocks users with suspicious profile bios", example: "Bio containing ads or spam links", commandAlias: "suspiciousbio", miniAppPath: "Home → Settings → Lock Management → Suspicious Bio", whenToUse: "Block spammer accounts", limitations: "May affect legitimate users" },
-  { id: "phones", name: "Phone Numbers", icon: "📞", whatItDoes: "Blocks phone numbers", example: "+1234567890", commandAlias: "phone", miniAppPath: "Home → Settings → Lock Management → Phones", whenToUse: "Prevent contact sharing", limitations: "Blocks all phone formats" },
-  { id: "games", name: "Games", icon: "🎮", whatItDoes: "Blocks Telegram games", example: "[Game]", commandAlias: "game", miniAppPath: "Home → Settings → Lock Management → Games", whenToUse: "Focus on discussions", limitations: "Blocks all games" },
-  { id: "polls", name: "Polls", icon: "📊", whatItDoes: "Blocks poll creation", example: "[Poll]", commandAlias: "poll", miniAppPath: "Home → Settings → Lock Management → Polls", whenToUse: "Admin-only polling", limitations: "Blocks all polls" },
-  { id: "slash_commands", name: "Slash Commands", icon: "⚡", whatItDoes: "Blocks /command messages", example: "/start, /help", commandAlias: "slash", miniAppPath: "Home → Settings → Lock Management → Slash Commands", whenToUse: "Prevent command spam", limitations: "Blocks all /commands" },
-  { id: "cyrillic", name: "Cyrillic Text", icon: "🔠", whatItDoes: "Blocks Cyrillic alphabet messages", example: "Привет", commandAlias: "cyrillic", miniAppPath: "Home → Settings → Lock Management → Cyrillic", whenToUse: "Non-Russian groups", limitations: "Blocks all Cyrillic" },
-  { id: "chinese", name: "Chinese Text", icon: "🈯", whatItDoes: "Blocks Chinese characters", example: "你好", commandAlias: "chinese", miniAppPath: "Home → Settings → Lock Management → Chinese", whenToUse: "Non-Chinese groups", limitations: "Blocks all Chinese text" },
-  { id: "user_replies", name: "User Replies", icon: "💬", whatItDoes: "Blocks reply messages", example: "Reply to message", commandAlias: "reply", miniAppPath: "Home → Settings → Lock Management → User Replies", whenToUse: "Linear conversation only", limitations: "All reply messages" },
-  { id: "cross_replies", name: "Cross-Chat Replies", icon: "🔀", whatItDoes: "Blocks replies from other chats", example: "External reply", commandAlias: "crossreply", miniAppPath: "Home → Settings → Lock Management → Cross Replies", whenToUse: "Isolated discussions", limitations: "External replies only" },
+  { id: "bots", name: "Bot Messages", icon: "🤖", whatItDoes: "Blocks messages from other bots", example: "@OtherBot message", commandAlias: "bot", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Bots", whenToUse: "Single-bot groups", limitations: "Blocks all bot messages" },
+  { id: "bot_inviters", name: "Bot Inviters", icon: "👥", whatItDoes: "Bans users who add bots", example: "User adds @SpamBot", commandAlias: "botinviter", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Bot Inviters", whenToUse: "Prevent bot spam", limitations: "User gets banned" },
+  { id: "tabchi", name: "Tabchi Detection", icon: "🚫", whatItDoes: "Detects and bans users who promote other groups/channels", example: "User advertising in multiple groups", commandAlias: "tabchi", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Tabchi", whenToUse: "Prevent cross-group advertising", limitations: "May affect legitimate promoters" },
+  { id: "advertiser", name: "Advertisers", icon: "📢", whatItDoes: "Detects and blocks advertising behavior patterns", example: "User sending promotional content", commandAlias: "advertiser", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Advertisers", whenToUse: "Block spam/ad accounts", limitations: "Uses behavior analysis" },
+  { id: "suspicious_bio", name: "Suspicious Bio", icon: "📝", whatItDoes: "Blocks users with suspicious profile bios", example: "Bio containing ads or spam links", commandAlias: "suspiciousbio", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Suspicious Bio", whenToUse: "Block spammer accounts", limitations: "May affect legitimate users" },
+  { id: "phones", name: "Phone Numbers", icon: "📞", whatItDoes: "Blocks phone numbers", example: "+1234567890", commandAlias: "phone", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Phones", whenToUse: "Prevent contact sharing", limitations: "Blocks all phone formats" },
+  { id: "games", name: "Games", icon: "🎮", whatItDoes: "Blocks Telegram games", example: "[Game]", commandAlias: "game", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Games", whenToUse: "Focus on discussions", limitations: "Blocks all games" },
+  { id: "polls", name: "Polls", icon: "📊", whatItDoes: "Blocks poll creation", example: "[Poll]", commandAlias: "poll", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Polls", whenToUse: "Admin-only polling", limitations: "Blocks all polls" },
+  { id: "slash_commands", name: "Slash Commands", icon: "⚡", whatItDoes: "Blocks /command messages", example: "/start, /help", commandAlias: "slash", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Slash Commands", whenToUse: "Prevent command spam", limitations: "Blocks all /commands" },
+  { id: "cyrillic", name: "Cyrillic Text", icon: "🔠", whatItDoes: "Blocks Cyrillic alphabet messages", example: "Привет", commandAlias: "cyrillic", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Cyrillic", whenToUse: "Non-Russian groups", limitations: "Blocks all Cyrillic" },
+  { id: "chinese", name: "Chinese Text", icon: "🈯", whatItDoes: "Blocks Chinese characters", example: "你好", commandAlias: "chinese", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Chinese", whenToUse: "Non-Chinese groups", limitations: "Blocks all Chinese text" },
+  { id: "user_replies", name: "User Replies", icon: "💬", whatItDoes: "Blocks reply messages", example: "Reply to message", commandAlias: "reply", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → User Replies", whenToUse: "Linear conversation only", limitations: "All reply messages" },
+  { id: "cross_replies", name: "Cross-Chat Replies", icon: "🔀", whatItDoes: "Blocks replies from other chats", example: "External reply", commandAlias: "crossreply", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Cross Replies", whenToUse: "Isolated discussions", limitations: "External replies only" },
 ];
 
 const HELP_LOCKS_PAGE_SIZE = 8;
@@ -530,6 +592,314 @@ const PENALTY_HELP_DATA: PenaltyHelpData[] = [
 ];
 
 const HELP_PENALTIES_PAGE_SIZE = 6;
+
+// ============================================
+// SETTINGS HELP DATA
+// ============================================
+
+type SettingsHelpData = {
+  id: string;
+  name: string;
+  icon: string;
+  whatItDoes: string;
+  commands: string[];
+};
+
+const SETTINGS_HELP_DATA: SettingsHelpData[] = [
+  {
+    id: "view_settings",
+    name: "View Settings",
+    icon: "⚙️",
+    whatItDoes: "Use this command to view and review all your group's current settings, including active locks, verification status, and other configurations.",
+    commands: ["!settings", "!status", "!info"],
+  },
+  {
+    id: "media_lock",
+    name: "Media Lock",
+    icon: "🖼️",
+    whatItDoes: "Control which types of media can be sent in your group. Lock photos, videos, GIFs, stickers, voice messages, and other media types to keep your group focused.",
+    commands: ["!lock photo", "!lock video", "!lock sticker", "!lock voice", "!lock gif", "!unlock photo"],
+  },
+  {
+    id: "message_limit",
+    name: "Message Limit",
+    icon: "📏",
+    whatItDoes: "Set minimum and maximum character limits for messages. Messages that don't meet the character requirements will be automatically deleted.",
+    commands: ["!setmaxchar 150", "!setminchar 10", "!unlock char"],
+  },
+  {
+    id: "add_admin",
+    name: "Add Admin",
+    icon: "👑",
+    whatItDoes: "Add new bot admins to your group. Bot admins can access special permissions assigned by the bot. You can also manage or remove admins added by the bot.",
+    commands: ["!addadmin", "!remadmin", "!adminlist"],
+  },
+  {
+    id: "strict_mode",
+    name: "Strict Mode",
+    icon: "🔐",
+    whatItDoes: "Enable strict mode to count violations by all users including admins. When disabled, admins are exempt from most restrictions and their messages are not deleted.",
+    commands: ["!strict on", "!strict off", "!adminlock on"],
+  },
+  {
+    id: "spam_filter",
+    name: "Spam Filter",
+    icon: "🚫",
+    whatItDoes: "Add words or phrases to the blacklist. Any message containing blacklisted words will be automatically deleted. Use whitelist to allow specific words.",
+    commands: ["!filter add [word]", "!filter remove [word]", "!filterlist", "!clearfilter"],
+  },
+  {
+    id: "auto_lock",
+    name: "Auto Lock",
+    icon: "🔒",
+    whatItDoes: "Automatically lock the group at specified times. Messages from non-admins will be deleted during locked periods. Configure quiet hours in the bot panel.",
+    commands: ["!silence on", "!silence off", "!silence 22:00 06:00"],
+  },
+  {
+    id: "group_lock",
+    name: "Group Lock",
+    icon: "🔐",
+    whatItDoes: "Emergency lock the entire group. Only admins can send messages while the group is locked. Useful for dealing with spam attacks or important announcements.",
+    commands: ["!lock group", "!unlock group", "!lockall", "!unlockall"],
+  },
+  {
+    id: "flood_control",
+    name: "Flood Control",
+    icon: "🌊",
+    whatItDoes: "Prevent message flooding/spamming. Users who send too many messages in a short time will be automatically muted. Configure thresholds in the bot panel.",
+    commands: ["!flood on", "!flood off", "!setflood 5 10"],
+  },
+];
+
+// ============================================
+// PROMOTE & DEMOTE HELP DATA
+// ============================================
+
+type RankHelpData = {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  commands: { label: string; command: string }[];
+  notes: string;
+};
+
+const RANK_HELP_DATA: RankHelpData[] = [
+  {
+    id: "owner",
+    name: "Owner",
+    icon: "👑",
+    description: "Highest access level in the group. Owners can change all group settings without any restrictions and promote/demote users (except other owners). Only the original group creator can promote/demote owner rank.",
+    commands: [
+      { label: "SetOwner", command: "!setowner" },
+      { label: "RemOwner", command: "!remowner" },
+      { label: "OwnerList", command: "!ownerlist" },
+      { label: "Clean OwnerList", command: "!cleanownerlist" },
+    ],
+    notes: "Commands can be used with reply, username, mention, or numeric ID.",
+  },
+  {
+    id: "manager",
+    name: "Manager",
+    icon: "👤",
+    description: "Managers can change most group settings and restrict/ban regular users when needed. Owners can customize each manager's permissions through the user panel. Managers cannot promote or demote other users.",
+    commands: [
+      { label: "Promote", command: "!promote" },
+      { label: "Demote", command: "!demote" },
+      { label: "ModList", command: "!modlist" },
+      { label: "Clean ModList", command: "!cleanmodlist" },
+    ],
+    notes: "Commands can be used with reply, username, mention, or numeric ID. Temporary manager: !promote [hours]",
+  },
+  {
+    id: "vip",
+    name: "VIP/Special",
+    icon: "⭐",
+    description: "VIP members bypass all content restrictions and filters. Their messages are never deleted or restricted by the bot.",
+    commands: [
+      { label: "VIP", command: "!vip" },
+      { label: "RemVIP", command: "!remvip" },
+      { label: "VIPList", command: "!viplist" },
+    ],
+    notes: "Commands can be used with reply, username, mention, or numeric ID.",
+  },
+];
+
+// ============================================
+// CLEANUP HELP DATA
+// ============================================
+
+type CleanupHelpData = {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  commands: string[];
+};
+
+const CLEANUP_HELP_DATA: CleanupHelpData[] = [
+  {
+    id: "messages",
+    name: "Messages",
+    icon: "💬",
+    description: "Using this feature, group admins can delete a specified number of messages from the group.\n\nCleanup in groups with less than 100 members is limited and only performed through the bot API, meaning only messages from the last 48 hours will be deleted without any filtering.\n\nIn groups with more than 100 members, group owners can install the companion bot using the install companion command to easily clean up the group by message type.\n\nAdmins and owners can set up to five automatic cleanup schedules.",
+    commands: ["Del count", "SetAutoClean", "RemAutoClean", "AutoClean Stats"],
+  },
+  {
+    id: "bans",
+    name: "Ban List",
+    icon: "🚫",
+    description: "Using this command, all banned users will be removed from the ban list and unbanned. Only the bot owner can use this command.",
+    commands: ["Clean Bans"],
+  },
+  {
+    id: "warns",
+    name: "Warning List",
+    icon: "⚠️",
+    description: "Using this command, all warning records will be removed from the bot's warning list.",
+    commands: ["Clean Warns"],
+  },
+  {
+    id: "mutes",
+    name: "Mute List",
+    icon: "🔇",
+    description: "Using this command, all muted users will be removed from the mute list and unmuted. Only the bot owner can use this command.",
+    commands: ["Clean Mutes"],
+  },
+  {
+    id: "filters",
+    name: "Filter Words",
+    icon: "🚷",
+    description: "Using this command, all filtered keywords will be removed from the bot's filter list.",
+    commands: ["Clean Filters"],
+  },
+  {
+    id: "exempts",
+    name: "Exempt Users",
+    icon: "✅",
+    description: "Using this command, all exempt users will be removed from the exempt list.",
+    commands: ["Clean Exempts"],
+  },
+  {
+    id: "modlist",
+    name: "Admin Users",
+    icon: "👤",
+    description: "Using this command, all group managers will be demoted. Only the bot owner can use this command.",
+    commands: ["Clean ModList"],
+  },
+  {
+    id: "vips",
+    name: "VIP Users",
+    icon: "⭐",
+    description: "Using this command, all VIP users will be removed from the VIP list.",
+    commands: ["Clean VIPs"],
+  },
+  {
+    id: "nicknames",
+    name: "Nicknames",
+    icon: "📛",
+    description: "Using this command, all stored nicknames will be removed from the bot's nickname list.",
+    commands: ["Clean Nicknames"],
+  },
+  {
+    id: "blocks",
+    name: "Blocked Users",
+    icon: "🚫",
+    description: "Using this command, all blocked users will be removed from the block list.",
+    commands: ["Clean Blocks"],
+  },
+  {
+    id: "restricts",
+    name: "Restricted Users",
+    icon: "🔒",
+    description: "Using this command, all restricted users will be removed from the restriction list.",
+    commands: ["Clean Restricts"],
+  },
+  {
+    id: "bots",
+    name: "Bots",
+    icon: "🤖",
+    description: "Using this command, all bots will be removed from the group. Only the bot owner can use this command.",
+    commands: ["Clean Bots"],
+  },
+  {
+    id: "fakes",
+    name: "Fake Accounts",
+    icon: "👻",
+    description: "Using this command, all detected fake accounts will be removed from the group.",
+    commands: ["Clean Fakes"],
+  },
+  {
+    id: "deleted",
+    name: "Deleted Accounts",
+    icon: "🗑️",
+    description: "Using this command, all deleted (ghost) accounts will be removed from the group.",
+    commands: ["Clean Deleted"],
+  },
+];
+
+// ============================================
+// WORD FILTER HELP DATA
+// ============================================
+
+type WordFilterHelpData = {
+  id: string;
+  name: string;
+  icon: string;
+  summary: string;
+  description: string;
+  commands: { label: string; command: string }[];
+  examples?: { description: string; command: string }[];
+};
+
+const WORDFILTER_HELP_DATA: WordFilterHelpData[] = [
+  {
+    id: "single",
+    name: "Single Filtering",
+    icon: "➊",
+    summary: "Filter words one at a time with optional punishments",
+    description: "Using this feature, group admins can filter (block) specific words in the group. When a filtered word is sent, the bot will delete the message. Optionally, you can set a punishment for the sender (warn, ban, or mute).",
+    commands: [
+      { label: "AddFilter", command: "AddFilter [word]" },
+      { label: "FilterWarn", command: "FilterWarn [word]" },
+      { label: "FilterBan", command: "FilterBan [word]" },
+      { label: "FilterMute", command: "FilterMute [word]" },
+      { label: "RemFilter", command: "RemFilter [word]" },
+      { label: "FilterList", command: "FilterList" },
+      { label: "Clean FilterList", command: "Clean FilterList" },
+    ],
+    examples: [
+      { description: "Filter the word 'spam' (just delete messages containing it)", command: "AddFilter spam" },
+      { description: "Filter 'advertisement' and warn the sender", command: "FilterWarn advertisement" },
+    ],
+  },
+  {
+    id: "continuous",
+    name: "Continuous Filtering",
+    icon: "➋",
+    summary: "Enter filter mode to add multiple words quickly",
+    description: "This is a more efficient method for filtering multiple words. After sending the Filter command, you'll receive initial settings. Then, all words you send will be continuously filtered until you exit the mode. This is especially useful when you need to add many filtered words at once.",
+    commands: [
+      { label: "Filter", command: "Filter" },
+    ],
+    examples: [
+      { description: "Start continuous filter mode", command: "Filter" },
+    ],
+  },
+  {
+    id: "private",
+    name: "Private Filtering",
+    icon: "➌",
+    summary: "Filter words privately via bot panel",
+    description: "If you don't want to filter words directly in the group (to keep the commands hidden from members), you can use the private panel. Send the 'Panel PV' command in the group, then go to the bot's private chat. Navigate to: Lists → Filter List. From there, you can view, add, and clear filtered words privately.",
+    commands: [
+      { label: "Panel PV", command: "Panel PV" },
+    ],
+    examples: [
+      { description: "Open the private panel link", command: "Panel PV" },
+    ],
+  },
+];
 
 const INLINE_LIST_CONFIGS: InlineListConfig[] = [
   {
@@ -1897,6 +2267,18 @@ const INLINE_LIST_ADD_REGEX = /^fw_inline_add:(-?\d+):([a-z0-9_]+)$/;
 const INLINE_HELP_REGEX = /^fw_inline_help:(-?\d+)$/;
 const INLINE_ADVANCED_REGEX = /^fw_inline_advanced:(-?\d+)$/;
 
+// UserPanel callback patterns
+const USER_PANEL_MAIN_REGEX = /^fw_userpanel:(-?\d+):(\d+)$/;
+const USER_PANEL_LOCKS_REGEX = /^fw_up_locks:(-?\d+):(\d+)$/;
+const USER_PANEL_LOCK_TOGGLE_REGEX = /^fw_up_lock_toggle:(-?\d+):(\d+):([a-z0-9_]+)$/;
+const USER_PANEL_PUNISHMENTS_REGEX = /^fw_up_punish:(-?\d+):(\d+)$/;
+const USER_PANEL_PROMOTE_REGEX = /^fw_up_promote:(-?\d+):(\d+)$/;
+const USER_PANEL_BAN_REGEX = /^fw_up_ban:(-?\d+):(\d+)$/;
+const USER_PANEL_MUTE_REGEX = /^fw_up_mute:(-?\d+):(\d+)$/;
+const USER_PANEL_VIP_REGEX = /^fw_up_vip:(-?\d+):(\d+)$/;
+const USER_PANEL_ADMIN_REGEX = /^fw_up_admin:(-?\d+):(\d+)$/;
+const USER_PANEL_LOCK_GUIDE_REGEX = /^fw_up_lock_guide:(-?\d+):(\d+)$/;
+
 function formatGroupSnapshot(): string {
   const groups = listGroups();
   if (groups.length === 0) {
@@ -2210,6 +2592,317 @@ async function showHelpTabchi(ctx: Context, chatId: string): Promise<void> {
 
   const keyboard = Markup.inlineKeyboard([
     [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+  ]);
+
+  await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
+}
+
+// ============================================
+// USER PANEL HELP SECTION
+// ============================================
+
+async function showHelpUserPanel(ctx: Context, chatId: string): Promise<void> {
+  const lines: string[] = [];
+
+  lines.push("👤 <b>User Panel</b>");
+  lines.push("");
+  lines.push("<i>With the User Panel command, you can apply all settings and restrictions to a specific user. Including restrictions on sending messages, promotions and demotions, and more...</i>");
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("<b>📋 What is User Panel?</b>");
+  lines.push("");
+  lines.push("User Panel allows you to manage individual users within your group. You can:");
+  lines.push("• View detailed user information");
+  lines.push("• Set user-specific lock overrides");
+  lines.push("• Apply punishments (Ban, Mute)");
+  lines.push("• Promote users to VIP or Bot Admin");
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("<b>🔒 User-Specific Locks</b>");
+  lines.push("");
+  lines.push("Each lock has 3 states:");
+  lines.push("");
+  lines.push("➊ <b>✗ (Default)</b>");
+  lines.push("Uses the group's general settings. No special treatment for this user.");
+  lines.push("");
+  lines.push("➋ <b>Open</b>");
+  lines.push("Content is allowed for this user even if locked in group settings.");
+  lines.push("");
+  lines.push("➌ <b>🔐 (Locked)</b>");
+  lines.push("Content is blocked for this user even if allowed in group settings.");
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("<b>📝 Commands</b>");
+  lines.push("");
+  lines.push("The following commands work with reply, username, or numeric ID:");
+  lines.push("");
+  lines.push("<code>!userpanel</code> - Open user panel (reply to user)");
+  lines.push("<code>!userpanel @username</code> - By username");
+  lines.push("<code>!userpanel 123456789</code> - By numeric ID");
+  lines.push("");
+  lines.push("<b>Aliases:</b> <code>!up</code>, <code>!panel</code>");
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("<b>📍 Mini App Path:</b>");
+  lines.push("My Groups → Group Manage → Members → Select User");
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+  ]);
+
+  await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
+}
+
+// ============================================
+// CLEANUP HELP SECTION
+// ============================================
+
+function buildHelpCleanupKeyboard(chatId: string): InlineKeyboard {
+  const rows: any[] = [];
+
+  // Build cleanup buttons (2 per row)
+  for (let i = 0; i < CLEANUP_HELP_DATA.length; i += 2) {
+    const row: any[] = [];
+    for (let j = 0; j < 2 && i + j < CLEANUP_HELP_DATA.length; j++) {
+      const item = CLEANUP_HELP_DATA[i + j];
+      const label = `${item.icon} ${item.name}`;
+      row.push(Markup.button.callback(label, `fw_help_cleanup_item:${chatId}:${item.id}`));
+    }
+    rows.push(row);
+  }
+
+  rows.push([Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)]);
+  return Markup.inlineKeyboard(rows);
+}
+
+async function showHelpCleanup(ctx: Context, chatId: string): Promise<void> {
+  const lines: string[] = [];
+
+  lines.push("🧹 <b>Bot Cleanup Section Guide</b>");
+  lines.push("");
+  lines.push("<i>Clean up your group by removing inactive members, clearing lists, and managing bot data. Select a topic below to learn more.</i>");
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("Select a cleanup category below to view detailed information and available commands:");
+
+  const keyboard = buildHelpCleanupKeyboard(chatId);
+  await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
+}
+
+async function showHelpCleanupDetail(ctx: Context, chatId: string, itemId: string): Promise<void> {
+  const item = CLEANUP_HELP_DATA.find((i) => i.id === itemId);
+  if (!item) {
+    await ctx.answerCbQuery("Item not found", { show_alert: true });
+    return;
+  }
+
+  const lines: string[] = [];
+
+  lines.push(`${item.icon} <b>${item.name}</b>`);
+  lines.push("");
+  lines.push(item.description);
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("<b>📝 Commands:</b>");
+  lines.push("");
+  for (const cmd of item.commands) {
+    lines.push(`› <code>${cmd}</code>`);
+  }
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback("◀️ Back to Cleanup", `fw_help_cleanup:${chatId}`)],
+    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+  ]);
+
+  await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
+}
+
+// ============================================
+// WORD FILTER HELP SECTION
+// ============================================
+
+function buildHelpWordFilterKeyboard(chatId: string): InlineKeyboard {
+  const rows: any[] = [];
+
+  // Build word filter buttons (1 per row for better readability)
+  for (const item of WORDFILTER_HELP_DATA) {
+    const label = `${item.icon} ${item.name}`;
+    rows.push([Markup.button.callback(label, `fw_help_wordfilter_item:${chatId}:${item.id}`)]);
+  }
+
+  rows.push([Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)]);
+  return Markup.inlineKeyboard(rows);
+}
+
+async function showHelpWordFilter(ctx: Context, chatId: string): Promise<void> {
+  const lines: string[] = [];
+
+  lines.push("🚷 <b>Word Filter Guide</b>");
+  lines.push("");
+  lines.push("<i>Using this feature, group admins can filter (block) specific words in the group. When a filtered word is sent, the bot will delete the message. Optionally, you can set a punishment for the sender.</i>");
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("Select a filtering method below to view detailed information and available commands:");
+
+  const keyboard = buildHelpWordFilterKeyboard(chatId);
+  await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
+}
+
+async function showHelpWordFilterDetail(ctx: Context, chatId: string, itemId: string): Promise<void> {
+  const item = WORDFILTER_HELP_DATA.find((i) => i.id === itemId);
+  if (!item) {
+    await ctx.answerCbQuery("Item not found", { show_alert: true });
+    return;
+  }
+
+  const lines: string[] = [];
+
+  lines.push(`${item.icon} <b>${item.name}</b>`);
+  lines.push("");
+  lines.push(`<i>${item.summary}</i>`);
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push(item.description);
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("<b>📝 Commands:</b>");
+  lines.push("");
+  for (const cmd of item.commands) {
+    lines.push(`› <code>${cmd.command}</code>`);
+  }
+
+  if (item.examples && item.examples.length > 0) {
+    lines.push("");
+    lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+    lines.push("");
+    lines.push("<b>💡 Examples:</b>");
+    lines.push("");
+    for (const ex of item.examples) {
+      lines.push(`• ${ex.description}`);
+      lines.push(`  ⮨ <code>${ex.command}</code>`);
+    }
+  }
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback("◀️ Back to Word Filter", `fw_help_wordfilter:${chatId}`)],
+    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+  ]);
+
+  await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
+}
+
+// ============================================
+// SETTINGS HELP SECTION
+// ============================================
+
+function buildHelpSettingsKeyboard(chatId: string): InlineKeyboard {
+  const rows: any[] = [];
+
+  // Build settings buttons (2 per row)
+  for (let i = 0; i < SETTINGS_HELP_DATA.length; i += 2) {
+    const row: any[] = [];
+    for (let j = 0; j < 2 && i + j < SETTINGS_HELP_DATA.length; j++) {
+      const setting = SETTINGS_HELP_DATA[i + j];
+      const label = `${setting.icon} ${setting.name}`;
+      row.push(Markup.button.callback(label, `fw_help_setting:${chatId}:${setting.id}`));
+    }
+    rows.push(row);
+  }
+
+  rows.push([Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)]);
+  return Markup.inlineKeyboard(rows);
+}
+
+async function showHelpSettings(ctx: Context, chatId: string): Promise<void> {
+  const message = `⚙️ <b>Settings Help</b>\n\nLearn about bot settings and commands:\n\nSelect a topic to see details:`;
+  await replyOrEditRoot(ctx, message, buildHelpSettingsKeyboard(chatId));
+}
+
+async function showHelpSettingDetail(ctx: Context, chatId: string, settingId: string): Promise<void> {
+  const setting = SETTINGS_HELP_DATA.find((s) => s.id === settingId);
+  if (!setting) {
+    await replyOrEditRoot(ctx, "Setting not found.", buildHelpSettingsKeyboard(chatId));
+    return;
+  }
+
+  const lines: string[] = [];
+  lines.push(`${setting.icon} <b>${setting.name}</b>`);
+  lines.push("");
+  lines.push(`<b>📝 What does it do?</b>`);
+  lines.push(setting.whatItDoes);
+  lines.push("");
+  lines.push(`<b>⌨️ Commands:</b>`);
+  lines.push("");
+  for (const cmd of setting.commands) {
+    lines.push(`❯ <code>${cmd}</code>`);
+  }
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback("◀️ Back to Settings", `fw_help_settings:${chatId}`)],
+    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+  ]);
+
+  await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
+}
+
+// ============================================
+// PROMOTE & DEMOTE HELP KEYBOARDS AND DISPLAY
+// ============================================
+
+function buildHelpPromoteKeyboard(chatId: string): InlineKeyboard {
+  const rows: any[] = [];
+
+  // Build rank buttons (2 per row)
+  for (let i = 0; i < RANK_HELP_DATA.length; i += 2) {
+    const row: any[] = [];
+    for (let j = 0; j < 2 && i + j < RANK_HELP_DATA.length; j++) {
+      const rank = RANK_HELP_DATA[i + j];
+      const label = `• ${rank.name} ${rank.icon}`;
+      row.push(Markup.button.callback(label, `fw_help_rank:${chatId}:${rank.id}`));
+    }
+    rows.push(row);
+  }
+
+  rows.push([Markup.button.callback("◀️ Back", `fw_inline_help:${chatId}`)]);
+  return Markup.inlineKeyboard(rows);
+}
+
+async function showHelpPromote(ctx: Context, chatId: string): Promise<void> {
+  const message = `👑 <b>Promote & Demote Help</b>\n\nLearn about user ranks and promotion commands:\n\nSelect a rank to view details:`;
+  await replyOrEditRoot(ctx, message, buildHelpPromoteKeyboard(chatId));
+}
+
+async function showHelpRankDetail(ctx: Context, chatId: string, rankId: string): Promise<void> {
+  const rank = RANK_HELP_DATA.find((r) => r.id === rankId);
+  if (!rank) {
+    await replyOrEditRoot(ctx, "Rank not found.", buildHelpPromoteKeyboard(chatId));
+    return;
+  }
+
+  const lines: string[] = [];
+  lines.push(`◀️ ${rank.name}`);
+  lines.push("");
+  lines.push(rank.description);
+  lines.push("");
+  lines.push(`┃ ${rank.notes}`);
+  lines.push("");
+  lines.push(`«« Commands:`);
+  for (const cmd of rank.commands) {
+    lines.push(`〉 ${cmd.label}`);
+  }
+  lines.push(`〉 ${rank.commands.map(c => c.command).join(", ")}`);
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback("◀️ Back", `fw_help_promote:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -5827,6 +6520,36 @@ bot.action(/^fw_help_section:(-?\d+):([a-z_]+)$/, async (ctx) => {
     return;
   }
 
+  // If Settings, show the settings submenu
+  if (sectionId === "settings") {
+    await showHelpSettings(ctx, chatId);
+    return;
+  }
+
+  // If User Panel, show the user panel help
+  if (sectionId === "user_panel") {
+    await showHelpUserPanel(ctx, chatId);
+    return;
+  }
+
+  // If Promote & Demote, show the promote/demote help
+  if (sectionId === "promote_demote") {
+    await showHelpPromote(ctx, chatId);
+    return;
+  }
+
+  // If Cleanup, show the cleanup help
+  if (sectionId === "cleanup") {
+    await showHelpCleanup(ctx, chatId);
+    return;
+  }
+
+  // If Word Filter, show the word filter help
+  if (sectionId === "word_filter") {
+    await showHelpWordFilter(ctx, chatId);
+    return;
+  }
+
   // For unimplemented sections, show "coming soon" message
   if (!section.implemented) {
     const message = `${section.icon} <b>${section.title}</b>\n\n🚧 This help section is coming soon!\n\nWe're working on documenting this feature.`;
@@ -5884,6 +6607,561 @@ bot.action(/^fw_help_penalty:(-?\d+):([a-z_]+)$/, async (ctx) => {
   if (!chatId || !penaltyId) return;
 
   await showHelpPenaltyDetail(ctx, chatId, penaltyId);
+});
+
+// Settings submenu handler
+bot.action(/^fw_help_settings:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_help_settings:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  await showHelpSettings(ctx, chatId);
+});
+
+// Individual setting detail handler
+bot.action(/^fw_help_setting:(-?\d+):([a-z_]+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_help_setting:(-?\d+):([a-z_]+)$/);
+  const chatId = match?.[1];
+  const settingId = match?.[2];
+  if (!chatId || !settingId) return;
+
+  await showHelpSettingDetail(ctx, chatId, settingId);
+});
+
+// Promote & Demote submenu handler
+bot.action(/^fw_help_promote:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_help_promote:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  await showHelpPromote(ctx, chatId);
+});
+
+// Individual rank detail handler
+bot.action(/^fw_help_rank:(-?\d+):([a-z_]+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_help_rank:(-?\d+):([a-z_]+)$/);
+  const chatId = match?.[1];
+  const rankId = match?.[2];
+  if (!chatId || !rankId) return;
+
+  await showHelpRankDetail(ctx, chatId, rankId);
+});
+
+// Cleanup menu handler
+bot.action(/^fw_help_cleanup:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_help_cleanup:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  await showHelpCleanup(ctx, chatId);
+});
+
+// Individual cleanup item detail handler
+bot.action(/^fw_help_cleanup_item:(-?\d+):([a-z_]+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_help_cleanup_item:(-?\d+):([a-z_]+)$/);
+  const chatId = match?.[1];
+  const itemId = match?.[2];
+  if (!chatId || !itemId) return;
+
+  await showHelpCleanupDetail(ctx, chatId, itemId);
+});
+
+// Word Filter menu handler
+bot.action(/^fw_help_wordfilter:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_help_wordfilter:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  await showHelpWordFilter(ctx, chatId);
+});
+
+// Individual word filter item detail handler
+bot.action(/^fw_help_wordfilter_item:(-?\d+):([a-z_]+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_help_wordfilter_item:(-?\d+):([a-z_]+)$/);
+  const chatId = match?.[1];
+  const itemId = match?.[2];
+  if (!chatId || !itemId) return;
+
+  await showHelpWordFilterDetail(ctx, chatId, itemId);
+});
+
+// ============================================
+// USER PANEL IMPLEMENTATION
+// ============================================
+
+// Show User Panel Main View
+async function showUserPanelMain(ctx: Context, chatId: string, targetUserId: string): Promise<void> {
+  // Try to get user info from Telegram
+  let userName = "Unknown User";
+  let userUsername = "";
+  let userStatus = "Member";
+  let botRole = "Regular User";
+
+  try {
+    const numericChatId = parseInt(chatId, 10);
+    const numericUserId = parseInt(targetUserId, 10);
+    const member = await ctx.telegram.getChatMember(numericChatId, numericUserId);
+
+    userName = member.user.first_name + (member.user.last_name ? ` ${member.user.last_name}` : "");
+    userUsername = member.user.username ?? "";
+
+    switch (member.status) {
+      case "creator": userStatus = "Creator"; break;
+      case "administrator": userStatus = "Administrator"; break;
+      case "member": userStatus = "Group Member"; break;
+      case "restricted": userStatus = "Restricted"; break;
+      case "left": userStatus = "Left"; break;
+      case "kicked": userStatus = "Banned"; break;
+    }
+  } catch {
+    // User might not be in group or API error
+  }
+
+  // Load user panel settings
+  const settings = await getUserPanelSettings(chatId, targetUserId);
+  const nickname = settings.nickname ?? "None";
+
+  // Check ban/mute status
+  let isBanned = false;
+  let isMuted = false;
+  try {
+    const numericChatId = parseInt(chatId, 10);
+    const numericUserId = parseInt(targetUserId, 10);
+    const member = await ctx.telegram.getChatMember(numericChatId, numericUserId);
+    isBanned = member.status === "kicked";
+    isMuted = member.status === "restricted" && !member.can_send_messages;
+  } catch {
+    // ignore
+  }
+
+  // Get warning count
+  let warningCount = 0;
+  if (databaseAvailable) {
+    try {
+      const { prisma } = await import("../server/db/client.js");
+      const group = await prisma.group.findUnique({
+        where: { telegramChatId: chatId },
+        select: { id: true },
+      });
+      if (group) {
+        const warning = await prisma.userWarning.findUnique({
+          where: {
+            groupId_telegramUserId: {
+              groupId: group.id,
+              telegramUserId: targetUserId,
+            },
+          },
+        });
+        warningCount = warning?.count ?? 0;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  const message = `◄ <b>User Status:</b>
+
+⊹ In Group: ${userStatus}
+⊹ In Bot: ${botRole}
+
+⊹ User Name: ${userName}
+⊹ Numeric ID: ${targetUserId}
+⊹ Username: ${userUsername || "None"}
+⊹ Nickname: ${nickname}
+⊹ Global Rank: None
+
+⊹ Add Count: 0
+⊹ Today's Messages: 0
+⊹ Message Rank: None
+
+⊹ Banned: ${isBanned ? "Yes" : "No"}
+⊹ Muted: ${isMuted ? "Yes" : "No"}
+⊹ Tabchi: No
+⊹ Warning Count: ${warningCount}
+
+<i>This panel is specific to the selected user
+and does not affect group or other user settings.</i>`;
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback("• Locks & Restrictions", `fw_up_locks:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("• Punishments & Release", `fw_up_punish:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("• Promote & Demote", `fw_up_promote:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("• Confirm & Close", `fw_up_close:${chatId}:${targetUserId}`)],
+  ]);
+
+  await replyOrEditRoot(ctx, message, keyboard);
+}
+
+// Show User Panel Locks Section
+async function showUserPanelLocks(ctx: Context, chatId: string, targetUserId: string): Promise<void> {
+  // Get user info for header
+  let userUsername = "";
+  try {
+    const numericChatId = parseInt(chatId, 10);
+    const numericUserId = parseInt(targetUserId, 10);
+    const member = await ctx.telegram.getChatMember(numericChatId, numericUserId);
+    userUsername = member.user.username ?? member.user.first_name;
+  } catch {
+    userUsername = targetUserId;
+  }
+
+  // Load user lock overrides
+  const settings = await getUserPanelSettings(chatId, targetUserId);
+  const overrides = settings.lockOverrides;
+
+  const message = `⊹ Username: ${userUsername}
+«Locks & Restrictions Section»`;
+
+  const rows: any[] = [];
+
+  // Guide button at top
+  rows.push([Markup.button.callback("• Guide for Locks in this Section", `fw_up_lock_guide:${chatId}:${targetUserId}`)]);
+
+  // Build lock toggle buttons (2 per row)
+  for (let i = 0; i < USER_PANEL_LOCK_ITEMS.length; i += 2) {
+    const row: any[] = [];
+
+    for (let j = 0; j < 2 && i + j < USER_PANEL_LOCK_ITEMS.length; j++) {
+      const item = USER_PANEL_LOCK_ITEMS[i + j];
+      const state = (overrides[item.key] as UserLockOverrideState) ?? 'default';
+      const stateIcon = getUserLockStateIcon(state);
+      const label = `${item.label} ${stateIcon}`;
+      row.push(Markup.button.callback(label, `fw_up_lock_toggle:${chatId}:${targetUserId}:${item.id}`));
+    }
+
+    rows.push(row);
+  }
+
+  // Back button
+  rows.push([Markup.button.callback("◀️ Back", `fw_userpanel:${chatId}:${targetUserId}`)]);
+
+  const keyboard = Markup.inlineKeyboard(rows);
+  await replyOrEditRoot(ctx, message, keyboard);
+}
+
+// Show Lock Guide
+async function showUserPanelLockGuide(ctx: Context, chatId: string, targetUserId: string): Promise<void> {
+  const message = `◄ <b>Lock Guide for this Section</b>
+
+The locks you saw on the previous page are specific to the selected user, and enabling or disabling them has <b>no effect</b> on «Group Settings or Other Users».
+
+For example, if you set the Sticker lock to 🔐 on the previous page, the user is <b>not allowed to send stickers under any circumstances!</b>
+
+Pay attention to the following examples:
+
+<b>➊ Sticker ✗</b>
+This means default sticker settings for this user.
+No special settings are applied to this user.
+After sending a sticker by this user, if stickers are locked in the general settings, this user's sticker will also be deleted. Otherwise, the sticker won't be deleted.
+
+<b>➋ Sticker: Open</b>
+This means stickers are exclusively open for this user.
+In this case, stickers are open for this user even if stickers are locked in the general settings.
+
+<b>➌ Sticker 🔐</b>
+This means stickers are exclusively locked for this user.
+In this case, stickers are locked for this user even if stickers are open in the general settings.
+In special cases, with this feature, the group owner can restrict sending various content types even for high-ranking users and admins!!!`;
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback("◀️ Back", `fw_up_locks:${chatId}:${targetUserId}`)],
+  ]);
+
+  await replyOrEditRoot(ctx, message, keyboard);
+}
+
+// Show Punishments Section
+async function showUserPanelPunishments(ctx: Context, chatId: string, targetUserId: string): Promise<void> {
+  // Get user info for header
+  let userUsername = "";
+  try {
+    const numericChatId = parseInt(chatId, 10);
+    const numericUserId = parseInt(targetUserId, 10);
+    const member = await ctx.telegram.getChatMember(numericChatId, numericUserId);
+    userUsername = member.user.username ?? member.user.first_name;
+  } catch {
+    userUsername = targetUserId;
+  }
+
+  const message = `⊹ Username: ${userUsername}
+«Punishments & Release Section»`;
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback("• Ban", `fw_up_ban:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("• Mute", `fw_up_mute:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("◀️ Back", `fw_userpanel:${chatId}:${targetUserId}`)],
+  ]);
+
+  await replyOrEditRoot(ctx, message, keyboard);
+}
+
+// Show Promote Section
+async function showUserPanelPromote(ctx: Context, chatId: string, targetUserId: string): Promise<void> {
+  // Get user info for header
+  let userUsername = "";
+  try {
+    const numericChatId = parseInt(chatId, 10);
+    const numericUserId = parseInt(targetUserId, 10);
+    const member = await ctx.telegram.getChatMember(numericChatId, numericUserId);
+    userUsername = member.user.username ?? member.user.first_name;
+  } catch {
+    userUsername = targetUserId;
+  }
+
+  const message = `⊹ Username: ${userUsername}
+«Promote & Demote Section»`;
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback("• Promote to VIP Member", `fw_up_vip:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("• Promote to Bot Admin", `fw_up_admin:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("◀️ Back", `fw_userpanel:${chatId}:${targetUserId}`)],
+  ]);
+
+  await replyOrEditRoot(ctx, message, keyboard);
+}
+
+// UserPanel Main Handler
+bot.action(USER_PANEL_MAIN_REGEX, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(USER_PANEL_MAIN_REGEX);
+  const chatId = match?.[1];
+  const targetUserId = match?.[2];
+  if (!chatId || !targetUserId) return;
+
+  await showUserPanelMain(ctx, chatId, targetUserId);
+});
+
+// UserPanel Locks Handler
+bot.action(USER_PANEL_LOCKS_REGEX, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(USER_PANEL_LOCKS_REGEX);
+  const chatId = match?.[1];
+  const targetUserId = match?.[2];
+  if (!chatId || !targetUserId) return;
+
+  await showUserPanelLocks(ctx, chatId, targetUserId);
+});
+
+// UserPanel Lock Toggle Handler
+bot.action(USER_PANEL_LOCK_TOGGLE_REGEX, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(USER_PANEL_LOCK_TOGGLE_REGEX);
+  const chatId = match?.[1];
+  const targetUserId = match?.[2];
+  const lockId = match?.[3];
+  if (!chatId || !targetUserId || !lockId) return;
+
+  // Find the lock item
+  const item = USER_PANEL_LOCK_ITEMS.find(i => i.id === lockId);
+  if (!item) {
+    await ctx.answerCbQuery("Lock not found", { show_alert: true });
+    return;
+  }
+
+  // Get current state and toggle to next
+  const settings = await getUserPanelSettings(chatId, targetUserId);
+  const currentState = (settings.lockOverrides[item.key] as UserLockOverrideState) ?? 'default';
+  const nextState = getNextLockState(currentState);
+
+  // Save the new state
+  await setUserLockOverride(chatId, targetUserId, item.key, nextState);
+
+  // Refresh the locks view
+  await showUserPanelLocks(ctx, chatId, targetUserId);
+});
+
+// UserPanel Lock Guide Handler
+bot.action(USER_PANEL_LOCK_GUIDE_REGEX, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(USER_PANEL_LOCK_GUIDE_REGEX);
+  const chatId = match?.[1];
+  const targetUserId = match?.[2];
+  if (!chatId || !targetUserId) return;
+
+  await showUserPanelLockGuide(ctx, chatId, targetUserId);
+});
+
+// UserPanel Punishments Handler
+bot.action(USER_PANEL_PUNISHMENTS_REGEX, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(USER_PANEL_PUNISHMENTS_REGEX);
+  const chatId = match?.[1];
+  const targetUserId = match?.[2];
+  if (!chatId || !targetUserId) return;
+
+  await showUserPanelPunishments(ctx, chatId, targetUserId);
+});
+
+// UserPanel Promote Handler
+bot.action(USER_PANEL_PROMOTE_REGEX, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(USER_PANEL_PROMOTE_REGEX);
+  const chatId = match?.[1];
+  const targetUserId = match?.[2];
+  if (!chatId || !targetUserId) return;
+
+  await showUserPanelPromote(ctx, chatId, targetUserId);
+});
+
+// UserPanel Ban Handler
+bot.action(USER_PANEL_BAN_REGEX, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(USER_PANEL_BAN_REGEX);
+  const chatId = match?.[1];
+  const targetUserId = match?.[2];
+  if (!chatId || !targetUserId) return;
+
+  try {
+    const numericChatId = parseInt(chatId, 10);
+    const numericUserId = parseInt(targetUserId, 10);
+    await ctx.telegram.banChatMember(numericChatId, numericUserId);
+    await ctx.answerCbQuery("✅ User has been banned", { show_alert: true });
+  } catch (error) {
+    logger.error("Failed to ban user from UserPanel", { chatId, targetUserId, error });
+    await ctx.answerCbQuery("❌ Failed to ban user", { show_alert: true });
+  }
+
+  // Refresh the punishments view
+  await showUserPanelPunishments(ctx, chatId, targetUserId);
+});
+
+// UserPanel Mute Handler
+bot.action(USER_PANEL_MUTE_REGEX, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(USER_PANEL_MUTE_REGEX);
+  const chatId = match?.[1];
+  const targetUserId = match?.[2];
+  if (!chatId || !targetUserId) return;
+
+  try {
+    const numericChatId = parseInt(chatId, 10);
+    const numericUserId = parseInt(targetUserId, 10);
+    await ctx.telegram.restrictChatMember(numericChatId, numericUserId, {
+      permissions: {
+        can_send_messages: false,
+        can_send_audios: false,
+        can_send_documents: false,
+        can_send_photos: false,
+        can_send_videos: false,
+        can_send_video_notes: false,
+        can_send_voice_notes: false,
+        can_send_polls: false,
+        can_send_other_messages: false,
+        can_add_web_page_previews: false,
+        can_change_info: false,
+        can_invite_users: false,
+        can_pin_messages: false,
+        can_manage_topics: false,
+      },
+    });
+    await ctx.answerCbQuery("✅ User has been muted", { show_alert: true });
+  } catch (error) {
+    logger.error("Failed to mute user from UserPanel", { chatId, targetUserId, error });
+    await ctx.answerCbQuery("❌ Failed to mute user", { show_alert: true });
+  }
+
+  // Refresh the punishments view
+  await showUserPanelPunishments(ctx, chatId, targetUserId);
+});
+
+// UserPanel VIP Handler
+bot.action(USER_PANEL_VIP_REGEX, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(USER_PANEL_VIP_REGEX);
+  const chatId = match?.[1];
+  const targetUserId = match?.[2];
+  if (!chatId || !targetUserId) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!Array.isArray(rawSettings.vipMembers)) {
+      rawSettings.vipMembers = [];
+    }
+
+    const vipMembers = rawSettings.vipMembers as string[];
+
+    if (vipMembers.includes(targetUserId)) {
+      await ctx.answerCbQuery("⚠️ User is already a VIP member", { show_alert: true });
+    } else {
+      vipMembers.push(targetUserId);
+      await saveBanSettingsByChatId(chatId, settings);
+      await ctx.answerCbQuery("✅ User promoted to VIP Member", { show_alert: true });
+    }
+  } catch (error) {
+    logger.error("Failed to promote user to VIP", { chatId, targetUserId, error });
+    await ctx.answerCbQuery("❌ Failed to promote user", { show_alert: true });
+  }
+
+  // Refresh the promote view
+  await showUserPanelPromote(ctx, chatId, targetUserId);
+});
+
+// UserPanel Bot Admin Handler
+bot.action(USER_PANEL_ADMIN_REGEX, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(USER_PANEL_ADMIN_REGEX);
+  const chatId = match?.[1];
+  const targetUserId = match?.[2];
+  if (!chatId || !targetUserId) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!Array.isArray(rawSettings.botAdmins)) {
+      rawSettings.botAdmins = [];
+    }
+
+    const botAdmins = rawSettings.botAdmins as string[];
+
+    if (botAdmins.includes(targetUserId)) {
+      await ctx.answerCbQuery("⚠️ User is already a Bot Admin", { show_alert: true });
+    } else {
+      botAdmins.push(targetUserId);
+      await saveBanSettingsByChatId(chatId, settings);
+      await ctx.answerCbQuery("✅ User promoted to Bot Admin", { show_alert: true });
+    }
+  } catch (error) {
+    logger.error("Failed to promote user to Bot Admin", { chatId, targetUserId, error });
+    await ctx.answerCbQuery("❌ Failed to promote user", { show_alert: true });
+  }
+
+  // Refresh the promote view
+  await showUserPanelPromote(ctx, chatId, targetUserId);
+});
+
+// UserPanel Close Handler
+bot.action(/^fw_up_close:(-?\d+):(\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery("✅ User panel closed");
+  try {
+    await ctx.deleteMessage();
+  } catch {
+    // Message might already be deleted
+  }
 });
 
 // Note: The INLINE_LIST_ADD_REGEX handler with interactive session is defined earlier in the file

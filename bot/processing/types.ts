@@ -18,77 +18,78 @@ export type GroupChatContext = Context & {
 
 export type ProcessingAction =
   | {
-      type: "delete_message";
-      messageId: number;
-      reason?: string;
-    }
+    type: "delete_message";
+    messageId: number;
+    reason?: string;
+  }
   | {
-      type: "warn_member";
-      userId: number;
-      reason: string;
-      severity: "low" | "medium" | "high";
-    }
+    type: "warn_member";
+    userId: number;
+    reason: string;
+    severity: "low" | "medium" | "high";
+  }
   | {
-      type: "restrict_member";
-      userId: number;
-      durationSeconds?: number;
-      reason: string;
-    }
+    type: "restrict_member";
+    userId: number;
+    durationSeconds?: number;
+    reason: string;
+  }
   | {
-      type: "kick_member";
-      userId: number;
-      reason?: string;
-    }
+    type: "kick_member";
+    userId: number;
+    reason?: string;
+  }
   | {
-      type: "ban_member";
-      userId: number;
-      untilDate?: number;
-      reason?: string;
-    }
+    type: "ban_member";
+    userId: number;
+    untilDate?: number;
+    reason?: string;
+  }
   | {
-      type: "send_message";
-      text: string;
-      replyToMessageId?: number;
-      parseMode?: "HTML" | "MarkdownV2";
-      autoDeleteSeconds?: number; // when set, dispatcher will attempt to delete the sent message after this many seconds
-      threadId?: number;
-      rescheduleOnPromotion?: boolean;
-      attachPromoButton?: boolean;
-    }
+    type: "send_message";
+    text: string;
+    replyToMessageId?: number;
+    parseMode?: "HTML" | "MarkdownV2";
+    autoDeleteSeconds?: number; // when set, dispatcher will attempt to delete the sent message after this many seconds
+    threadId?: number;
+    rescheduleOnPromotion?: boolean;
+    attachPromoButton?: boolean;
+    inlineKeyboard?: Array<Array<{ text: string; callback_data: string }>>;
+  }
   | {
-      type: "record_moderation";
-      ruleId: string;
-      userId?: number;
-      actions: string[];
-      reason?: string;
-      metadata?: Record<string, unknown>;
-    }
+    type: "record_moderation";
+    ruleId: string;
+    userId?: number;
+    actions: string[];
+    reason?: string;
+    metadata?: Record<string, unknown>;
+  }
   | {
-      type: "record_rule_audit";
-      ruleId: string;
-      offenderId?: string;
-      actionSummary: string;
-      payload?: Record<string, unknown>;
-    }
+    type: "record_rule_audit";
+    ruleId: string;
+    offenderId?: string;
+    actionSummary: string;
+    payload?: Record<string, unknown>;
+  }
   | {
-      type: "log";
-      level: "debug" | "info" | "warn" | "error";
-      message: string;
-      details?: Record<string, unknown>;
-    }
+    type: "log";
+    level: "debug" | "info" | "warn" | "error";
+    message: string;
+    details?: Record<string, unknown>;
+  }
   | {
-      // Trigger sending a private report to group owner/admins when users mention @admin in a reply
-      type: "notify_admins";
-    }
+    // Trigger sending a private report to group owner/admins when users mention @admin in a reply
+    type: "notify_admins";
+  }
   | {
-      type: "noop";
-    };
+    type: "noop";
+  };
 
 export type HandlerResult =
   | void
   | {
-      actions?: ProcessingAction[];
-    };
+    actions?: ProcessingAction[];
+  };
 
 export interface UpdateHandler {
   readonly name: string;

@@ -1024,6 +1024,289 @@ async function handleTabchiInfo(ctx: GroupChatContext): Promise<ProcessingAction
   }
 }
 
+// Settings display handler
+async function handleShowSettings(ctx: GroupChatContext): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+
+  try {
+    const [banSettings, generalSettings, limitSettings] = await Promise.all([
+      loadBanSettingsByChatId(chatId),
+      loadGeneralSettingsByChatId(chatId),
+      loadLimitSettingsByChatId(chatId),
+    ]);
+
+    const lines: string[] = [];
+
+    // Active Locks Section
+    lines.push("◾️ <b>Active Locks:</b>");
+    lines.push("");
+
+    const lockLabels: Record<string, string> = {
+      banLinks: "Links",
+      banDomains: "External URLs",
+      banBots: "Bots",
+      banBotInviters: "Bot Inviters",
+      banTabchi: "Tabchi",
+      banAdvertiser: "Advertisers",
+      banSuspiciousBio: "Suspicious Bio",
+      banForward: "Forwards",
+      banForwardChannels: "Channel Forwards",
+      banStickers: "Stickers",
+      banPhotos: "Photos",
+      banVideos: "Videos",
+      banVoice: "Voice",
+      banAudio: "Audio",
+      banFiles: "Files",
+      banGif: "GIFs",
+      banPolls: "Polls",
+      banGames: "Games",
+      banLocation: "Location",
+      banPhones: "Phones",
+      banUsernames: "Usernames",
+      banHashtags: "Hashtags",
+      banEmojis: "Emojis",
+      banEmojiOnly: "Emoji Only",
+      banCaptionless: "Captionless",
+      banInlineKeyboards: "Inline Keyboards",
+      banSlashCommands: "Slash Commands",
+      banTextPatterns: "Text Patterns",
+      banLatin: "Latin Text",
+      banPersian: "Persian Text",
+      banCyrillic: "Cyrillic Text",
+      banChinese: "Chinese Text",
+      banUserReplies: "User Replies",
+      banCrossReplies: "Cross Replies",
+      banApps: "Apps",
+    };
+
+    const activeLocks: string[] = [];
+    for (const [key, label] of Object.entries(lockLabels)) {
+      if (banSettings.rules[key as keyof typeof banSettings.rules]?.enabled) {
+        activeLocks.push(`✅ ${label}`);
+      }
+    }
+
+    if (activeLocks.length > 0) {
+      lines.push(activeLocks.join("\n"));
+    } else {
+      lines.push("▫️ No locks active");
+    }
+
+    lines.push("~ ~ ~ ~ ~ ~ ~ ~ ~ ~");
+    lines.push("");
+
+    // User Entry Settings
+    lines.push("◾️ <b>User Entry Settings:</b>");
+    lines.push("");
+
+    if (generalSettings.userVerificationEnabled) {
+      const mode = generalSettings.userVerificationMode === "incoming" ? "Incoming Users" : "All Users";
+      lines.push(`▫️ Verification Active → Mode: ${mode}`);
+    } else {
+      lines.push("▫️ Verification Disabled");
+    }
+
+    lines.push("~ ~ ~ ~ ~ ~ ~ ~ ~ ~");
+    lines.push("");
+
+    // Group Settings
+    lines.push("◾️ <b>Group Settings:</b>");
+    lines.push("");
+
+    // Strict mode / Warning mode
+    if (generalSettings.countAdminViolationsEnabled) {
+      lines.push("▫️ Strict Mode Active → Warning Mode");
+    }
+
+    // Flood protection
+    const rawBan = banSettings as unknown as Record<string, unknown>;
+    if (rawBan.blockFlood === true) {
+      lines.push("▫️ Flood Protection Active → Mute Mode");
+    }
+
+    // Warning settings
+    if (generalSettings.warningEnabled) {
+      const maxWarnings = (generalSettings as any).maxWarningsBeforeAction ?? 3;
+      lines.push(`▫️ Warning Mode Active → Max Warnings: ( ${maxWarnings} )`);
+    }
+
+    // Temp Media
+    if (rawBan.tempMediaEnabled === true) {
+      const tempMedia = rawBan.tempMedia as Record<string, unknown> | undefined;
+      const deleteTime = (tempMedia?.deleteMinutes as number) ?? 20;
+      lines.push(`▫️ Temp Media Active → Time: ( ${deleteTime} ) minutes`);
+    }
+
+    // Mandatory Add
+    if (rawBan.mandatoryAdd) {
+      const mandatoryAdd = rawBan.mandatoryAdd as Record<string, unknown>;
+      if (mandatoryAdd.enabled) {
+        const count = (mandatoryAdd.requiredCount as number) ?? 3;
+        lines.push(`▫️ Mandatory Add Active → Count: ( ${count} ) users`);
+      }
+    }
+
+    // Word Filter count
+    const blacklistCount = banSettings.blacklist?.length ?? 0;
+    lines.push(`▫️ Filtered Words Count → ( ${blacklistCount} )`);
+
+    // Group ID
+    lines.push(`▫️ Group Numeric ID: ( ${chatId} )`);
+
+    const message = lines.join("\n");
+
+    // Get auto-delete time from settings
+    const autoDeleteSeconds = (generalSettings as any).botMessageDeleteSeconds ?? 60;
+
+    return [{
+      type: "send_message",
+      text: message,
+      parseMode: "HTML",
+      autoDeleteSeconds,
+    }];
+  } catch (error) {
+    logger.error("Failed to display settings", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+// UserPanel command handler
+async function handleUserPanel(
+  ctx: GroupChatContext,
+  args: string[]
+): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+  let targetUserId: string | null = null;
+
+  // Priority 1: Check if replying to a message
+  const reply = (ctx.message as any)?.reply_to_message;
+  if (reply?.from?.id) {
+    targetUserId = reply.from.id.toString();
+  }
+  // Priority 2: Check args for @username or user ID
+  else if (args.length > 0) {
+    const arg = args[0];
+    if (arg.startsWith("@")) {
+      // It's a username - we can't resolve it without API access
+      return [{
+        type: "send_message",
+        text: "⚠️ To use UserPanel with username, please reply to a message from that user.\n\nAlternatively, use their numeric user ID:\n<code>!userpanel 123456789</code>",
+        parseMode: "HTML",
+        autoDeleteSeconds: 30,
+      }];
+    } else if (/^\d+$/.test(arg)) {
+      // It's a numeric user ID
+      targetUserId = arg;
+    }
+  }
+
+  if (!targetUserId) {
+    return [{
+      type: "send_message",
+      text: "❌ Please specify a user:\n\n• Reply to a user's message\n• Use: <code>!userpanel @username</code>\n• Use: <code>!userpanel 123456789</code>",
+      parseMode: "HTML",
+      autoDeleteSeconds: 30,
+    }];
+  }
+
+  // Try to get user info from Telegram
+  let userName = "Unknown User";
+  let userUsername = "";
+  let userStatus = "Member";
+  const botRole = "Regular User";
+
+  try {
+    const member = await ctx.telegram.getChatMember(ctx.chat.id, parseInt(targetUserId, 10));
+    userName = member.user.first_name + (member.user.last_name ? ` ${member.user.last_name}` : "");
+    userUsername = member.user.username ?? "";
+
+    switch (member.status) {
+      case "creator": userStatus = "Creator"; break;
+      case "administrator": userStatus = "Administrator"; break;
+      case "member": userStatus = "Group Member"; break;
+      case "restricted": userStatus = "Restricted"; break;
+      case "left": userStatus = "Left"; break;
+      case "kicked": userStatus = "Banned"; break;
+    }
+  } catch {
+    // User might not be in group or API error
+  }
+
+  // Check ban/mute status
+  let isBanned = false;
+  let isMuted = false;
+  try {
+    const member = await ctx.telegram.getChatMember(ctx.chat.id, parseInt(targetUserId, 10));
+    isBanned = member.status === "kicked";
+    isMuted = member.status === "restricted" && !(member as any).can_send_messages;
+  } catch {
+    // ignore
+  }
+
+  // Get warning count
+  let warningCount = 0;
+  if (databaseAvailable) {
+    try {
+      const { prisma } = await import("../../../server/db/client.js");
+      const group = await prisma.group.findUnique({
+        where: { telegramChatId: chatId },
+        select: { id: true },
+      });
+      if (group) {
+        const warning = await prisma.userWarning.findUnique({
+          where: {
+            groupId_telegramUserId: {
+              groupId: group.id,
+              telegramUserId: targetUserId,
+            },
+          },
+        });
+        warningCount = warning?.count ?? 0;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  const message = `◄ <b>User Status:</b>
+
+⊹ In Group: ${userStatus}
+⊹ In Bot: ${botRole}
+
+⊹ User Name: ${userName}
+⊹ Numeric ID: ${targetUserId}
+⊹ Username: ${userUsername || "None"}
+⊹ Nickname: None
+⊹ Global Rank: None
+
+⊹ Add Count: 0
+⊹ Today's Messages: 0
+⊹ Message Rank: None
+
+⊹ Banned: ${isBanned ? "Yes" : "No"}
+⊹ Muted: ${isMuted ? "Yes" : "No"}
+⊹ Tabchi: No
+⊹ Warning Count: ${warningCount}
+
+<i>This panel is specific to the selected user
+and does not affect group or other user settings.</i>`;
+
+  // Build inline keyboard for user panel
+  const inlineKeyboard = [
+    [{ text: "• Locks & Restrictions", callback_data: `fw_up_locks:${chatId}:${targetUserId}` }],
+    [{ text: "• Punishments & Release", callback_data: `fw_up_punish:${chatId}:${targetUserId}` }],
+    [{ text: "• Promote & Demote", callback_data: `fw_up_promote:${chatId}:${targetUserId}` }],
+    [{ text: "• Confirm & Close", callback_data: `fw_up_close:${chatId}:${targetUserId}` }],
+  ];
+
+  return [{
+    type: "send_message",
+    text: message,
+    parseMode: "HTML",
+    inlineKeyboard,
+  }];
+}
+
 // Main command processor
 async function processCommand(
   ctx: GroupChatContext,
@@ -1224,6 +1507,16 @@ async function processCommand(
   }
   if (command === "tabchiinfo") {
     return handleTabchiInfo(ctx);
+  }
+
+  // Settings display command
+  if (command === "settings" || command === "status" || command === "info") {
+    return handleShowSettings(ctx);
+  }
+
+  // UserPanel command
+  if (command === "userpanel" || command === "up" || command === "panel") {
+    return handleUserPanel(ctx, args);
   }
 
   return [];

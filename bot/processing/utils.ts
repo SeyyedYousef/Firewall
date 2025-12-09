@@ -594,6 +594,13 @@ async function sendMessage(ctx: GroupChatContext, action: Extract<ProcessingActi
     }
   }
 
+  // Handle inlineKeyboard from action (for UserPanel and similar features)
+  if (action.inlineKeyboard && action.inlineKeyboard.length > 0) {
+    (baseOptions as any).reply_markup = {
+      inline_keyboard: action.inlineKeyboard,
+    };
+  }
+
   try {
     const sent = await ctx.telegram.sendMessage(ctx.chat.id, action.text, baseOptions as any);
 
