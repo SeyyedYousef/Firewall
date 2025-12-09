@@ -370,9 +370,9 @@ type HelpSectionConfig = {
 const HELP_SECTIONS: HelpSectionConfig[] = [
   { id: "lock_management", icon: "🔒", title: "Lock Management", implemented: true },
   { id: "settings", icon: "⚙️", title: "Settings", implemented: false },
-  { id: "tabchi", icon: "📢", title: "Tabchi (Channels)", implemented: false },
+  { id: "tabchi", icon: "🚫", title: "Tabchi (Spam Bots)", implemented: true },
   { id: "user_panel", icon: "👤", title: "User Panel", implemented: false },
-  { id: "user_penalties", icon: "⚠️", title: "User Penalties", implemented: false },
+  { id: "user_penalties", icon: "⚠️", title: "User Penalties", implemented: true },
   { id: "promote_demote", icon: "👑", title: "Promote & Demote", implemented: false },
   { id: "word_filter", icon: "🚷", title: "Word Filter", implemented: false },
   { id: "cleanup", icon: "🧹", title: "Cleanup", implemented: false },
@@ -423,6 +423,9 @@ const LOCK_HELP_DATA: LockHelpData[] = [
   // Bots & Advanced
   { id: "bots", name: "Bot Messages", icon: "🤖", whatItDoes: "Blocks messages from other bots", example: "@OtherBot message", commandAlias: "bot", miniAppPath: "Home → Settings → Lock Management → Bots", whenToUse: "Single-bot groups", limitations: "Blocks all bot messages" },
   { id: "bot_inviters", name: "Bot Inviters", icon: "👥", whatItDoes: "Bans users who add bots", example: "User adds @SpamBot", commandAlias: "botinviter", miniAppPath: "Home → Settings → Lock Management → Bot Inviters", whenToUse: "Prevent bot spam", limitations: "User gets banned" },
+  { id: "tabchi", name: "Tabchi Detection", icon: "🚫", whatItDoes: "Detects and bans users who promote other groups/channels", example: "User advertising in multiple groups", commandAlias: "tabchi", miniAppPath: "Home → Settings → Lock Management → Tabchi", whenToUse: "Prevent cross-group advertising", limitations: "May affect legitimate promoters" },
+  { id: "advertiser", name: "Advertisers", icon: "📢", whatItDoes: "Detects and blocks advertising behavior patterns", example: "User sending promotional content", commandAlias: "advertiser", miniAppPath: "Home → Settings → Lock Management → Advertisers", whenToUse: "Block spam/ad accounts", limitations: "Uses behavior analysis" },
+  { id: "suspicious_bio", name: "Suspicious Bio", icon: "📝", whatItDoes: "Blocks users with suspicious profile bios", example: "Bio containing ads or spam links", commandAlias: "suspiciousbio", miniAppPath: "Home → Settings → Lock Management → Suspicious Bio", whenToUse: "Block spammer accounts", limitations: "May affect legitimate users" },
   { id: "phones", name: "Phone Numbers", icon: "📞", whatItDoes: "Blocks phone numbers", example: "+1234567890", commandAlias: "phone", miniAppPath: "Home → Settings → Lock Management → Phones", whenToUse: "Prevent contact sharing", limitations: "Blocks all phone formats" },
   { id: "games", name: "Games", icon: "🎮", whatItDoes: "Blocks Telegram games", example: "[Game]", commandAlias: "game", miniAppPath: "Home → Settings → Lock Management → Games", whenToUse: "Focus on discussions", limitations: "Blocks all games" },
   { id: "polls", name: "Polls", icon: "📊", whatItDoes: "Blocks poll creation", example: "[Poll]", commandAlias: "poll", miniAppPath: "Home → Settings → Lock Management → Polls", whenToUse: "Admin-only polling", limitations: "Blocks all polls" },
@@ -434,6 +437,99 @@ const LOCK_HELP_DATA: LockHelpData[] = [
 ];
 
 const HELP_LOCKS_PAGE_SIZE = 8;
+
+// ============================================
+// USER PENALTIES HELP DATA
+// ============================================
+
+type PenaltyHelpData = {
+  id: string;
+  name: string;
+  icon: string;
+  whatItDoes: string;
+  example: string;
+  commandEnable: string;
+  commandDisable?: string;
+  requiresReply: boolean;
+  whenToUse: string;
+  notes: string;
+};
+
+const PENALTY_HELP_DATA: PenaltyHelpData[] = [
+  {
+    id: "ban",
+    name: "Ban",
+    icon: "🚫",
+    whatItDoes: "Permanently bans a user from the group. The user cannot rejoin until unbanned.",
+    example: "Reply to a spammer's message and use the ban command",
+    commandEnable: "!ban or .ban",
+    commandDisable: "!unban [user_id]",
+    requiresReply: true,
+    whenToUse: "For severe violations, repeat offenders, or spammers",
+    notes: "The banned user's message and your command message are deleted. No notification is sent to the group."
+  },
+  {
+    id: "ban_plus",
+    name: "Ban Plus",
+    icon: "⛔",
+    whatItDoes: "Bans the user AND deletes all their recent messages from the group.",
+    example: "Reply to spam messages to ban the user and clean up their content",
+    commandEnable: "!ban+ or .ban+",
+    commandDisable: "!unban [user_id]",
+    requiresReply: true,
+    whenToUse: "When you need to remove both the user and their spam content",
+    notes: "Deletes recent messages from the banned user. More thorough than regular ban."
+  },
+  {
+    id: "kick",
+    name: "Kick",
+    icon: "👢",
+    whatItDoes: "Removes a user from the group but they can rejoin using an invite link.",
+    example: "Reply to a user's message and kick them temporarily",
+    commandEnable: "!kick or .kick",
+    requiresReply: true,
+    whenToUse: "For minor violations or warnings, when you don't want to permanently ban",
+    notes: "User can rejoin. The kicked user's message and command are deleted."
+  },
+  {
+    id: "mute",
+    name: "Mute",
+    icon: "🔇",
+    whatItDoes: "Permanently restricts a user from sending any messages in the group.",
+    example: "Reply to a disruptive user's message to mute them",
+    commandEnable: "!mute or .mute",
+    commandDisable: "!unmute (reply to user)",
+    requiresReply: true,
+    whenToUse: "For users who disrupt discussions but don't deserve a ban",
+    notes: "User stays in group but cannot send messages. Useful for cooling down situations."
+  },
+  {
+    id: "temp_mute",
+    name: "Temporary Mute",
+    icon: "⏱️",
+    whatItDoes: "Mutes a user for a specified duration (in hours). Auto-unmutes when time expires.",
+    example: "Mute a user for 24 hours: !mute 24",
+    commandEnable: "!mute [hours] (e.g., !mute 24)",
+    commandDisable: "!unmute (reply to user)",
+    requiresReply: true,
+    whenToUse: "Give users time to cool down before allowing them to participate again",
+    notes: "Specify duration in hours. User automatically regains permissions when time expires."
+  },
+  {
+    id: "warn",
+    name: "Warning",
+    icon: "⚠️",
+    whatItDoes: "Issues a formal warning to a user. Warnings accumulate and can trigger auto-actions.",
+    example: "Reply to a rule-breaking message to warn the user",
+    commandEnable: "!warn or .warn",
+    commandDisable: "!reset (clears warnings)",
+    requiresReply: true,
+    whenToUse: "For first-time or minor violations before taking stronger action",
+    notes: "Warnings stack up. Configure auto-mute/ban after X warnings in Advanced settings."
+  },
+];
+
+const HELP_PENALTIES_PAGE_SIZE = 6;
 
 const INLINE_LIST_CONFIGS: InlineListConfig[] = [
   {
@@ -1990,6 +2086,135 @@ async function showHelpLockDetail(ctx: Context, chatId: string, lockId: string):
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
 }
 
+// ============================================
+// USER PENALTIES HELP KEYBOARDS AND DISPLAY
+// ============================================
+
+function buildHelpPenaltiesKeyboard(chatId: string): InlineKeyboard {
+  const rows: any[] = [];
+
+  // Build penalty buttons (2 per row)
+  for (let i = 0; i < PENALTY_HELP_DATA.length; i += 2) {
+    const row: any[] = [];
+    for (let j = 0; j < 2 && i + j < PENALTY_HELP_DATA.length; j++) {
+      const penalty = PENALTY_HELP_DATA[i + j];
+      const label = `${penalty.icon} ${penalty.name}`;
+      row.push(Markup.button.callback(label, `fw_help_penalty:${chatId}:${penalty.id}`));
+    }
+    rows.push(row);
+  }
+
+  rows.push([Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)]);
+  return Markup.inlineKeyboard(rows);
+}
+
+async function showHelpPenalties(ctx: Context, chatId: string): Promise<void> {
+  const message = `⚠️ <b>User Penalties Help</b>\n\nLearn about commands for managing users:\n\nSelect a penalty type to see usage details:`;
+  await replyOrEditRoot(ctx, message, buildHelpPenaltiesKeyboard(chatId));
+}
+
+async function showHelpPenaltyDetail(ctx: Context, chatId: string, penaltyId: string): Promise<void> {
+  const penalty = PENALTY_HELP_DATA.find((p) => p.id === penaltyId);
+  if (!penalty) {
+    await replyOrEditRoot(ctx, "Penalty not found.", buildHelpPenaltiesKeyboard(chatId));
+    return;
+  }
+
+  const lines: string[] = [];
+  lines.push(`${penalty.icon} <b>${penalty.name}</b>`);
+  lines.push("");
+  lines.push(`<b>📝 What does it do?</b>`);
+  lines.push(penalty.whatItDoes);
+  lines.push("");
+  lines.push(`<b>📌 Example:</b>`);
+  lines.push(penalty.example);
+  lines.push("");
+  lines.push(`<b>✅ Command:</b>`);
+  lines.push(`<code>${penalty.commandEnable}</code>`);
+  if (penalty.commandDisable) {
+    lines.push("");
+    lines.push(`<b>↩️ To Undo:</b>`);
+    lines.push(`<code>${penalty.commandDisable}</code>`);
+  }
+  lines.push("");
+  lines.push(`<b>📋 Requires Reply:</b> ${penalty.requiresReply ? "Yes - reply to user's message" : "No"}`);
+  lines.push("");
+  lines.push(`<b>💡 When to Use:</b>`);
+  lines.push(penalty.whenToUse);
+  lines.push("");
+  lines.push(`<b>📝 Notes:</b>`);
+  lines.push(penalty.notes);
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback("◀️ Back to Penalties", `fw_help_penalties:${chatId}`)],
+    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+  ]);
+
+  await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
+}
+
+// ============================================
+// TABCHI HELP SECTION
+// ============================================
+
+async function showHelpTabchi(ctx: Context, chatId: string): Promise<void> {
+  const lines: string[] = [];
+
+  lines.push("🚫 <b>Understanding & Combating Tabchi (Spam Bots)</b>");
+  lines.push("");
+  lines.push("<i>Tabchi refers to fraudulent bot accounts or user accounts that join groups primarily for advertising purposes. This guide helps you identify different types of tabchi and how to combat them.</i>");
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("<b>📋 Types of Tabchi:</b>");
+  lines.push("");
+  lines.push("➊ <b>Advertisers</b>");
+  lines.push("These tabchis send links, files, and promotional messages. If you check your busy group's activity, you'll see many ads being sent and deleted by the bot. 99% of these ads are from tabchi accounts.");
+  lines.push("");
+  lines.push("➋ <b>Bot Adders</b>");
+  lines.push("After joining your group, these tabchis add other bots for advertising and member recruitment purposes.");
+  lines.push("");
+  lines.push("➌ <b>Member Recruiters</b>");
+  lines.push("These tabchis use fake profiles, especially with female names and photos, to lure users into private chats and then redirect them to promotional groups or channels.");
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("<b>🛡️ Prevention Methods:</b>");
+  lines.push("");
+  lines.push("➊ <b>Enable Tabchi Lock</b>");
+  lines.push("By activating the tabchi lock, entry and activity of tabchis in your group will be severely restricted.");
+  lines.push("");
+  lines.push("➋ <b>Restrict Membership (Private Groups)</b>");
+  lines.push("For private groups, limit membership to invite links to prevent bot adders from adding their bots.");
+  lines.push("");
+  lines.push("➌ <b>Cross-Group Detection</b>");
+  lines.push("Our AI system tracks user behavior across all groups. If a user triggers violations in 3+ groups, they are automatically flagged as tabchi.");
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("<b>📝 Commands:</b>");
+  lines.push("");
+  lines.push("<code>!lock tabchi</code> - Enable tabchi detection");
+  lines.push("<code>!lock advertiser</code> - Enable advertiser detection");
+  lines.push("<code>!lock bio</code> - Enable suspicious bio detection");
+  lines.push("");
+  lines.push("<code>!unlock tabchi</code> - Disable tabchi detection");
+  lines.push("<code>!unlock advertiser</code> - Disable advertiser detection");
+  lines.push("<code>!unlock bio</code> - Disable suspicious bio detection");
+  lines.push("");
+  lines.push("<b>🔧 Management Commands:</b>");
+  lines.push("");
+  lines.push("<code>!untabchi</code> - Remove replied user from tabchi list");
+  lines.push("<code>!tabchiwhitelist</code> - Add user to permanent whitelist");
+  lines.push("<code>!tabchiinfo</code> - Check tabchi info for replied user");
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+  ]);
+
+  await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
+}
+
 function buildInlineLocksKeyboard(chatId: string, page: number, settings: GroupBanSettingsRecord): InlineKeyboard {
   const totalPages = 3; // We have 3 pages now
   const currentPage = Math.min(Math.max(page, 1), totalPages);
@@ -2890,23 +3115,8 @@ bot.action(INLINE_HELP_REGEX, async (ctx) => {
   const chatId = match?.[1];
   if (!chatId) return;
 
-  const message = `❓ <b>Help & Support</b>
-
-Here you can find guides and support for using Firewall.
-
-• <b>Commands:</b> Click "Commands" in the main menu to see a list of available commands.
-• <b>Support:</b> Join our support channel for assistance.
-• <b>Documentation:</b> Visit our website for full documentation.
-
-<i>Select an option below:</i>`;
-
-  const keyboard = Markup.inlineKeyboard([
-    [Markup.button.url("📚 Documentation", "https://t.me/Firewall_Robot")],
-    [Markup.button.url("💬 Support Chat", "https://t.me/Firewall_Robot")],
-    [Markup.button.callback("◀️ Back to Panel", `fw_inline_menu:${chatId}`)]
-  ]);
-
-  await replyOrEditRoot(ctx, message, keyboard);
+  // Show comprehensive help center with all sections
+  await showInlineHelp(ctx, chatId);
 });
 
 bot.action(INLINE_ADVANCED_REGEX, async (ctx) => {
@@ -5605,6 +5815,18 @@ bot.action(/^fw_help_section:(-?\d+):([a-z_]+)$/, async (ctx) => {
     return;
   }
 
+  // If User Penalties, show the penalties submenu
+  if (sectionId === "user_penalties") {
+    await showHelpPenalties(ctx, chatId);
+    return;
+  }
+
+  // If Tabchi, show the tabchi help
+  if (sectionId === "tabchi") {
+    await showHelpTabchi(ctx, chatId);
+    return;
+  }
+
   // For unimplemented sections, show "coming soon" message
   if (!section.implemented) {
     const message = `${section.icon} <b>${section.title}</b>\n\n🚧 This help section is coming soon!\n\nWe're working on documenting this feature.`;
@@ -5639,6 +5861,29 @@ bot.action(/^fw_help_lock:(-?\d+):([a-z_]+)$/, async (ctx) => {
   if (!chatId || !lockId) return;
 
   await showHelpLockDetail(ctx, chatId, lockId);
+});
+
+// User Penalties submenu handler
+bot.action(/^fw_help_penalties:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_help_penalties:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  await showHelpPenalties(ctx, chatId);
+});
+
+// Individual penalty detail handler
+bot.action(/^fw_help_penalty:(-?\d+):([a-z_]+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_help_penalty:(-?\d+):([a-z_]+)$/);
+  const chatId = match?.[1];
+  const penaltyId = match?.[2];
+  if (!chatId || !penaltyId) return;
+
+  await showHelpPenaltyDetail(ctx, chatId, penaltyId);
 });
 
 // Note: The INLINE_LIST_ADD_REGEX handler with interactive session is defined earlier in the file
