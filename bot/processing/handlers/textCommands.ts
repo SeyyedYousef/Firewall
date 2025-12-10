@@ -9,6 +9,7 @@ import type { Message } from "typegram";
 import type { UpdateHandler, ProcessingAction, GroupChatContext } from "../types.js";
 import { ensureActions, isGroupChat } from "../utils.js";
 import { logger } from "../../../server/utils/logger.js";
+import { isGroupPremium } from "../../state.js";
 import {
   saveBanSettingsByChatId,
   loadBanSettingsByChatId,
@@ -20,18 +21,22 @@ import {
   loadMandatoryMembershipSettingsByChatId,
   saveGroupCountLimitSettingsByChatId,
   loadLimitSettingsByChatId,
+  saveCustomTextSettingsByChatId,
+  loadCustomTextSettingsByChatId,
   type BanRuleKey,
   type GroupBanSettingsRecord,
   type GroupGeneralSettingsRecord,
   type SilenceSettingsRecord,
   type MandatoryMembershipSettingsRecord,
   type GroupCountLimitSettingsRecord,
+  type CustomTextSettingsRecord,
 } from "../../../server/db/groupSettingsRepository.js";
 
 const COMMAND_PREFIX = /^[!.]/;
 const databaseAvailable = Boolean(process.env.DATABASE_URL);
 
 // Command response messages
+
 const RESPONSES = {
   notAdmin: "⚠️ Only group admins can use this command.",
   success: "✅ Setting updated successfully.",
@@ -64,6 +69,29 @@ const RESPONSES = {
   noStats: "📊 No invitation statistics available.",
   featureDisabled: "⚠️ This feature is disabled.",
   permanentDuration: "permanently",
+  // Force Join responses
+  forceJoinEnabled: "✅ Force Join enabled. Users must join {channel} before chatting.",
+  forceJoinDisabled: "❌ Force Join has been disabled.",
+  forceJoinNoChannel: "⚠️ No channel configured.\n\nUsage: !ForceJoin @channelname",
+  forceJoinInvalidChannel: "❌ Invalid format.\n\nUsage: !ForceJoin @channelname\n\nExamples:\n• !ForceJoin @mychannel\n• !ForceJoin on (if channel already set)\n• !ForceJoin off (disable)",
+  forceJoinTextUpdated: "✅ Force Join message has been updated.",
+  forceJoinTextReset: "✅ Force Join message has been reset to default.",
+  forceJoinPromptText: "📝 <b>Set Force Join Message</b>\n\n<b>Current message:</b>\n{text}\n\n<b>Available variables:</b>\n• <code>{user}</code> - User's name\n• <code>{channel_names}</code> - Channel list\n\n⌨️ Reply to this message with your new text.",
+  forceJoinStatus: "📊 <b>Force Join Status</b>\n\n• <b>Status:</b> {status}\n• <b>Channel(s):</b> {channels}\n• <b>Custom Text:</b> {has_custom_text}\n\n📢 <b>Current Message:</b>\n{message}",
+  // Force Add responses
+  premiumRequired: "⭐ <b>Premium Feature</b>\n\nThis feature is only available for Premium groups.\n\n<i>Upgrade to Premium to unlock all features.</i>",
+  forceAddEnabled: "✅ Force Add has been enabled.\n\nUsers must add <b>{count}</b> members before chatting.",
+  forceAddDisabled: "❌ Force Add has been disabled.",
+  forceAddCountSet: "✅ Force Add count set to <b>{count}</b> members.",
+  forceAddTimeSet: "✅ Force Add message auto-delete time set to <b>{time}</b> minutes.",
+  forceAddTimeDisabled: "❌ Force Add message auto-delete has been disabled.",
+  forceAddTextPrompt: "📝 <b>Set Force Add Message</b>\n\n<b>Current message:</b>\n{text}\n\n<b>Available variables:</b>\n• <code>{user}</code> - User's name\n• <code>{needadd}</code> or <code>{number}</code> - Required count\n• <code>{remainadd}</code> - Remaining count\n• <code>{useradd}</code> or <code>{added}</code> - Current adds\n\n⌨️ Reply to this message with your new text.\nSend <code>default</code> to reset.",
+  forceAddTextUpdated: "✅ Force Add message has been updated.",
+  forceAddTextReset: "✅ Force Add message has been reset to default.",
+  forceAddStatusAll: "✅ Force Add now applies to <b>ALL</b> members.",
+  forceAddStatusNew: "✅ Force Add now applies to <b>NEW</b> members only.",
+  forceAddHistoryCleared: "✅ Force Add history has been cleared.\n\nAll members will need to add members again.",
+  forceAddStatus: "📊 <b>Force Add Status</b>\n\n• <b>Status:</b> {status}\n• <b>Required adds:</b> {count}\n• <b>Delete time:</b> {time}\n• <b>Apply to:</b> {mode}\n• <b>Custom Text:</b> {has_custom_text}\n\n📝 <b>Current Message:</b>\n{message}",
 };
 
 // Lock command mappings
@@ -666,7 +694,672 @@ async function handleMandatoryChannel(
   }
 }
 
+// ============================================
+// Force Join Commands
+// ============================================
+
+// Default Force Join message (used when custom is not set)
+const DEFAULT_FORCE_JOIN_MESSAGE =
+  "📢 <b>Subscription Required</b>\n\n" +
+  "Hi {user}, to chat in this group, you must join our channel(s):\n\n" +
+  "{channel_names}\n\n" +
+  "<i>Once you've joined, you can start chatting!</i>";
+
+/**
+ * Handle !ForceJoin command
+ * Usage:
+ *   !ForceJoin on - Enable force join (if channel already set)
+ *   !ForceJoin off - Disable force join
+ *   !ForceJoin @channelname - Enable and set the channel
+ */
+async function handleForceJoin(
+  ctx: GroupChatContext,
+  args: string[]
+): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+  const arg = args[0] ?? "";
+  const lowerArg = arg.toLowerCase();
+
+  try {
+    const settings = await loadMandatoryMembershipSettingsByChatId(chatId);
+
+    // Handle "off" - disable force join
+    if (lowerArg === "off" || lowerArg === "disable") {
+      settings.mandatoryChannels = [];
+      await saveMandatoryMembershipSettingsByChatId(chatId, settings);
+      return [{
+        type: "send_message",
+        text: RESPONSES.forceJoinDisabled,
+        parseMode: "HTML",
+        autoDeleteSeconds: 30
+      }];
+    }
+
+    // Handle "on" - enable with existing channel
+    if (lowerArg === "on" || lowerArg === "enable") {
+      if (settings.mandatoryChannels.length === 0) {
+        return [{
+          type: "send_message",
+          text: RESPONSES.forceJoinNoChannel,
+          parseMode: "HTML"
+        }];
+      }
+      // Already has channel, just confirm
+      const channels = settings.mandatoryChannels.join(", ");
+      const msg = RESPONSES.forceJoinEnabled.replace("{channel}", channels);
+      return [{
+        type: "send_message",
+        text: msg,
+        parseMode: "HTML",
+        autoDeleteSeconds: 30
+      }];
+    }
+
+    // Handle @channelname - add/set channel
+    if (arg.startsWith("@")) {
+      // Add channel if not already present
+      if (!settings.mandatoryChannels.includes(arg)) {
+        settings.mandatoryChannels.push(arg);
+      }
+      await saveMandatoryMembershipSettingsByChatId(chatId, settings);
+      const msg = RESPONSES.forceJoinEnabled.replace("{channel}", arg);
+      return [{
+        type: "send_message",
+        text: msg,
+        parseMode: "HTML",
+        autoDeleteSeconds: 30
+      }];
+    }
+
+    // Invalid format
+    return [{
+      type: "send_message",
+      text: RESPONSES.forceJoinInvalidChannel,
+      parseMode: "HTML"
+    }];
+
+  } catch (error) {
+    logger.error("Failed to handle force join", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+/**
+ * Handle !SetForceJoinText command
+ * Shows current text and prompts admin for new text (via reply)
+ */
+async function handleSetForceJoinText(
+  ctx: GroupChatContext,
+  rawArgs: string
+): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+
+  try {
+    const customTexts = await loadCustomTextSettingsByChatId(chatId);
+
+    // If user provided text in the command, set it directly
+    if (rawArgs.trim().length > 0) {
+      customTexts.mandatoryChannelMessage = rawArgs.trim();
+      await saveCustomTextSettingsByChatId(chatId, customTexts);
+      return [{
+        type: "send_message",
+        text: RESPONSES.forceJoinTextUpdated,
+        parseMode: "HTML",
+        autoDeleteSeconds: 30
+      }];
+    }
+
+    // Show current text and prompt for new text
+    const currentText = customTexts.mandatoryChannelMessage || DEFAULT_FORCE_JOIN_MESSAGE;
+    const promptMsg = RESPONSES.forceJoinPromptText.replace("{text}", currentText);
+
+    return [{
+      type: "send_message",
+      text: promptMsg,
+      parseMode: "HTML"
+    }];
+
+  } catch (error) {
+    logger.error("Failed to handle set force join text", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+/**
+ * Handle !DelForceJoinText command
+ * Resets the force join message to default
+ */
+async function handleDelForceJoinText(
+  ctx: GroupChatContext
+): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+
+  try {
+    const customTexts = await loadCustomTextSettingsByChatId(chatId);
+    customTexts.mandatoryChannelMessage = DEFAULT_FORCE_JOIN_MESSAGE;
+    await saveCustomTextSettingsByChatId(chatId, customTexts);
+
+    return [{
+      type: "send_message",
+      text: RESPONSES.forceJoinTextReset,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30
+    }];
+
+  } catch (error) {
+    logger.error("Failed to delete force join text", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+/**
+ * Handle !ForceJoinStatus command
+ * Shows current force join status, channel, and message
+ */
+async function handleForceJoinStatus(
+  ctx: GroupChatContext
+): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+
+  try {
+    const [settings, customTexts] = await Promise.all([
+      loadMandatoryMembershipSettingsByChatId(chatId),
+      loadCustomTextSettingsByChatId(chatId)
+    ]);
+
+    const isEnabled = settings.mandatoryChannels.length > 0;
+    const status = isEnabled ? "✅ Enabled" : "❌ Disabled";
+    const channels = isEnabled ? settings.mandatoryChannels.join(", ") : "None";
+    const currentMessage = customTexts.mandatoryChannelMessage || DEFAULT_FORCE_JOIN_MESSAGE;
+    const hasCustomText = customTexts.mandatoryChannelMessage &&
+      customTexts.mandatoryChannelMessage !== DEFAULT_FORCE_JOIN_MESSAGE
+      ? "✅ Custom" : "📝 Default";
+
+    const statusMsg = RESPONSES.forceJoinStatus
+      .replace("{status}", status)
+      .replace("{channels}", channels)
+      .replace("{has_custom_text}", hasCustomText)
+      .replace("{message}", currentMessage);
+
+    return [{
+      type: "send_message",
+      text: statusMsg,
+      parseMode: "HTML"
+    }];
+
+  } catch (error) {
+    logger.error("Failed to get force join status", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+// ============================================
+// End Force Join Commands
+// ============================================
+
+// ============================================
+// Force Add Commands (Premium Feature)
+// ============================================
+
+// Default Force Add message
+const DEFAULT_FORCE_ADD_MESSAGE =
+  "🚫 <b>Action Required</b>\n\n" +
+  "Hi {user}, to prevent spam, we require new members to invite friends before chatting.\n\n" +
+  "👥 <b>Progress:</b> {added}/{number} friends invited.\n\n" +
+  "<i>Please invite more friends to unlock the chat!</i>";
+
+/**
+ * Handle !ForceAdd on/off command
+ * Premium feature - enables/disables force add lock
+ */
+async function handleForceAddToggle(
+  ctx: GroupChatContext,
+  args: string[]
+): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+
+  // Premium check
+  if (!isGroupPremium(chatId)) {
+    return [{
+      type: "send_message",
+      text: RESPONSES.premiumRequired,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30
+    }];
+  }
+
+  const arg = args[0]?.toLowerCase() ?? "";
+
+  try {
+    const banSettings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = banSettings as unknown as Record<string, unknown>;
+
+    if (arg === "off" || arg === "disable") {
+      rawSettings.mandatoryAdd = false;
+      await saveBanSettingsByChatId(chatId, banSettings);
+      return [{
+        type: "send_message",
+        text: RESPONSES.forceAddDisabled,
+        parseMode: "HTML",
+        autoDeleteSeconds: 30
+      }];
+    }
+
+    if (arg === "on" || arg === "enable" || arg === "") {
+      rawSettings.mandatoryAdd = true;
+      // Initialize settings if not present
+      if (!rawSettings.mandatoryAddSettings) {
+        rawSettings.mandatoryAddSettings = {
+          requiredCount: 3,
+          deleteTime: 1,
+          addMode: "all",
+          messageText: "default",
+        };
+      }
+      await saveBanSettingsByChatId(chatId, banSettings);
+
+      const maSettings = rawSettings.mandatoryAddSettings as Record<string, unknown>;
+      const count = (maSettings.requiredCount as number) ?? 3;
+      const msg = RESPONSES.forceAddEnabled.replace("{count}", count.toString());
+      return [{
+        type: "send_message",
+        text: msg,
+        parseMode: "HTML",
+        autoDeleteSeconds: 30
+      }];
+    }
+
+    return [{ type: "send_message", text: RESPONSES.invalidFormat, parseMode: "HTML" }];
+  } catch (error) {
+    logger.error("Failed to toggle force add", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+/**
+ * Handle !SetForceAdd N command
+ * Sets the required add count
+ */
+async function handleSetForceAddCount(
+  ctx: GroupChatContext,
+  args: string[]
+): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+
+  // Premium check
+  if (!isGroupPremium(chatId)) {
+    return [{
+      type: "send_message",
+      text: RESPONSES.premiumRequired,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30
+    }];
+  }
+
+  const value = parseInt(args[0], 10);
+  if (isNaN(value) || value < 1 || value > 20) {
+    return [{
+      type: "send_message",
+      text: "❌ Invalid count. Please use a number between 1 and 20.\n\nExample: <code>!SetForceAdd 5</code>",
+      parseMode: "HTML"
+    }];
+  }
+
+  try {
+    const banSettings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = banSettings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.mandatoryAddSettings) {
+      rawSettings.mandatoryAddSettings = { requiredCount: value };
+    } else {
+      (rawSettings.mandatoryAddSettings as Record<string, unknown>).requiredCount = value;
+    }
+
+    await saveBanSettingsByChatId(chatId, banSettings);
+    const msg = RESPONSES.forceAddCountSet.replace("{count}", value.toString());
+    return [{
+      type: "send_message",
+      text: msg,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30
+    }];
+  } catch (error) {
+    logger.error("Failed to set force add count", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+/**
+ * Handle !ForceAddTime N/off command
+ * Sets the delete time for bot messages
+ */
+async function handleForceAddTime(
+  ctx: GroupChatContext,
+  args: string[]
+): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+
+  // Premium check
+  if (!isGroupPremium(chatId)) {
+    return [{
+      type: "send_message",
+      text: RESPONSES.premiumRequired,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30
+    }];
+  }
+
+  const arg = args[0]?.toLowerCase() ?? "";
+  const isDisable = arg === "off" || arg === "disable";
+  const value = parseInt(args[0], 10);
+
+  try {
+    const banSettings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = banSettings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.mandatoryAddSettings) {
+      rawSettings.mandatoryAddSettings = { deleteTime: 1 };
+    }
+    const maSettings = rawSettings.mandatoryAddSettings as Record<string, unknown>;
+
+    if (isDisable) {
+      maSettings.deleteTime = 0;
+      await saveBanSettingsByChatId(chatId, banSettings);
+      return [{
+        type: "send_message",
+        text: RESPONSES.forceAddTimeDisabled,
+        parseMode: "HTML",
+        autoDeleteSeconds: 30
+      }];
+    }
+
+    if (isNaN(value) || value < 1 || value > 60) {
+      return [{
+        type: "send_message",
+        text: "❌ Invalid time. Please use a number between 1 and 60 minutes.\n\nExamples:\n• <code>!ForceAddTime 30</code>\n• <code>!ForceAddTime off</code>",
+        parseMode: "HTML"
+      }];
+    }
+
+    maSettings.deleteTime = value;
+    await saveBanSettingsByChatId(chatId, banSettings);
+    const msg = RESPONSES.forceAddTimeSet.replace("{time}", value.toString());
+    return [{
+      type: "send_message",
+      text: msg,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30
+    }];
+  } catch (error) {
+    logger.error("Failed to set force add time", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+/**
+ * Handle !SetForceAddText command
+ * Prompts admin to set custom force add message
+ */
+async function handleSetForceAddText(
+  ctx: GroupChatContext,
+  rawArgs: string
+): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+
+  // Premium check
+  if (!isGroupPremium(chatId)) {
+    return [{
+      type: "send_message",
+      text: RESPONSES.premiumRequired,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30
+    }];
+  }
+
+  try {
+    const customTexts = await loadCustomTextSettingsByChatId(chatId);
+
+    // If user provided text in the command, set it directly
+    if (rawArgs.trim().length > 0) {
+      // Handle "default" keyword
+      if (rawArgs.trim().toLowerCase() === "default") {
+        customTexts.forcedInviteMessage = DEFAULT_FORCE_ADD_MESSAGE;
+        await saveCustomTextSettingsByChatId(chatId, customTexts);
+        return [{
+          type: "send_message",
+          text: RESPONSES.forceAddTextReset,
+          parseMode: "HTML",
+          autoDeleteSeconds: 30
+        }];
+      }
+
+      customTexts.forcedInviteMessage = rawArgs.trim();
+      await saveCustomTextSettingsByChatId(chatId, customTexts);
+      return [{
+        type: "send_message",
+        text: RESPONSES.forceAddTextUpdated,
+        parseMode: "HTML",
+        autoDeleteSeconds: 30
+      }];
+    }
+
+    // Show current text and prompt for new text
+    const currentText = customTexts.forcedInviteMessage || DEFAULT_FORCE_ADD_MESSAGE;
+    const promptMsg = RESPONSES.forceAddTextPrompt.replace("{text}", currentText);
+
+    return [{
+      type: "send_message",
+      text: promptMsg,
+      parseMode: "HTML"
+    }];
+
+  } catch (error) {
+    logger.error("Failed to handle set force add text", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+/**
+ * Handle !DelForceAddText command
+ * Resets the force add message to default
+ */
+async function handleDelForceAddText(
+  ctx: GroupChatContext
+): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+
+  // Premium check
+  if (!isGroupPremium(chatId)) {
+    return [{
+      type: "send_message",
+      text: RESPONSES.premiumRequired,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30
+    }];
+  }
+
+  try {
+    const customTexts = await loadCustomTextSettingsByChatId(chatId);
+    customTexts.forcedInviteMessage = DEFAULT_FORCE_ADD_MESSAGE;
+    await saveCustomTextSettingsByChatId(chatId, customTexts);
+
+    return [{
+      type: "send_message",
+      text: RESPONSES.forceAddTextReset,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30
+    }];
+
+  } catch (error) {
+    logger.error("Failed to delete force add text", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+/**
+ * Handle !ForceAddStatus All/New command
+ * Sets whether force add applies to all members or new members only
+ */
+async function handleForceAddStatusMode(
+  ctx: GroupChatContext,
+  args: string[]
+): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+
+  // Premium check
+  if (!isGroupPremium(chatId)) {
+    return [{
+      type: "send_message",
+      text: RESPONSES.premiumRequired,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30
+    }];
+  }
+
+  const arg = args[0]?.toLowerCase() ?? "";
+
+  if (arg !== "all" && arg !== "new") {
+    return [{
+      type: "send_message",
+      text: "❌ Invalid mode. Use:\n• <code>!ForceAddStatus All</code> - Apply to all members\n• <code>!ForceAddStatus New</code> - Apply to new members only",
+      parseMode: "HTML"
+    }];
+  }
+
+  try {
+    const banSettings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = banSettings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.mandatoryAddSettings) {
+      rawSettings.mandatoryAddSettings = { addMode: arg };
+    } else {
+      (rawSettings.mandatoryAddSettings as Record<string, unknown>).addMode = arg;
+    }
+
+    await saveBanSettingsByChatId(chatId, banSettings);
+
+    const msg = arg === "all" ? RESPONSES.forceAddStatusAll : RESPONSES.forceAddStatusNew;
+    return [{
+      type: "send_message",
+      text: msg,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30
+    }];
+  } catch (error) {
+    logger.error("Failed to set force add status mode", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+/**
+ * Handle !CleanForceAdd command
+ * Clears the force add history for all members
+ */
+async function handleCleanForceAdd(
+  ctx: GroupChatContext
+): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+
+  // Premium check
+  if (!isGroupPremium(chatId)) {
+    return [{
+      type: "send_message",
+      text: RESPONSES.premiumRequired,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30
+    }];
+  }
+
+  try {
+    // Clear invite counts for this group from database
+    if (databaseAvailable) {
+      const { prisma } = await import("../../../server/db/client.js");
+      await prisma.membershipEvent.deleteMany({
+        where: {
+          group: { telegramChatId: chatId },
+          event: "invite"
+        }
+      });
+    }
+
+    return [{
+      type: "send_message",
+      text: RESPONSES.forceAddHistoryCleared,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30
+    }];
+  } catch (error) {
+    logger.error("Failed to clean force add history", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+/**
+ * Handle !ForceAddInfo command - shows current status
+ */
+async function handleForceAddInfo(
+  ctx: GroupChatContext
+): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+
+  // Premium check
+  if (!isGroupPremium(chatId)) {
+    return [{
+      type: "send_message",
+      text: RESPONSES.premiumRequired,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30
+    }];
+  }
+
+  try {
+    const [banSettings, customTexts] = await Promise.all([
+      loadBanSettingsByChatId(chatId),
+      loadCustomTextSettingsByChatId(chatId)
+    ]);
+
+    const rawSettings = banSettings as unknown as Record<string, unknown>;
+    const isEnabled = rawSettings.mandatoryAdd === true;
+    const maSettings = (rawSettings.mandatoryAddSettings as Record<string, unknown>) ?? {};
+
+    const status = isEnabled ? "✅ Enabled" : "❌ Disabled";
+    const count = (maSettings.requiredCount as number) ?? 3;
+    const deleteTime = (maSettings.deleteTime as number) ?? 1;
+    const addMode = (maSettings.addMode as string) ?? "all";
+    const modeLabel = addMode === "new" ? "New Members Only" : "All Members";
+    const timeLabel = deleteTime === 0 ? "Disabled" : `${deleteTime} min`;
+
+    const currentMessage = customTexts.forcedInviteMessage || DEFAULT_FORCE_ADD_MESSAGE;
+    const hasCustomText = customTexts.forcedInviteMessage &&
+      customTexts.forcedInviteMessage !== DEFAULT_FORCE_ADD_MESSAGE
+      ? "✅ Custom" : "📝 Default";
+
+    const statusMsg = RESPONSES.forceAddStatus
+      .replace("{status}", status)
+      .replace("{count}", count.toString())
+      .replace("{time}", timeLabel)
+      .replace("{mode}", modeLabel)
+      .replace("{has_custom_text}", hasCustomText)
+      .replace("{message}", currentMessage);
+
+    return [{
+      type: "send_message",
+      text: statusMsg,
+      parseMode: "HTML"
+    }];
+
+  } catch (error) {
+    logger.error("Failed to get force add info", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+// ============================================
+// End Force Add Commands
+// ============================================
+
 async function handleWelcomeToggle(
+
   ctx: GroupChatContext,
   enable: boolean
 ): Promise<ProcessingAction[]> {
@@ -1439,7 +2132,48 @@ async function processCommand(
     return handleMandatoryChannel(ctx, args);
   }
 
+  // Force Join commands
+  if (command === "forcejoin") {
+    return handleForceJoin(ctx, args);
+  }
+  if (command === "setforcejointext") {
+    return handleSetForceJoinText(ctx, rawArgs);
+  }
+  if (command === "delforcejointext" || command === "deleteforcejointext" || command === "removeforcejointext") {
+    return handleDelForceJoinText(ctx);
+  }
+  if (command === "forcejoinstatus") {
+    return handleForceJoinStatus(ctx);
+  }
+
+  // Force Add commands (Premium Feature)
+  if (command === "forceadd") {
+    return handleForceAddToggle(ctx, args);
+  }
+  if (command === "setforceadd") {
+    return handleSetForceAddCount(ctx, args);
+  }
+  if (command === "forceaddtime") {
+    return handleForceAddTime(ctx, args);
+  }
+  if (command === "setforceaddtext") {
+    return handleSetForceAddText(ctx, rawArgs);
+  }
+  if (command === "delforceaddtext" || command === "deleteforceaddtext" || command === "removeforceaddtext") {
+    return handleDelForceAddText(ctx);
+  }
+  if (command === "forceaddstatus") {
+    return handleForceAddStatusMode(ctx, args);
+  }
+  if (command === "cleanforceadd" || command === "clearforceadd") {
+    return handleCleanForceAdd(ctx);
+  }
+  if (command === "forceaddinfo") {
+    return handleForceAddInfo(ctx);
+  }
+
   // Welcome/rules
+
   if (command === "welcome") {
     const action = args[0]?.toLowerCase();
     return handleWelcomeToggle(ctx, action !== "off" && action !== "disable");

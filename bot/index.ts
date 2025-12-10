@@ -439,10 +439,10 @@ const HELP_SECTIONS: HelpSectionConfig[] = [
   { id: "word_filter", icon: "🚷", title: "Word Filter", implemented: true },
   { id: "cleanup", icon: "🧹", title: "Cleanup", implemented: true },
   { id: "mandatory_add", icon: "➕", title: "Mandatory Add", implemented: false },
-  { id: "welcome", icon: "👋", title: "Welcome", implemented: false },
+  { id: "welcome", icon: "👋", title: "Welcome", implemented: true },
   { id: "mandatory_membership", icon: "📌", title: "Mandatory Membership", implemented: false },
-  { id: "activity_stats", icon: "📊", title: "Activity Statistics", implemented: false },
-  { id: "entertainment", icon: "🎮", title: "Entertainment & Utilities", implemented: false },
+  { id: "activity_stats", icon: "📊", title: "Activity Statistics", implemented: true },
+  { id: "entertainment", icon: "🎮", title: "Entertainment & Utilities", implemented: true },
 ];
 
 type LockHelpData = {
@@ -524,23 +524,23 @@ const PENALTY_HELP_DATA: PenaltyHelpData[] = [
     icon: "🚫",
     whatItDoes: "Permanently bans a user from the group. The user cannot rejoin until unbanned.",
     example: "Reply to a spammer's message and use the ban command",
-    commandEnable: "!ban or .ban",
-    commandDisable: "!unban [user_id]",
+    commandEnable: "!Ban",
+    commandDisable: "!Unban [user_id]",
     requiresReply: true,
     whenToUse: "For severe violations, repeat offenders, or spammers",
-    notes: "The banned user's message and your command message are deleted. No notification is sent to the group."
+    notes: "The banned user's message and your command are deleted."
   },
   {
     id: "ban_plus",
     name: "Ban Plus",
     icon: "⛔",
     whatItDoes: "Bans the user AND deletes all their recent messages from the group.",
-    example: "Reply to spam messages to ban the user and clean up their content",
-    commandEnable: "!ban+ or .ban+",
-    commandDisable: "!unban [user_id]",
+    example: "Reply to spam messages to ban and clean up their content",
+    commandEnable: "!Ban+",
+    commandDisable: "!Unban [user_id]",
     requiresReply: true,
     whenToUse: "When you need to remove both the user and their spam content",
-    notes: "Deletes recent messages from the banned user. More thorough than regular ban."
+    notes: "Deletes recent messages from the banned user."
   },
   {
     id: "kick",
@@ -548,10 +548,10 @@ const PENALTY_HELP_DATA: PenaltyHelpData[] = [
     icon: "👢",
     whatItDoes: "Removes a user from the group but they can rejoin using an invite link.",
     example: "Reply to a user's message and kick them temporarily",
-    commandEnable: "!kick or .kick",
+    commandEnable: "!Kick",
     requiresReply: true,
-    whenToUse: "For minor violations or warnings, when you don't want to permanently ban",
-    notes: "User can rejoin. The kicked user's message and command are deleted."
+    whenToUse: "For minor violations, when you don't want to permanently ban",
+    notes: "User can rejoin via invite link."
   },
   {
     id: "mute",
@@ -559,35 +559,35 @@ const PENALTY_HELP_DATA: PenaltyHelpData[] = [
     icon: "🔇",
     whatItDoes: "Permanently restricts a user from sending any messages in the group.",
     example: "Reply to a disruptive user's message to mute them",
-    commandEnable: "!mute or .mute",
-    commandDisable: "!unmute (reply to user)",
+    commandEnable: "!Mute",
+    commandDisable: "!Unmute (reply)",
     requiresReply: true,
     whenToUse: "For users who disrupt discussions but don't deserve a ban",
-    notes: "User stays in group but cannot send messages. Useful for cooling down situations."
+    notes: "User stays in group but cannot send messages."
   },
   {
     id: "temp_mute",
     name: "Temporary Mute",
     icon: "⏱️",
-    whatItDoes: "Mutes a user for a specified duration (in hours). Auto-unmutes when time expires.",
-    example: "Mute a user for 24 hours: !mute 24",
-    commandEnable: "!mute [hours] (e.g., !mute 24)",
-    commandDisable: "!unmute (reply to user)",
+    whatItDoes: "Mutes a user for a specified duration. Auto-unmutes when time expires.",
+    example: "!Mute 24 — mutes for 24 hours",
+    commandEnable: "!Mute [hours]",
+    commandDisable: "!Unmute (reply)",
     requiresReply: true,
-    whenToUse: "Give users time to cool down before allowing them to participate again",
-    notes: "Specify duration in hours. User automatically regains permissions when time expires."
+    whenToUse: "Give users time to cool down before returning",
+    notes: "Specify duration in hours (e.g., 24 = 24 hours)."
   },
   {
     id: "warn",
     name: "Warning",
     icon: "⚠️",
-    whatItDoes: "Issues a formal warning to a user. Warnings accumulate and can trigger auto-actions.",
+    whatItDoes: "Issues a formal warning. Warnings accumulate and can trigger auto-actions.",
     example: "Reply to a rule-breaking message to warn the user",
-    commandEnable: "!warn or .warn",
-    commandDisable: "!reset (clears warnings)",
+    commandEnable: "!Warn",
+    commandDisable: "!Reset (clears warnings)",
     requiresReply: true,
-    whenToUse: "For first-time or minor violations before taking stronger action",
-    notes: "Warnings stack up. Configure auto-mute/ban after X warnings in Advanced settings."
+    whenToUse: "For first-time or minor violations",
+    notes: "Configure auto-mute/ban after X warnings in Advanced settings."
   },
 ];
 
@@ -610,64 +610,57 @@ const SETTINGS_HELP_DATA: SettingsHelpData[] = [
     id: "view_settings",
     name: "View Settings",
     icon: "⚙️",
-    whatItDoes: "Use this command to view and review all your group's current settings, including active locks, verification status, and other configurations.",
-    commands: ["!settings", "!status", "!info"],
+    whatItDoes: "View all your group's current settings, including active locks, verification status, and other configurations.",
+    commands: ["!Settings", "!Status", "!Info"],
   },
   {
     id: "media_lock",
     name: "Media Lock",
     icon: "🖼️",
-    whatItDoes: "Control which types of media can be sent in your group. Lock photos, videos, GIFs, stickers, voice messages, and other media types to keep your group focused.",
-    commands: ["!lock photo", "!lock video", "!lock sticker", "!lock voice", "!lock gif", "!unlock photo"],
+    whatItDoes: "Control which types of media can be sent. Lock photos, videos, GIFs, stickers, voice messages, and other media types.",
+    commands: ["!Lock photo", "!Lock video", "!Lock sticker", "!Lock voice", "!Lock gif", "!Unlock [type]"],
   },
   {
     id: "message_limit",
     name: "Message Limit",
     icon: "📏",
-    whatItDoes: "Set minimum and maximum character limits for messages. Messages that don't meet the character requirements will be automatically deleted.",
-    commands: ["!setmaxchar 150", "!setminchar 10", "!unlock char"],
+    whatItDoes: "Set minimum and maximum character/word limits for messages. Messages outside these limits are automatically deleted.",
+    commands: ["!MaxWords [count]", "!MinWords [count]", "!MsgLimit [count]"],
   },
   {
     id: "add_admin",
     name: "Add Admin",
     icon: "👑",
-    whatItDoes: "Add new bot admins to your group. Bot admins can access special permissions assigned by the bot. You can also manage or remove admins added by the bot.",
-    commands: ["!addadmin", "!remadmin", "!adminlist"],
+    whatItDoes: "Add new bot admins to your group with special permissions. Manage or remove admins added by the bot.",
+    commands: ["!AddAdmin", "!RemAdmin", "!AdminList"],
   },
   {
     id: "strict_mode",
     name: "Strict Mode",
     icon: "🔐",
-    whatItDoes: "Enable strict mode to count violations by all users including admins. When disabled, admins are exempt from most restrictions and their messages are not deleted.",
-    commands: ["!strict on", "!strict off", "!adminlock on"],
-  },
-  {
-    id: "spam_filter",
-    name: "Spam Filter",
-    icon: "🚫",
-    whatItDoes: "Add words or phrases to the blacklist. Any message containing blacklisted words will be automatically deleted. Use whitelist to allow specific words.",
-    commands: ["!filter add [word]", "!filter remove [word]", "!filterlist", "!clearfilter"],
+    whatItDoes: "When enabled, rules apply to everyone including admins. When disabled, admins are exempt from most restrictions.",
+    commands: ["!Strict on", "!Strict off", "!AdminLock on"],
   },
   {
     id: "auto_lock",
-    name: "Auto Lock",
+    name: "Auto Lock (Silence)",
     icon: "🔒",
-    whatItDoes: "Automatically lock the group at specified times. Messages from non-admins will be deleted during locked periods. Configure quiet hours in the bot panel.",
-    commands: ["!silence on", "!silence off", "!silence 22:00 06:00"],
+    whatItDoes: "Automatically lock the group at specified times. Non-admin messages are deleted during locked periods.",
+    commands: ["!Silence1 from HH:MM to HH:MM", "!Silence1 off", "!ClearSilence"],
   },
   {
     id: "group_lock",
     name: "Group Lock",
-    icon: "🔐",
-    whatItDoes: "Emergency lock the entire group. Only admins can send messages while the group is locked. Useful for dealing with spam attacks or important announcements.",
-    commands: ["!lock group", "!unlock group", "!lockall", "!unlockall"],
+    icon: "🚨",
+    whatItDoes: "Emergency lock the entire group. Only admins can send messages. Useful for spam attacks or announcements.",
+    commands: ["!LockGroup", "!UnlockGroup"],
   },
   {
     id: "flood_control",
     name: "Flood Control",
     icon: "🌊",
-    whatItDoes: "Prevent message flooding/spamming. Users who send too many messages in a short time will be automatically muted. Configure thresholds in the bot panel.",
-    commands: ["!flood on", "!flood off", "!setflood 5 10"],
+    whatItDoes: "Prevent message flooding. Users sending too many messages in a short time are automatically muted.",
+    commands: ["!Flood on", "!Flood off", "!SetFlood [count] [seconds]"],
   },
 ];
 
@@ -689,39 +682,39 @@ const RANK_HELP_DATA: RankHelpData[] = [
     id: "owner",
     name: "Owner",
     icon: "👑",
-    description: "Highest access level in the group. Owners can change all group settings without any restrictions and promote/demote users (except other owners). Only the original group creator can promote/demote owner rank.",
+    description: "Highest access level in the group. Owners can change all settings without restrictions and promote/demote users (except other owners).",
     commands: [
-      { label: "SetOwner", command: "!setowner" },
-      { label: "RemOwner", command: "!remowner" },
-      { label: "OwnerList", command: "!ownerlist" },
-      { label: "Clean OwnerList", command: "!cleanownerlist" },
+      { label: "Set Owner", command: "!SetOwner" },
+      { label: "Remove Owner", command: "!RemOwner" },
+      { label: "Owner List", command: "!OwnerList" },
+      { label: "Clean Owner List", command: "!CleanOwnerList" },
     ],
-    notes: "Commands can be used with reply, username, mention, or numeric ID.",
+    notes: "Commands work with reply, @username, or numeric ID.",
   },
   {
     id: "manager",
     name: "Manager",
     icon: "👤",
-    description: "Managers can change most group settings and restrict/ban regular users when needed. Owners can customize each manager's permissions through the user panel. Managers cannot promote or demote other users.",
+    description: "Managers can change most settings and restrict/ban regular users. Owners can customize each manager's permissions.",
     commands: [
-      { label: "Promote", command: "!promote" },
-      { label: "Demote", command: "!demote" },
-      { label: "ModList", command: "!modlist" },
-      { label: "Clean ModList", command: "!cleanmodlist" },
+      { label: "Promote", command: "!Promote" },
+      { label: "Demote", command: "!Demote" },
+      { label: "Mod List", command: "!ModList" },
+      { label: "Clean Mod List", command: "!CleanModList" },
     ],
-    notes: "Commands can be used with reply, username, mention, or numeric ID. Temporary manager: !promote [hours]",
+    notes: "Use !Promote [hours] for temporary promotion.",
   },
   {
     id: "vip",
     name: "VIP/Special",
     icon: "⭐",
-    description: "VIP members bypass all content restrictions and filters. Their messages are never deleted or restricted by the bot.",
+    description: "VIP members bypass all content restrictions. Their messages are never deleted or restricted by the bot.",
     commands: [
-      { label: "VIP", command: "!vip" },
-      { label: "RemVIP", command: "!remvip" },
-      { label: "VIPList", command: "!viplist" },
+      { label: "Add VIP", command: "!VIP" },
+      { label: "Remove VIP", command: "!RemVIP" },
+      { label: "VIP List", command: "!VIPList" },
     ],
-    notes: "Commands can be used with reply, username, mention, or numeric ID.",
+    notes: "Commands work with reply, @username, or numeric ID.",
   },
 ];
 
@@ -742,99 +735,99 @@ const CLEANUP_HELP_DATA: CleanupHelpData[] = [
     id: "messages",
     name: "Messages",
     icon: "💬",
-    description: "Using this feature, group admins can delete a specified number of messages from the group.\n\nCleanup in groups with less than 100 members is limited and only performed through the bot API, meaning only messages from the last 48 hours will be deleted without any filtering.\n\nIn groups with more than 100 members, group owners can install the companion bot using the install companion command to easily clean up the group by message type.\n\nAdmins and owners can set up to five automatic cleanup schedules.",
-    commands: ["Del count", "SetAutoClean", "RemAutoClean", "AutoClean Stats"],
+    description: "Delete a specified number of messages from the group.\n\nIn groups with fewer than 100 members, cleanup is performed through the bot API (messages from the last 48 hours only).\n\nIn larger groups, install the companion bot for advanced cleanup by message type.\n\nAdmins can set up to five automatic cleanup schedules.",
+    commands: ["!Del [count]", "!SetAutoClean", "!RemAutoClean", "!AutoCleanStats"],
   },
   {
     id: "bans",
     name: "Ban List",
     icon: "🚫",
-    description: "Using this command, all banned users will be removed from the ban list and unbanned. Only the bot owner can use this command.",
-    commands: ["Clean Bans"],
+    description: "Remove all banned users from the ban list and unban them. Only the bot owner can use this command.",
+    commands: ["!CleanBans"],
   },
   {
     id: "warns",
     name: "Warning List",
     icon: "⚠️",
-    description: "Using this command, all warning records will be removed from the bot's warning list.",
-    commands: ["Clean Warns"],
+    description: "Clear all warning records from the bot's warning database for this group.",
+    commands: ["!CleanWarns"],
   },
   {
     id: "mutes",
     name: "Mute List",
     icon: "🔇",
-    description: "Using this command, all muted users will be removed from the mute list and unmuted. Only the bot owner can use this command.",
-    commands: ["Clean Mutes"],
+    description: "Unmute all muted users and clear the mute list. Only the bot owner can use this command.",
+    commands: ["!CleanMutes"],
   },
   {
     id: "filters",
     name: "Filter Words",
     icon: "🚷",
-    description: "Using this command, all filtered keywords will be removed from the bot's filter list.",
-    commands: ["Clean Filters"],
+    description: "Remove all filtered keywords from the word filter list.",
+    commands: ["!CleanFilters"],
   },
   {
     id: "exempts",
     name: "Exempt Users",
     icon: "✅",
-    description: "Using this command, all exempt users will be removed from the exempt list.",
-    commands: ["Clean Exempts"],
+    description: "Remove all users from the exempt (whitelist) list.",
+    commands: ["!CleanExempts"],
   },
   {
     id: "modlist",
     name: "Admin Users",
     icon: "👤",
-    description: "Using this command, all group managers will be demoted. Only the bot owner can use this command.",
-    commands: ["Clean ModList"],
+    description: "Demote all bot-assigned managers from the group. Only the bot owner can use this command.",
+    commands: ["!CleanModList"],
   },
   {
     id: "vips",
     name: "VIP Users",
     icon: "⭐",
-    description: "Using this command, all VIP users will be removed from the VIP list.",
-    commands: ["Clean VIPs"],
+    description: "Remove all VIP privileges from users in the group.",
+    commands: ["!CleanVIPs"],
   },
   {
     id: "nicknames",
     name: "Nicknames",
     icon: "📛",
-    description: "Using this command, all stored nicknames will be removed from the bot's nickname list.",
-    commands: ["Clean Nicknames"],
+    description: "Clear all stored nicknames from the bot's database.",
+    commands: ["!CleanNicknames"],
   },
   {
     id: "blocks",
     name: "Blocked Users",
     icon: "🚫",
-    description: "Using this command, all blocked users will be removed from the block list.",
-    commands: ["Clean Blocks"],
+    description: "Unblock all users from the bot's block list.",
+    commands: ["!CleanBlocks"],
   },
   {
     id: "restricts",
     name: "Restricted Users",
     icon: "🔒",
-    description: "Using this command, all restricted users will be removed from the restriction list.",
-    commands: ["Clean Restricts"],
+    description: "Remove restrictions from all restricted users in the group.",
+    commands: ["!CleanRestricts"],
   },
   {
     id: "bots",
     name: "Bots",
     icon: "🤖",
-    description: "Using this command, all bots will be removed from the group. Only the bot owner can use this command.",
-    commands: ["Clean Bots"],
+    description: "Remove all bots from the group (except Firewall). Only the bot owner can use this command.",
+    commands: ["!CleanBots"],
   },
   {
     id: "fakes",
     name: "Fake Accounts",
     icon: "👻",
-    description: "Using this command, all detected fake accounts will be removed from the group.",
-    commands: ["Clean Fakes"],
+    description: "Kick all detected fake/suspicious accounts from the group.",
+    commands: ["!CleanFakes"],
   },
   {
     id: "deleted",
     name: "Deleted Accounts",
     icon: "🗑️",
-    description: "Using this command, all deleted (ghost) accounts will be removed from the group.",
-    commands: ["Clean Deleted"],
+    description: "Remove all deleted (ghost) accounts from the group membership.",
+    commands: ["!CleanDeleted"],
   },
 ];
 
@@ -858,19 +851,19 @@ const WORDFILTER_HELP_DATA: WordFilterHelpData[] = [
     name: "Single Filtering",
     icon: "➊",
     summary: "Filter words one at a time with optional punishments",
-    description: "Using this feature, group admins can filter (block) specific words in the group. When a filtered word is sent, the bot will delete the message. Optionally, you can set a punishment for the sender (warn, ban, or mute).",
+    description: "Block specific words in the group. When a filtered word is sent, the bot deletes the message. Optionally, set a punishment for the sender (warn, ban, or mute).",
     commands: [
-      { label: "AddFilter", command: "AddFilter [word]" },
-      { label: "FilterWarn", command: "FilterWarn [word]" },
-      { label: "FilterBan", command: "FilterBan [word]" },
-      { label: "FilterMute", command: "FilterMute [word]" },
-      { label: "RemFilter", command: "RemFilter [word]" },
-      { label: "FilterList", command: "FilterList" },
-      { label: "Clean FilterList", command: "Clean FilterList" },
+      { label: "AddFilter", command: "!AddFilter [word]" },
+      { label: "FilterWarn", command: "!FilterWarn [word]" },
+      { label: "FilterBan", command: "!FilterBan [word]" },
+      { label: "FilterMute", command: "!FilterMute [word]" },
+      { label: "RemFilter", command: "!RemFilter [word]" },
+      { label: "FilterList", command: "!FilterList" },
+      { label: "CleanFilterList", command: "!CleanFilterList" },
     ],
     examples: [
-      { description: "Filter the word 'spam' (just delete messages containing it)", command: "AddFilter spam" },
-      { description: "Filter 'advertisement' and warn the sender", command: "FilterWarn advertisement" },
+      { description: "Filter the word 'spam'", command: "!AddFilter spam" },
+      { description: "Filter and warn sender", command: "!FilterWarn advertisement" },
     ],
   },
   {
@@ -878,12 +871,12 @@ const WORDFILTER_HELP_DATA: WordFilterHelpData[] = [
     name: "Continuous Filtering",
     icon: "➋",
     summary: "Enter filter mode to add multiple words quickly",
-    description: "This is a more efficient method for filtering multiple words. After sending the Filter command, you'll receive initial settings. Then, all words you send will be continuously filtered until you exit the mode. This is especially useful when you need to add many filtered words at once.",
+    description: "Efficient method for filtering multiple words at once. After sending the command, all words you type will be added to the filter list until you exit the mode.",
     commands: [
-      { label: "Filter", command: "Filter" },
+      { label: "Filter", command: "!Filter" },
     ],
     examples: [
-      { description: "Start continuous filter mode", command: "Filter" },
+      { description: "Start continuous filter mode", command: "!Filter" },
     ],
   },
   {
@@ -891,12 +884,544 @@ const WORDFILTER_HELP_DATA: WordFilterHelpData[] = [
     name: "Private Filtering",
     icon: "➌",
     summary: "Filter words privately via bot panel",
-    description: "If you don't want to filter words directly in the group (to keep the commands hidden from members), you can use the private panel. Send the 'Panel PV' command in the group, then go to the bot's private chat. Navigate to: Lists → Filter List. From there, you can view, add, and clear filtered words privately.",
+    description: "Manage filtered words without exposing commands in the group. Send the command in the group, then go to the bot's private chat and navigate to: Lists → Filter List.",
     commands: [
-      { label: "Panel PV", command: "Panel PV" },
+      { label: "PanelPV", command: "!PanelPV" },
     ],
     examples: [
-      { description: "Open the private panel link", command: "Panel PV" },
+      { description: "Open the private panel link", command: "!PanelPV" },
+    ],
+  },
+];
+
+
+// ============================================
+// ACTIVITY STATISTICS HELP DATA
+// ============================================
+
+type StatsHelpData = {
+  id: string;
+  name: string;
+  icon: string;
+  summary: string;
+  description: string;
+  commands: { label: string; command: string }[];
+  examples?: { description: string; command: string }[];
+};
+
+const STATS_HELP_DATA: StatsHelpData[] = [
+  {
+    id: "overview",
+    name: "Group Stats Overview",
+    icon: "📊",
+    summary: "View the overall chat and add statistics for all users in the group",
+    description: "Using this feature, group admins can view comprehensive statistics about user activity including chat messages and adds (user invitations). The bot displays a ranked list of users based on their contribution to the group.\n\nAdmins can see who is most active in the group and who has invited the most members.",
+    commands: [
+      { label: "Stats", command: "!Stats" },
+      { label: "Stats (Alt)", command: ".Stats" },
+    ],
+    examples: [
+      { description: "View group statistics", command: "!Stats" },
+    ],
+  },
+  {
+    id: "add_stats",
+    name: "Add Stats",
+    icon: "➕",
+    summary: "View statistics for user invitations (adds) only",
+    description: "This command shows statistics specifically for user invitations. See which members have invited the most new users to the group.\n\nUseful for tracking recruitment campaigns or rewarding active inviters.",
+    commands: [
+      { label: "AddStats", command: "!AddStats" },
+      { label: "AddStats (Alt)", command: ".AddStats" },
+    ],
+    examples: [
+      { description: "View add-only statistics", command: "!AddStats" },
+    ],
+  },
+  {
+    id: "rank_stats",
+    name: "Rank Stats",
+    icon: "👑",
+    summary: "View statistics for admins and ranked members only",
+    description: "This command displays activity statistics specifically for users who hold a rank in the group (owners, managers, VIPs).\n\nUseful for monitoring admin activity and ensuring ranked members are contributing to the group.",
+    commands: [
+      { label: "RankStats", command: "!RankStats" },
+      { label: "RankStats (Alt)", command: ".RankStats" },
+    ],
+    examples: [
+      { description: "View ranked members statistics", command: "!RankStats" },
+    ],
+  },
+  {
+    id: "custom_member",
+    name: "Custom Member Count",
+    icon: "🔢",
+    summary: "View statistics for a specific number of top members",
+    description: "Use this command to view statistics for a custom number of top users. Specify the number of members you want to see in the statistics.\n\nFor example, 'Stats 30 mem' will show the top 30 most active members.",
+    commands: [
+      { label: "Stats N mem", command: "!Stats [N] mem" },
+    ],
+    examples: [
+      { description: "View top 30 members", command: "!Stats 30 mem" },
+      { description: "View top 50 members", command: "!Stats 50 mem" },
+    ],
+  },
+  {
+    id: "total_stats",
+    name: "Total Stats",
+    icon: "📈",
+    summary: "View all-time cumulative statistics for the group",
+    description: "This command shows the total accumulated statistics since the bot was added to the group. Unlike regular stats which may be time-limited, this shows the complete picture of all activity.",
+    commands: [
+      { label: "TotalStats", command: "!TotalStats" },
+      { label: "TotalStats (Alt)", command: ".TotalStats" },
+    ],
+    examples: [
+      { description: "View all-time statistics", command: "!TotalStats" },
+    ],
+  },
+  {
+    id: "weekly_stats",
+    name: "Weekly Stats",
+    icon: "📅",
+    summary: "View statistics for the current week only",
+    description: "This command shows activity statistics for the current week. Useful for tracking weekly performance and comparing activity across different time periods.",
+    commands: [
+      { label: "WeeklyStats", command: "!WeeklyStats" },
+      { label: "WeeklyStats (Alt)", command: ".WeeklyStats" },
+    ],
+    examples: [
+      { description: "View this week's statistics", command: "!WeeklyStats" },
+    ],
+  },
+  {
+    id: "user_stats",
+    name: "User Stats",
+    icon: "👤",
+    summary: "View detailed statistics for a specific user",
+    description: "Reply to a user's message with this command to view their last 7 days of activity statistics. This provides a detailed breakdown of the user's contribution to the group.\n\nThis command requires replying to the target user's message.",
+    commands: [
+      { label: "UserStats", command: "!UserStats" },
+      { label: "UserStats (Alt)", command: ".UserStats" },
+    ],
+    examples: [
+      { description: "View user stats (reply to their message)", command: "!UserStats" },
+    ],
+  },
+  {
+    id: "auto_stats",
+    name: "Auto Stats Schedule",
+    icon: "⏰",
+    summary: "Configure automatic stats posting at scheduled times",
+    description: "Admins can enable automatic statistics posting. The bot will automatically send group statistics at the configured times.\n\nYou can set multiple schedules and the bot will post stats according to the configured intervals. Use RemAutoStats to disable a schedule.",
+    commands: [
+      { label: "SetAutoStats", command: "!SetAutoStats" },
+      { label: "RemAutoStats", command: "!RemAutoStats" },
+    ],
+    examples: [
+      { description: "Set up automatic stats schedule", command: "!SetAutoStats" },
+      { description: "Remove automatic stats schedule", command: "!RemAutoStats" },
+    ],
+  },
+  {
+    id: "stats_status",
+    name: "Stats Status",
+    icon: "ℹ️",
+    summary: "View current auto stats configuration",
+    description: "This command shows the current status of automatic statistics posting, including all configured schedules and their timing.",
+    commands: [
+      { label: "StatsStatus", command: "!StatsStatus" },
+      { label: "StatsStatus (Alt)", command: ".StatsStatus" },
+    ],
+    examples: [
+      { description: "View auto stats status", command: "!StatsStatus" },
+    ],
+  },
+];
+
+// ============================================
+// ENTERTAINMENT & UTILITIES HELP DATA
+// ============================================
+
+type EntertainmentHelpData = {
+  id: string;
+  name: string;
+  icon: string;
+  summary: string;
+  description: string;
+  commands: { label: string; command: string }[];
+  examples?: { description: string; command: string }[];
+};
+
+const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
+  {
+    id: "font",
+    name: "Stylish Fonts",
+    icon: "🔤",
+    summary: "Convert text to various stylish and decorative fonts",
+    description: "Using this command, you can convert any text into beautiful and stylish fonts. The bot will display your text in multiple font variations that you can copy and use anywhere.",
+    commands: [
+      { label: "Font", command: "!Font [text]" },
+      { label: "Font (Alt)", command: ".Font [text]" },
+    ],
+    examples: [
+      { description: "Convert 'Hello' to stylish fonts", command: "!Font Hello" },
+    ],
+  },
+  {
+    id: "time",
+    name: "Current Time",
+    icon: "🕐",
+    summary: "Display the current time based on user's timezone",
+    description: "This command shows the current time. The time is displayed according to the user's configured timezone or the group's default timezone setting.\n\nAdmins can configure the default timezone in Advanced Settings → Timezone.",
+    commands: [
+      { label: "Time", command: "!Time" },
+      { label: "Time (Alt)", command: ".Time" },
+    ],
+    examples: [
+      { description: "Get current time", command: "!Time" },
+    ],
+  },
+  {
+    id: "echo",
+    name: "Echo Message",
+    icon: "📢",
+    summary: "Echo/repeat a message through the bot",
+    description: "The bot will repeat whatever text you send after the command. Useful for making announcements or repeating important messages.",
+    commands: [
+      { label: "Echo", command: "!Echo [text]" },
+      { label: "Echo (Alt)", command: ".Echo [text]" },
+    ],
+    examples: [
+      { description: "Echo a message", command: "!Echo Welcome everyone!" },
+    ],
+  },
+  {
+    id: "news",
+    name: "Latest News",
+    icon: "📰",
+    summary: "Get the latest news from reliable external sources",
+    description: "Fetches and displays the latest news headlines from trusted and reliable external news sources. News is aggregated from reputable international news agencies only.",
+    commands: [
+      { label: "News", command: "!News" },
+      { label: "News (Alt)", command: ".News" },
+    ],
+    examples: [
+      { description: "Get latest news", command: "!News" },
+    ],
+  },
+  {
+    id: "fortune",
+    name: "Fortune/Horoscope",
+    icon: "🔮",
+    summary: "Get a random fortune or horoscope reading",
+    description: "Receive a random fortune, daily horoscope, or inspirational message. Great for entertainment and adding some fun to your group.",
+    commands: [
+      { label: "Fortune", command: "!Fortune" },
+      { label: "Fortune (Alt)", command: ".Fortune" },
+    ],
+    examples: [
+      { description: "Get your fortune", command: "!Fortune" },
+    ],
+  },
+  {
+    id: "bio",
+    name: "User Bio",
+    icon: "📝",
+    summary: "Set or view user biography/description",
+    description: "View or set a custom biography for yourself or view another user's bio. Reply to a user's message to see their bio.",
+    commands: [
+      { label: "Bio", command: "!Bio" },
+      { label: "SetBio", command: "!SetBio [text]" },
+    ],
+    examples: [
+      { description: "View your bio", command: "!Bio" },
+      { description: "Set your bio", command: "!SetBio I love coding!" },
+    ],
+  },
+  {
+    id: "calendar",
+    name: "Calendar/Date",
+    icon: "📅",
+    summary: "Display current date and calendar information",
+    description: "Shows the current date in multiple calendar formats including Gregorian, Persian (Jalali/Shamsi), and Islamic (Hijri) calendars.",
+    commands: [
+      { label: "Calendar", command: "!Calendar" },
+      { label: "Date", command: "!Date" },
+    ],
+    examples: [
+      { description: "Get current date", command: "!Calendar" },
+    ],
+  },
+  {
+    id: "sticker",
+    name: "Sticker Maker",
+    icon: "🎨",
+    summary: "Create custom stickers from images or text",
+    description: "Create custom Telegram stickers. Reply to an image to convert it to a sticker, or use text to create text-based stickers.",
+    commands: [
+      { label: "Sticker", command: "!Sticker" },
+      { label: "MakeSticker", command: "!MakeSticker" },
+    ],
+    examples: [
+      { description: "Convert image to sticker (reply to image)", command: "!Sticker" },
+    ],
+  },
+  {
+    id: "azan",
+    name: "Prayer Times",
+    icon: "🕌",
+    summary: "Get Islamic prayer times (Azan)",
+    description: "Display the daily Islamic prayer times (Fajr, Dhuhr, Asr, Maghrib, Isha) based on location. Times are calculated for the configured city.",
+    commands: [
+      { label: "Azan", command: "!Azan" },
+      { label: "PrayerTimes", command: "!PrayerTimes" },
+    ],
+    examples: [
+      { description: "Get prayer times", command: "!Azan" },
+    ],
+  },
+  {
+    id: "joke",
+    name: "Random Joke",
+    icon: "😂",
+    summary: "Get a random joke for entertainment",
+    description: "The bot will send a random joke to entertain the group. Jokes are clean and appropriate for all audiences.",
+    commands: [
+      { label: "Joke", command: "!Joke" },
+      { label: "Joke (Alt)", command: ".Joke" },
+    ],
+    examples: [
+      { description: "Get a random joke", command: "!Joke" },
+    ],
+  },
+  {
+    id: "poetry",
+    name: "Random Poetry",
+    icon: "📜",
+    summary: "Get a random poem or verse",
+    description: "Receive a random poem, verse, or literary quote. Great for adding culture and beauty to your group conversations.",
+    commands: [
+      { label: "Poetry", command: "!Poetry" },
+      { label: "Poem", command: "!Poem" },
+    ],
+    examples: [
+      { description: "Get a random poem", command: "!Poetry" },
+    ],
+  },
+  {
+    id: "translate",
+    name: "Translation",
+    icon: "🌐",
+    summary: "Translate text between languages",
+    description: "Translate text from one language to another. Specify the target language code followed by the text to translate, or reply to a message to translate it.",
+    commands: [
+      { label: "Translate", command: "!Translate [lang] [text]" },
+      { label: "Tr", command: "!Tr [lang] [text]" },
+    ],
+    examples: [
+      { description: "Translate to English", command: "!Translate en سلام" },
+      { description: "Translate to Persian", command: "!Tr fa Hello" },
+    ],
+  },
+  {
+    id: "id",
+    name: "User/Chat ID",
+    icon: "🆔",
+    summary: "Get user ID or chat ID information",
+    description: "Display the numeric Telegram ID of a user or the current chat. Reply to a user's message to get their ID, or use without reply to get your own ID and the chat ID.",
+    commands: [
+      { label: "ID", command: "!ID" },
+      { label: "ID (Alt)", command: ".ID" },
+    ],
+    examples: [
+      { description: "Get your ID and chat ID", command: "!ID" },
+    ],
+  },
+  {
+    id: "currency",
+    name: "Currency Rates",
+    icon: "💰",
+    summary: "Get live currency exchange rates",
+    description: "Display current exchange rates for major currencies including USD, EUR, GBP, and more. Rates are fetched from reliable financial sources.",
+    commands: [
+      { label: "Currency", command: "!Currency" },
+      { label: "Rate", command: "!Rate" },
+    ],
+    examples: [
+      { description: "Get currency rates", command: "!Currency" },
+    ],
+  },
+  {
+    id: "info",
+    name: "User/Chat Info",
+    icon: "ℹ️",
+    summary: "Get detailed information about user or chat",
+    description: "Display detailed information about a user including their name, username, ID, and group membership status. Reply to a user's message to get their info.",
+    commands: [
+      { label: "Info", command: "!Info" },
+      { label: "WhoIs", command: "!WhoIs" },
+    ],
+    examples: [
+      { description: "Get user info (reply to user)", command: "!Info" },
+    ],
+  },
+  {
+    id: "joindate",
+    name: "Join Date",
+    icon: "📆",
+    summary: "View when a user joined the group",
+    description: "Shows the date and time when a user first joined the group. Reply to a user's message to see their join date, or use without reply to see your own.",
+    commands: [
+      { label: "JoinDate", command: "!JoinDate" },
+      { label: "Joined", command: "!Joined" },
+    ],
+    examples: [
+      { description: "Get your join date", command: "!JoinDate" },
+    ],
+  },
+  {
+    id: "origin",
+    name: "User Origin",
+    icon: "🔍",
+    summary: "Check how a user joined the group",
+    description: "Shows the origin/source of how a user joined the group (via invite link, added by another user, joined directly, etc.).",
+    commands: [
+      { label: "Origin", command: "!Origin" },
+      { label: "Source", command: "!Source" },
+    ],
+    examples: [
+      { description: "Check user origin (reply to user)", command: "!Origin" },
+    ],
+  },
+  {
+    id: "tag",
+    name: "Tag Users",
+    icon: "🏷️",
+    summary: "Tag/mention multiple users at once",
+    description: "Mention multiple users or groups of users. Can tag all members, admins only, or specific roles. Useful for important announcements.",
+    commands: [
+      { label: "Tag All", command: "!Tag all" },
+      { label: "Tag Admins", command: "!Tag admins" },
+    ],
+    examples: [
+      { description: "Tag all members", command: "!Tag all" },
+      { description: "Tag admins only", command: "!Tag admins" },
+    ],
+  },
+  {
+    id: "nickname",
+    name: "Nickname",
+    icon: "👤",
+    summary: "Set or view user nicknames",
+    description: "Assign a custom nickname to a user that will be displayed by the bot. Reply to a user to set their nickname or view existing nicknames.",
+    commands: [
+      { label: "SetNick", command: "!SetNick [name]" },
+      { label: "Nick", command: "!Nick" },
+      { label: "RemNick", command: "!RemNick" },
+    ],
+    examples: [
+      { description: "Set a nickname (reply to user)", command: "!SetNick Boss" },
+      { description: "Remove nickname", command: "!RemNick" },
+    ],
+  },
+  {
+    id: "profile",
+    name: "User Profile",
+    icon: "👥",
+    summary: "View detailed user profile card",
+    description: "Display a comprehensive profile card for a user including their photo, name, bio, activity statistics, join date, and group rank.",
+    commands: [
+      { label: "Profile", command: "!Profile" },
+      { label: "Profile (Alt)", command: ".Profile" },
+    ],
+    examples: [
+      { description: "View your profile", command: "!Profile" },
+    ],
+  },
+  {
+    id: "meaning",
+    name: "Word Meaning",
+    icon: "📖",
+    summary: "Get the definition/meaning of a word",
+    description: "Look up the dictionary definition of any word. Supports multiple languages and provides detailed explanations with examples.",
+    commands: [
+      { label: "Meaning", command: "!Meaning [word]" },
+      { label: "Define", command: "!Define [word]" },
+    ],
+    examples: [
+      { description: "Get meaning of 'serendipity'", command: "!Meaning serendipity" },
+    ],
+  },
+  {
+    id: "rules",
+    name: "Group Rules",
+    icon: "📋",
+    summary: "Display or set group rules",
+    description: "View the current group rules, or admins can set/update the rules. The rules message will be pinned or sent as needed.",
+    commands: [
+      { label: "Rules", command: "!Rules" },
+      { label: "SetRules", command: "!SetRules [text]" },
+    ],
+    examples: [
+      { description: "View group rules", command: "!Rules" },
+    ],
+  },
+  {
+    id: "pin",
+    name: "Pin Message",
+    icon: "📌",
+    summary: "Pin a message to the group",
+    description: "Pin a message so it stays at the top of the chat. Reply to any message and use this command to pin it. Only admins can use this command.",
+    commands: [
+      { label: "Pin", command: "!Pin" },
+      { label: "Unpin", command: "!Unpin" },
+    ],
+    examples: [
+      { description: "Pin a message (reply to message)", command: "!Pin" },
+    ],
+  },
+  {
+    id: "getlink",
+    name: "Get Invite Link",
+    icon: "🔗",
+    summary: "Get the group's invite link",
+    description: "Generate or retrieve the group's invite link that can be shared with others to join the group. Only admins can generate new links.",
+    commands: [
+      { label: "GetLink", command: "!GetLink" },
+      { label: "Link", command: "!Link" },
+    ],
+    examples: [
+      { description: "Get group invite link", command: "!GetLink" },
+    ],
+  },
+  {
+    id: "weather",
+    name: "Weather",
+    icon: "🌤️",
+    summary: "Get weather information for a city",
+    description: "Display current weather conditions and forecast for any city. Shows temperature, humidity, wind speed, and weather description.",
+    commands: [
+      { label: "Weather", command: "!Weather [city]" },
+      { label: "Weather (Alt)", command: ".Weather [city]" },
+    ],
+    examples: [
+      { description: "Get weather for Tehran", command: "!Weather Tehran" },
+      { description: "Get weather for London", command: "!Weather London" },
+    ],
+  },
+  {
+    id: "setphoto",
+    name: "Photo Settings",
+    icon: "🖼️",
+    summary: "Adjust or set photo/image settings",
+    description: "Configure photo-related settings for the group or set a profile photo. Reply to an image to set it as the group photo (admin only).",
+    commands: [
+      { label: "SetPhoto", command: "!SetPhoto" },
+      { label: "SetGroupPhoto", command: "!SetGroupPhoto" },
+    ],
+    examples: [
+      { description: "Set group photo (reply to image)", command: "!SetPhoto" },
     ],
   },
 ];
@@ -2360,11 +2885,14 @@ async function showInlineGroupMenu(ctx: Context, chatId: string): Promise<void> 
 function buildInlineHelpKeyboard(chatId: string): InlineKeyboard {
   const rows: any[] = [];
 
+  // Only show implemented sections
+  const implementedSections = HELP_SECTIONS.filter((s) => s.implemented);
+
   // Build help section buttons (2 per row)
-  for (let i = 0; i < HELP_SECTIONS.length; i += 2) {
+  for (let i = 0; i < implementedSections.length; i += 2) {
     const row: any[] = [];
-    for (let j = 0; j < 2 && i + j < HELP_SECTIONS.length; j++) {
-      const section = HELP_SECTIONS[i + j];
+    for (let j = 0; j < 2 && i + j < implementedSections.length; j++) {
+      const section = implementedSections[i + j];
       const label = `${section.icon} ${section.title}`;
       row.push(Markup.button.callback(label, `fw_help_section:${chatId}:${section.id}`));
     }
@@ -2724,6 +3252,70 @@ async function showHelpCleanupDetail(ctx: Context, chatId: string, itemId: strin
 }
 
 // ============================================
+// WELCOME HELP SECTION
+// ============================================
+
+async function showHelpWelcome(ctx: Context, chatId: string): Promise<void> {
+  const lines: string[] = [];
+
+  lines.push("👋 <b>Welcome Message</b>");
+  lines.push("");
+  lines.push("<i>When this feature is enabled, the bot welcomes users who join the group via link with a customizable message.</i>");
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("<b>📋 Available Variables:</b>");
+  lines.push("");
+  lines.push("⇝ <code>!mention</code> - User mention (clickable)");
+  lines.push("⇝ <code>!firstname</code> - User's first name");
+  lines.push("⇝ <code>!lastname</code> - User's last name");
+  lines.push("⇝ <code>!username</code> - User's @username");
+  lines.push("⇝ <code>!userid</code> - User's numeric ID");
+  lines.push("⇝ <code>!grouplink</code> - Group invite link");
+  lines.push("⇝ <code>!grouprules</code> - Group rules");
+  lines.push("⇝ <code>!groupname</code> - Group name");
+  lines.push("⇝ <code>!date</code> - Current date");
+  lines.push("⇝ <code>!time</code> - Current time");
+  lines.push("⇝ <code>!emoji</code> - Random emoji");
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("<b>💡 Example:</b>");
+  lines.push("");
+  lines.push("If your welcome message is:");
+  lines.push("<i>\"Hello !mention, welcome to !groupname!\"</i>");
+  lines.push("");
+  lines.push("When user \"John\" joins group \"Chat Room\", the bot sends:");
+  lines.push("<i>\"Hello John, welcome to Chat Room!\"</i>");
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("<b>🖼️ Welcome with Media:</b>");
+  lines.push("");
+  lines.push("You can set a welcome message with media (photo, video, audio, voice, GIF, sticker, video note). The welcome text will be used as the caption.");
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("<b>📝 Commands:</b>");
+  lines.push("");
+  lines.push("<code>!welcome on</code> - Enable welcome message");
+  lines.push("<code>!welcome off</code> - Disable welcome message");
+  lines.push("<code>!setwelcome</code> - Set welcome message text");
+  lines.push("<code>!getwelcome</code> - View current welcome message");
+  lines.push("<code>!resetwelcome</code> - Reset to default");
+  lines.push("<code>!setwelcometime 30</code> - Auto-delete after 30 sec");
+  lines.push("<code>!setwelcomemedia</code> - Set welcome media (reply to media)");
+  lines.push("");
+  lines.push("<b>Note:</b> Commands also work with <code>.</code> prefix (e.g., <code>.welcome on</code>)");
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+  ]);
+
+  await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
+}
+
+// ============================================
 // WORD FILTER HELP SECTION
 // ============================================
 
@@ -2801,6 +3393,96 @@ async function showHelpWordFilterDetail(ctx: Context, chatId: string, itemId: st
 }
 
 // ============================================
+// ACTIVITY STATISTICS HELP SECTION
+// ============================================
+
+function buildHelpStatsKeyboard(chatId: string): InlineKeyboard {
+  const rows: any[] = [];
+
+  // Build stats buttons (2 per row for better layout)
+  for (let i = 0; i < STATS_HELP_DATA.length; i += 2) {
+    const row: any[] = [];
+    for (let j = 0; j < 2 && i + j < STATS_HELP_DATA.length; j++) {
+      const item = STATS_HELP_DATA[i + j];
+      const label = `${item.icon} ${item.name}`;
+      row.push(Markup.button.callback(label, `fw_help_stats_item:${chatId}:${item.id}`));
+    }
+    rows.push(row);
+  }
+
+  rows.push([Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)]);
+  return Markup.inlineKeyboard(rows);
+}
+
+async function showHelpStats(ctx: Context, chatId: string): Promise<void> {
+  const lines: string[] = [];
+
+  lines.push("📊 <b>Activity Statistics Guide</b>");
+  lines.push("");
+  lines.push("<i>Using this feature, group admins can view and manage chat statistics for all users. Track activity, invites, and set up automatic stats posting.</i>");
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("<b>✨ Key Features:</b>");
+  lines.push("• View user chat activity and rankings");
+  lines.push("• Track member invitations (adds)");
+  lines.push("• Check weekly or total statistics");
+  lines.push("• Set up automatic scheduled stats");
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("Select a statistics type below to view commands:");
+
+  const keyboard = buildHelpStatsKeyboard(chatId);
+  await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
+}
+
+async function showHelpStatsDetail(ctx: Context, chatId: string, itemId: string): Promise<void> {
+  const item = STATS_HELP_DATA.find((i) => i.id === itemId);
+  if (!item) {
+    await ctx.answerCbQuery("Item not found", { show_alert: true });
+    return;
+  }
+
+  const lines: string[] = [];
+
+  lines.push(`${item.icon} <b>${item.name}</b>`);
+  lines.push("");
+  lines.push(`<i>${item.summary}</i>`);
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push(item.description);
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("<b>📝 Commands:</b>");
+  lines.push("");
+  for (const cmd of item.commands) {
+    lines.push(`› <code>${cmd.command}</code>`);
+  }
+
+  if (item.examples && item.examples.length > 0) {
+    lines.push("");
+    lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+    lines.push("");
+    lines.push("<b>💡 Examples:</b>");
+    lines.push("");
+    for (const ex of item.examples) {
+      lines.push(`• ${ex.description}`);
+      lines.push(`  ⮨ <code>${ex.command}</code>`);
+    }
+  }
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback("◀️ Back to Stats", `fw_help_stats:${chatId}`)],
+    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+  ]);
+
+  await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
+}
+
+// ============================================
 // SETTINGS HELP SECTION
 // ============================================
 
@@ -2823,8 +3505,17 @@ function buildHelpSettingsKeyboard(chatId: string): InlineKeyboard {
 }
 
 async function showHelpSettings(ctx: Context, chatId: string): Promise<void> {
-  const message = `⚙️ <b>Settings Help</b>\n\nLearn about bot settings and commands:\n\nSelect a topic to see details:`;
-  await replyOrEditRoot(ctx, message, buildHelpSettingsKeyboard(chatId));
+  const lines: string[] = [];
+
+  lines.push("⚙️ <b>Settings Help</b>");
+  lines.push("");
+  lines.push("<i>Configure your group's behavior with these essential settings. Each option controls a specific aspect of bot functionality.</i>");
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("Select a category below to learn more:");
+
+  await replyOrEditRoot(ctx, lines.join("\n"), buildHelpSettingsKeyboard(chatId));
 }
 
 async function showHelpSettingDetail(ctx: Context, chatId: string, settingId: string): Promise<void> {
@@ -2837,13 +3528,14 @@ async function showHelpSettingDetail(ctx: Context, chatId: string, settingId: st
   const lines: string[] = [];
   lines.push(`${setting.icon} <b>${setting.name}</b>`);
   lines.push("");
-  lines.push(`<b>📝 What does it do?</b>`);
-  lines.push(setting.whatItDoes);
+  lines.push(`<i>${setting.whatItDoes}</i>`);
   lines.push("");
-  lines.push(`<b>⌨️ Commands:</b>`);
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("<b>📝 Commands:</b>");
   lines.push("");
   for (const cmd of setting.commands) {
-    lines.push(`❯ <code>${cmd}</code>`);
+    lines.push(`› <code>${cmd}</code>`);
   }
 
   const keyboard = Markup.inlineKeyboard([
@@ -2877,8 +3569,17 @@ function buildHelpPromoteKeyboard(chatId: string): InlineKeyboard {
 }
 
 async function showHelpPromote(ctx: Context, chatId: string): Promise<void> {
-  const message = `👑 <b>Promote & Demote Help</b>\n\nLearn about user ranks and promotion commands:\n\nSelect a rank to view details:`;
-  await replyOrEditRoot(ctx, message, buildHelpPromoteKeyboard(chatId));
+  const lines: string[] = [];
+
+  lines.push("👑 <b>Promote & Demote Help</b>");
+  lines.push("");
+  lines.push("<i>Manage user ranks and permissions in your group. Promote trusted members or demote when needed.</i>");
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("Select a rank to view details:");
+
+  await replyOrEditRoot(ctx, lines.join("\n"), buildHelpPromoteKeyboard(chatId));
 }
 
 async function showHelpRankDetail(ctx: Context, chatId: string, rankId: string): Promise<void> {
@@ -2889,20 +3590,25 @@ async function showHelpRankDetail(ctx: Context, chatId: string, rankId: string):
   }
 
   const lines: string[] = [];
-  lines.push(`◀️ ${rank.name}`);
+  lines.push(`${rank.icon} <b>${rank.name}</b>`);
   lines.push("");
-  lines.push(rank.description);
+  lines.push(`<i>${rank.description}</i>`);
   lines.push("");
-  lines.push(`┃ ${rank.notes}`);
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
   lines.push("");
-  lines.push(`«« Commands:`);
+  lines.push("<b>📝 Commands:</b>");
+  lines.push("");
   for (const cmd of rank.commands) {
-    lines.push(`〉 ${cmd.label}`);
+    lines.push(`› <code>${cmd.command}</code> — ${cmd.label}`);
   }
-  lines.push(`〉 ${rank.commands.map(c => c.command).join(", ")}`);
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push(`💡 <b>Note:</b> ${rank.notes}`);
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("◀️ Back", `fw_help_promote:${chatId}`)],
+    [Markup.button.callback("◀️ Back to Ranks", `fw_help_promote:${chatId}`)],
+    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -6550,6 +7256,24 @@ bot.action(/^fw_help_section:(-?\d+):([a-z_]+)$/, async (ctx) => {
     return;
   }
 
+  // If Activity Statistics, show the stats help
+  if (sectionId === "activity_stats") {
+    await showHelpStats(ctx, chatId);
+    return;
+  }
+
+  // If Entertainment & Utilities, show the entertainment help
+  if (sectionId === "entertainment") {
+    await showHelpEntertainment(ctx, chatId);
+    return;
+  }
+
+  // If Welcome, show the welcome help
+  if (sectionId === "welcome") {
+    await showHelpWelcome(ctx, chatId);
+    return;
+  }
+
   // For unimplemented sections, show "coming soon" message
   if (!section.implemented) {
     const message = `${section.icon} <b>${section.title}</b>\n\n🚧 This help section is coming soon!\n\nWe're working on documenting this feature.`;
@@ -6699,6 +7423,143 @@ bot.action(/^fw_help_wordfilter_item:(-?\d+):([a-z_]+)$/, async (ctx) => {
   if (!chatId || !itemId) return;
 
   await showHelpWordFilterDetail(ctx, chatId, itemId);
+});
+
+// Activity Statistics menu handler
+bot.action(/^fw_help_stats:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_help_stats:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  await showHelpStats(ctx, chatId);
+});
+
+// Individual stats item detail handler
+bot.action(/^fw_help_stats_item:(-?\d+):([a-z_]+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_help_stats_item:(-?\d+):([a-z_]+)$/);
+  const chatId = match?.[1];
+  const itemId = match?.[2];
+  if (!chatId || !itemId) return;
+
+  await showHelpStatsDetail(ctx, chatId, itemId);
+});
+
+// ============================================
+// ENTERTAINMENT & UTILITIES HELP KEYBOARDS AND DISPLAY
+// ============================================
+
+function buildHelpEntertainmentKeyboard(chatId: string): InlineKeyboard {
+  const rows: any[] = [];
+
+  // Build entertainment buttons (2 per row for better layout)
+  for (let i = 0; i < ENTERTAINMENT_HELP_DATA.length; i += 2) {
+    const row: any[] = [];
+    for (let j = 0; j < 2 && i + j < ENTERTAINMENT_HELP_DATA.length; j++) {
+      const item = ENTERTAINMENT_HELP_DATA[i + j];
+      const label = `${item.icon} ${item.name}`;
+      row.push(Markup.button.callback(label, `fw_help_entertainment_item:${chatId}:${item.id}`));
+    }
+    rows.push(row);
+  }
+
+  rows.push([Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)]);
+  return Markup.inlineKeyboard(rows);
+}
+
+async function showHelpEntertainment(ctx: Context, chatId: string): Promise<void> {
+  const lines: string[] = [];
+
+  lines.push("🎮 <b>Entertainment & Utilities Guide</b>");
+  lines.push("");
+  lines.push("<i>Using these commands, you can access various entertainment and utility features. All commands start with ! or . prefix.</i>");
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("<b>✨ Key Features:</b>");
+  lines.push("• Convert text to stylish fonts");
+  lines.push("• Get current time based on timezone");
+  lines.push("• Translation & dictionary lookup");
+  lines.push("• Weather, news & currency info");
+  lines.push("• User profiles & management");
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("Select a feature below to view commands:");
+
+  const keyboard = buildHelpEntertainmentKeyboard(chatId);
+  await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
+}
+
+async function showHelpEntertainmentDetail(ctx: Context, chatId: string, itemId: string): Promise<void> {
+  const item = ENTERTAINMENT_HELP_DATA.find((i) => i.id === itemId);
+  if (!item) {
+    await ctx.answerCbQuery("Item not found", { show_alert: true });
+    return;
+  }
+
+  const lines: string[] = [];
+
+  lines.push(`${item.icon} <b>${item.name}</b>`);
+  lines.push("");
+  lines.push(`<i>${item.summary}</i>`);
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push(item.description);
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("<b>❯❯ English Commands:</b>");
+  lines.push("");
+  for (const cmd of item.commands) {
+    lines.push(`❯ <code>${cmd.command}</code>`);
+  }
+
+  if (item.examples && item.examples.length > 0) {
+    lines.push("");
+    lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+    lines.push("");
+    lines.push("<b>💡 Examples:</b>");
+    lines.push("");
+    for (const ex of item.examples) {
+      lines.push(`• ${ex.description}`);
+      lines.push(`  ⮨ <code>${ex.command}</code>`);
+    }
+  }
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback("◀️ Back to Entertainment", `fw_help_entertainment:${chatId}`)],
+    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+  ]);
+
+  await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
+}
+
+// Entertainment menu handler
+bot.action(/^fw_help_entertainment:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_help_entertainment:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  await showHelpEntertainment(ctx, chatId);
+});
+
+// Individual entertainment item detail handler
+bot.action(/^fw_help_entertainment_item:(-?\d+):([a-z_]+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_help_entertainment_item:(-?\d+):([a-z_]+)$/);
+  const chatId = match?.[1];
+  const itemId = match?.[2];
+  if (!chatId || !itemId) return;
+
+  await showHelpEntertainmentDetail(ctx, chatId, itemId);
 });
 
 // ============================================
