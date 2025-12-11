@@ -438,9 +438,9 @@ const HELP_SECTIONS: HelpSectionConfig[] = [
   { id: "promote_demote", icon: "👑", title: "Promote & Demote", implemented: true },
   { id: "word_filter", icon: "🚷", title: "Word Filter", implemented: true },
   { id: "cleanup", icon: "🧹", title: "Cleanup", implemented: true },
-  { id: "mandatory_add", icon: "➕", title: "Mandatory Add", implemented: false },
+  { id: "mandatory_add", icon: "➕", title: "Mandatory Add", implemented: true },
   { id: "welcome", icon: "👋", title: "Welcome", implemented: true },
-  { id: "mandatory_membership", icon: "📌", title: "Mandatory Membership", implemented: false },
+  { id: "mandatory_membership", icon: "📌", title: "Mandatory Membership", implemented: true },
   { id: "activity_stats", icon: "📊", title: "Activity Statistics", implemented: true },
   { id: "entertainment", icon: "🎮", title: "Entertainment & Utilities", implemented: true },
 ];
@@ -466,7 +466,7 @@ const LOCK_HELP_DATA: LockHelpData[] = [
   { id: "latin", name: "English/Latin Text", icon: "🔤", whatItDoes: "Blocks messages with Latin alphabet", example: "Hello, ABC", commandAlias: "english", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Latin", whenToUse: "Enforce non-English only groups", limitations: "Blocks any Latin characters" },
   { id: "persian", name: "Persian/Arabic Text", icon: "🔡", whatItDoes: "Blocks messages with Persian/Arabic script", example: "سلام", commandAlias: "persian", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Persian", whenToUse: "Enforce non-Persian groups", limitations: "Blocks all Arabic script" },
   { id: "text_patterns", name: "Text Patterns", icon: "📝", whatItDoes: "Blocks plain text messages", example: "Any text message", commandAlias: "text", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Text Patterns", whenToUse: "Media-only groups", limitations: "Blocks all text" },
-  { id: "emojis", name: "Messages with Emojis", icon: "😀", whatItDoes: "Blocks messages containing emojis", example: "Hello 😀", commandAlias: "emoji", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Emojis", whenToUse: "Professional/formal groups", limitations: "Blocks any emoji usage" },
+  { id: "emojis", name: "Contains Emojis", icon: "😀", whatItDoes: "Blocks messages containing emojis", example: "Hello 😀", commandAlias: "emoji", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Emojis", whenToUse: "Professional/formal groups", limitations: "Blocks any emoji usage" },
   { id: "forward", name: "Forwarded Messages", icon: "↪️", whatItDoes: "Blocks all forwarded messages", example: "Forwarded message", commandAlias: "forward", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Forward", whenToUse: "Prevent content from elsewhere", limitations: "Use Forward Whitelist for exceptions" },
   { id: "forward_channels", name: "Channel Forwards", icon: "📢", whatItDoes: "Blocks messages forwarded from channels", example: "Forwarded from @channel", commandAlias: "channelforward", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Forward Channels", whenToUse: "Block channel promotions", limitations: "User forwards still allowed" },
   // Media & Files
@@ -478,12 +478,12 @@ const LOCK_HELP_DATA: LockHelpData[] = [
   { id: "stickers", name: "Stickers", icon: "🎨", whatItDoes: "Blocks sticker messages", example: "[Sticker]", commandAlias: "sticker", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Stickers", whenToUse: "Professional groups", limitations: "Blocks all stickers" },
   { id: "files", name: "Files/Documents", icon: "📁", whatItDoes: "Blocks document uploads", example: "[document.pdf]", commandAlias: "file", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Files", whenToUse: "Prevent file sharing", limitations: "Blocks all documents" },
   { id: "location", name: "Locations", icon: "📍", whatItDoes: "Blocks location sharing", example: "[Location]", commandAlias: "location", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Location", whenToUse: "Privacy concerns", limitations: "Blocks all location shares" },
-  { id: "apps", name: "Apps/Software", icon: "📱", whatItDoes: "Blocks app/software messages", example: "[App Message]", commandAlias: "app", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Apps", whenToUse: "Block third-party integrations", limitations: "May affect legitimate apps" },
+  { id: "apps", name: "Apps/Software", icon: "📱", whatItDoes: "Blocks messages sent via specific unofficial apps or identifying as 'via AppName'.", example: "[App Message]", commandAlias: "app", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Apps", whenToUse: "Block third-party integrations", limitations: "May affect legitimate apps" },
   { id: "inline_keyboards", name: "Inline Keyboards", icon: "⌨️", whatItDoes: "Blocks messages with inline buttons", example: "[Buttons]", commandAlias: "inline", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Inline Keyboards", whenToUse: "Block bot interactions", limitations: "Blocks all inline buttons" },
-  { id: "emoji_only", name: "Emoji-Only Messages", icon: "😊", whatItDoes: "Blocks messages with only emojis", example: "😀😀😀", commandAlias: "emojionly", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Emoji Only", whenToUse: "Prevent emoji spam", limitations: "Only pure emoji messages" },
+  { id: "emoji_only", name: "Emoji-Only Messages", icon: "😊", whatItDoes: "Blocks messages with only emojis (no text)", example: "😀😀😀", commandAlias: "emojionly", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Emoji Only", whenToUse: "Prevent emoji spam", limitations: "Only pure emoji messages" },
   { id: "captionless", name: "Media Without Caption", icon: "🚫", whatItDoes: "Blocks media without captions", example: "[Photo no text]", commandAlias: "nocaption", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Captionless", whenToUse: "Require context for media", limitations: "All uncaptioned media" },
   // Bots & Advanced
-  { id: "bots", name: "Bot Messages", icon: "🤖", whatItDoes: "Blocks messages from other bots", example: "@OtherBot message", commandAlias: "bot", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Bots", whenToUse: "Single-bot groups", limitations: "Blocks all bot messages" },
+  { id: "bots", name: "Bot Messages", icon: "🤖", whatItDoes: "Blocks messages from actual bot accounts", example: "@OtherBot message", commandAlias: "bot", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Bots", whenToUse: "Single-bot groups", limitations: "Blocks all bot messages" },
   { id: "bot_inviters", name: "Bot Inviters", icon: "👥", whatItDoes: "Bans users who add bots", example: "User adds @SpamBot", commandAlias: "botinviter", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Bot Inviters", whenToUse: "Prevent bot spam", limitations: "User gets banned" },
   { id: "tabchi", name: "Tabchi Detection", icon: "🚫", whatItDoes: "Detects and bans users who promote other groups/channels", example: "User advertising in multiple groups", commandAlias: "tabchi", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Tabchi", whenToUse: "Prevent cross-group advertising", limitations: "May affect legitimate promoters" },
   { id: "advertiser", name: "Advertisers", icon: "📢", whatItDoes: "Detects and blocks advertising behavior patterns", example: "User sending promotional content", commandAlias: "advertiser", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Advertisers", whenToUse: "Block spam/ad accounts", limitations: "Uses behavior analysis" },
@@ -494,8 +494,8 @@ const LOCK_HELP_DATA: LockHelpData[] = [
   { id: "slash_commands", name: "Slash Commands", icon: "⚡", whatItDoes: "Blocks /command messages", example: "/start, /help", commandAlias: "slash", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Slash Commands", whenToUse: "Prevent command spam", limitations: "Blocks all /commands" },
   { id: "cyrillic", name: "Cyrillic Text", icon: "🔠", whatItDoes: "Blocks Cyrillic alphabet messages", example: "Привет", commandAlias: "cyrillic", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Cyrillic", whenToUse: "Non-Russian groups", limitations: "Blocks all Cyrillic" },
   { id: "chinese", name: "Chinese Text", icon: "🈯", whatItDoes: "Blocks Chinese characters", example: "你好", commandAlias: "chinese", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Chinese", whenToUse: "Non-Chinese groups", limitations: "Blocks all Chinese text" },
-  { id: "user_replies", name: "User Replies", icon: "💬", whatItDoes: "Blocks reply messages", example: "Reply to message", commandAlias: "reply", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → User Replies", whenToUse: "Linear conversation only", limitations: "All reply messages" },
-  { id: "cross_replies", name: "Cross-Chat Replies", icon: "🔀", whatItDoes: "Blocks replies from other chats", example: "External reply", commandAlias: "crossreply", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Cross Replies", whenToUse: "Isolated discussions", limitations: "External replies only" },
+  { id: "user_replies", name: "User Replies", icon: "💬", whatItDoes: "Blocks users from replying to each other's messages within the group", example: "Reply to message", commandAlias: "reply", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → User Replies", whenToUse: "Linear conversation only", limitations: "All reply messages" },
+  { id: "cross_replies", name: "Cross-Chat Replies", icon: "🔀", whatItDoes: "Blocks users from replying to messages from OTHER channels or groups (e.g., linked channel comments)", example: "External reply", commandAlias: "crossreply", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Cross Replies", whenToUse: "Isolated discussions", limitations: "External replies only" },
 ];
 
 const HELP_LOCKS_PAGE_SIZE = 8;
@@ -557,7 +557,7 @@ const PENALTY_HELP_DATA: PenaltyHelpData[] = [
     id: "mute",
     name: "Mute",
     icon: "🔇",
-    whatItDoes: "Permanently restricts a user from sending any messages in the group.",
+    whatItDoes: "Permanently restricts a user from sending any messages in the group. (Unspecified duration is permanent)",
     example: "Reply to a disruptive user's message to mute them",
     commandEnable: "!Mute",
     commandDisable: "!Unmute (reply)",
@@ -571,7 +571,7 @@ const PENALTY_HELP_DATA: PenaltyHelpData[] = [
     icon: "⏱️",
     whatItDoes: "Mutes a user for a specified duration. Auto-unmutes when time expires.",
     example: "!Mute 24 — mutes for 24 hours",
-    commandEnable: "!Mute [hours]",
+    commandEnable: "!Mute <hours>",
     commandDisable: "!Unmute (reply)",
     requiresReply: true,
     whenToUse: "Give users time to cool down before returning",
@@ -622,10 +622,10 @@ const SETTINGS_HELP_DATA: SettingsHelpData[] = [
   },
   {
     id: "message_limit",
-    name: "Message Limit",
+    name: "Word/Character Limits",
     icon: "📏",
     whatItDoes: "Set minimum and maximum character/word limits for messages. Messages outside these limits are automatically deleted.",
-    commands: ["!MaxWords [count]", "!MinWords [count]", "!MsgLimit [count]"],
+    commands: ["!MaxWords <count>", "!MinWords <count>"],
   },
   {
     id: "add_admin",
@@ -639,14 +639,14 @@ const SETTINGS_HELP_DATA: SettingsHelpData[] = [
     name: "Strict Mode",
     icon: "🔐",
     whatItDoes: "When enabled, rules apply to everyone including admins. When disabled, admins are exempt from most restrictions.",
-    commands: ["!Strict on", "!Strict off", "!AdminLock on"],
+    commands: ["!Strict on", "!Strict off", "!AdminLock on (Alias)"],
   },
   {
     id: "auto_lock",
     name: "Auto Lock (Silence)",
     icon: "🔒",
     whatItDoes: "Automatically lock the group at specified times. Non-admin messages are deleted during locked periods.",
-    commands: ["!Silence1 from HH:MM to HH:MM", "!Silence1 off", "!ClearSilence"],
+    commands: ["!Silence1 from <HH:MM> to <HH:MM>", "!Silence1 off", "!ClearSilence"],
   },
   {
     id: "group_lock",
@@ -659,8 +659,8 @@ const SETTINGS_HELP_DATA: SettingsHelpData[] = [
     id: "flood_control",
     name: "Flood Control",
     icon: "🌊",
-    whatItDoes: "Prevent message flooding. Users sending too many messages in a short time are automatically muted.",
-    commands: ["!Flood on", "!Flood off", "!SetFlood [count] [seconds]"],
+    whatItDoes: "Prevent message flooding. Users sending too many messages in a short time are automatically muted. Use !MsgLimit to set per-window limits.",
+    commands: ["!Flood on", "!Flood off", "!SetFlood <count> <seconds>", "!MsgLimit <count>"],
   },
 ];
 
@@ -736,13 +736,13 @@ const CLEANUP_HELP_DATA: CleanupHelpData[] = [
     name: "Messages",
     icon: "💬",
     description: "Delete a specified number of messages from the group.\n\nIn groups with fewer than 100 members, cleanup is performed through the bot API (messages from the last 48 hours only).\n\nIn larger groups, install the companion bot for advanced cleanup by message type.\n\nAdmins can set up to five automatic cleanup schedules.",
-    commands: ["!Del [count]", "!SetAutoClean", "!RemAutoClean", "!AutoCleanStats"],
+    commands: ["!Del <count>", "!SetAutoClean", "!RemAutoClean", "!AutoCleanStats"],
   },
   {
     id: "bans",
     name: "Ban List",
     icon: "🚫",
-    description: "Remove all banned users from the ban list and unban them. Only the bot owner can use this command.",
+    description: "Remove all banned users from the ban list and unban them.\n\n⚠️ Note: Due to Telegram API limits, the bot may not be able to list/unban older bans. Use the Mini App or manual commands for individual management.",
     commands: ["!CleanBans"],
   },
   {
@@ -756,7 +756,7 @@ const CLEANUP_HELP_DATA: CleanupHelpData[] = [
     id: "mutes",
     name: "Mute List",
     icon: "🔇",
-    description: "Unmute all muted users and clear the mute list. Only the bot owner can use this command.",
+    description: "Unmute all muted users and clear the mute list.\n\n⚠️ Note: Due to Telegram API limits, the bot may not be able to list/unmute older mutes. Use the Mini App or manual commands.",
     commands: ["!CleanMutes"],
   },
   {
@@ -853,11 +853,11 @@ const WORDFILTER_HELP_DATA: WordFilterHelpData[] = [
     summary: "Filter words one at a time with optional punishments",
     description: "Block specific words in the group. When a filtered word is sent, the bot deletes the message. Optionally, set a punishment for the sender (warn, ban, or mute).",
     commands: [
-      { label: "AddFilter", command: "!AddFilter [word]" },
-      { label: "FilterWarn", command: "!FilterWarn [word]" },
-      { label: "FilterBan", command: "!FilterBan [word]" },
-      { label: "FilterMute", command: "!FilterMute [word]" },
-      { label: "RemFilter", command: "!RemFilter [word]" },
+      { label: "AddFilter", command: "!AddFilter <word>" },
+      { label: "FilterWarn", command: "!FilterWarn <word>" },
+      { label: "FilterBan", command: "!FilterBan <word>" },
+      { label: "FilterMute", command: "!FilterMute <word>" },
+      { label: "RemFilter", command: "!RemFilter <word>" },
       { label: "FilterList", command: "!FilterList" },
       { label: "CleanFilterList", command: "!CleanFilterList" },
     ],
@@ -959,7 +959,7 @@ const STATS_HELP_DATA: StatsHelpData[] = [
     summary: "View statistics for a specific number of top members",
     description: "Use this command to view statistics for a custom number of top users. Specify the number of members you want to see in the statistics.\n\nFor example, 'Stats 30 mem' will show the top 30 most active members.",
     commands: [
-      { label: "Stats N mem", command: "!Stats [N] mem" },
+      { label: "Stats N mem", command: "!Stats <N> mem" },
     ],
     examples: [
       { description: "View top 30 members", command: "!Stats 30 mem" },
@@ -1039,6 +1039,8 @@ const STATS_HELP_DATA: StatsHelpData[] = [
   },
 ];
 
+
+
 // ============================================
 // ENTERTAINMENT & UTILITIES HELP DATA
 // ============================================
@@ -1061,8 +1063,8 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     summary: "Convert text to various stylish and decorative fonts",
     description: "Using this command, you can convert any text into beautiful and stylish fonts. The bot will display your text in multiple font variations that you can copy and use anywhere.",
     commands: [
-      { label: "Font", command: "!Font [text]" },
-      { label: "Font (Alt)", command: ".Font [text]" },
+      { label: "Font", command: "!Font <text>" },
+      { label: "Alias", command: ".Font <text>" },
     ],
     examples: [
       { description: "Convert 'Hello' to stylish fonts", command: "!Font Hello" },
@@ -1076,7 +1078,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     description: "This command shows the current time. The time is displayed according to the user's configured timezone or the group's default timezone setting.\n\nAdmins can configure the default timezone in Advanced Settings → Timezone.",
     commands: [
       { label: "Time", command: "!Time" },
-      { label: "Time (Alt)", command: ".Time" },
+      { label: "Alias", command: ".Time" },
     ],
     examples: [
       { description: "Get current time", command: "!Time" },
@@ -1089,8 +1091,8 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     summary: "Echo/repeat a message through the bot",
     description: "The bot will repeat whatever text you send after the command. Useful for making announcements or repeating important messages.",
     commands: [
-      { label: "Echo", command: "!Echo [text]" },
-      { label: "Echo (Alt)", command: ".Echo [text]" },
+      { label: "Echo", command: "!Echo <text>" },
+      { label: "Alias", command: ".Echo <text>" },
     ],
     examples: [
       { description: "Echo a message", command: "!Echo Welcome everyone!" },
@@ -1104,7 +1106,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     description: "Fetches and displays the latest news headlines from trusted and reliable external news sources. News is aggregated from reputable international news agencies only.",
     commands: [
       { label: "News", command: "!News" },
-      { label: "News (Alt)", command: ".News" },
+      { label: "Alias", command: ".News" },
     ],
     examples: [
       { description: "Get latest news", command: "!News" },
@@ -1132,7 +1134,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     description: "View or set a custom biography for yourself or view another user's bio. Reply to a user's message to see their bio.",
     commands: [
       { label: "Bio", command: "!Bio" },
-      { label: "SetBio", command: "!SetBio [text]" },
+      { label: "SetBio", command: "!SetBio <text>" },
     ],
     examples: [
       { description: "View your bio", command: "!Bio" },
@@ -1161,7 +1163,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     description: "Create custom Telegram stickers. Reply to an image to convert it to a sticker, or use text to create text-based stickers.",
     commands: [
       { label: "Sticker", command: "!Sticker" },
-      { label: "MakeSticker", command: "!MakeSticker" },
+      { label: "Alias", command: "!MakeSticker" },
     ],
     examples: [
       { description: "Convert image to sticker (reply to image)", command: "!Sticker" },
@@ -1189,7 +1191,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     description: "The bot will send a random joke to entertain the group. Jokes are clean and appropriate for all audiences.",
     commands: [
       { label: "Joke", command: "!Joke" },
-      { label: "Joke (Alt)", command: ".Joke" },
+      { label: "Alias", command: ".Joke" },
     ],
     examples: [
       { description: "Get a random joke", command: "!Joke" },
@@ -1203,7 +1205,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     description: "Receive a random poem, verse, or literary quote. Great for adding culture and beauty to your group conversations.",
     commands: [
       { label: "Poetry", command: "!Poetry" },
-      { label: "Poem", command: "!Poem" },
+      { label: "Alias", command: "!Poem" },
     ],
     examples: [
       { description: "Get a random poem", command: "!Poetry" },
@@ -1216,8 +1218,8 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     summary: "Translate text between languages",
     description: "Translate text from one language to another. Specify the target language code followed by the text to translate, or reply to a message to translate it.",
     commands: [
-      { label: "Translate", command: "!Translate [lang] [text]" },
-      { label: "Tr", command: "!Tr [lang] [text]" },
+      { label: "Translate", command: "!Translate <lang> <text>" },
+      { label: "Alias", command: "!Tr <lang> <text>" },
     ],
     examples: [
       { description: "Translate to English", command: "!Translate en سلام" },
@@ -1232,7 +1234,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     description: "Display the numeric Telegram ID of a user or the current chat. Reply to a user's message to get their ID, or use without reply to get your own ID and the chat ID.",
     commands: [
       { label: "ID", command: "!ID" },
-      { label: "ID (Alt)", command: ".ID" },
+      { label: "Alias", command: ".ID" },
     ],
     examples: [
       { description: "Get your ID and chat ID", command: "!ID" },
@@ -1246,7 +1248,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     description: "Display current exchange rates for major currencies including USD, EUR, GBP, and more. Rates are fetched from reliable financial sources.",
     commands: [
       { label: "Currency", command: "!Currency" },
-      { label: "Rate", command: "!Rate" },
+      { label: "Alias", command: "!Rate" },
     ],
     examples: [
       { description: "Get currency rates", command: "!Currency" },
@@ -1260,7 +1262,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     description: "Display detailed information about a user including their name, username, ID, and group membership status. Reply to a user's message to get their info.",
     commands: [
       { label: "Info", command: "!Info" },
-      { label: "WhoIs", command: "!WhoIs" },
+      { label: "Alias", command: "!WhoIs" },
     ],
     examples: [
       { description: "Get user info (reply to user)", command: "!Info" },
@@ -1274,7 +1276,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     description: "Shows the date and time when a user first joined the group. Reply to a user's message to see their join date, or use without reply to see your own.",
     commands: [
       { label: "JoinDate", command: "!JoinDate" },
-      { label: "Joined", command: "!Joined" },
+      { label: "Alias", command: "!Joined" },
     ],
     examples: [
       { description: "Get your join date", command: "!JoinDate" },
@@ -1288,7 +1290,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     description: "Shows the origin/source of how a user joined the group (via invite link, added by another user, joined directly, etc.).",
     commands: [
       { label: "Origin", command: "!Origin" },
-      { label: "Source", command: "!Source" },
+      { label: "Alias", command: "!Source" },
     ],
     examples: [
       { description: "Check user origin (reply to user)", command: "!Origin" },
@@ -1316,7 +1318,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     summary: "Set or view user nicknames",
     description: "Assign a custom nickname to a user that will be displayed by the bot. Reply to a user to set their nickname or view existing nicknames.",
     commands: [
-      { label: "SetNick", command: "!SetNick [name]" },
+      { label: "SetNick", command: "!SetNick <name>" },
       { label: "Nick", command: "!Nick" },
       { label: "RemNick", command: "!RemNick" },
     ],
@@ -1333,7 +1335,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     description: "Display a comprehensive profile card for a user including their photo, name, bio, activity statistics, join date, and group rank.",
     commands: [
       { label: "Profile", command: "!Profile" },
-      { label: "Profile (Alt)", command: ".Profile" },
+      { label: "Alias", command: ".Profile" },
     ],
     examples: [
       { description: "View your profile", command: "!Profile" },
@@ -1346,8 +1348,8 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     summary: "Get the definition/meaning of a word",
     description: "Look up the dictionary definition of any word. Supports multiple languages and provides detailed explanations with examples.",
     commands: [
-      { label: "Meaning", command: "!Meaning [word]" },
-      { label: "Define", command: "!Define [word]" },
+      { label: "Meaning", command: "!Meaning <word>" },
+      { label: "Define", command: "!Define <word>" },
     ],
     examples: [
       { description: "Get meaning of 'serendipity'", command: "!Meaning serendipity" },
@@ -1361,7 +1363,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     description: "View the current group rules, or admins can set/update the rules. The rules message will be pinned or sent as needed.",
     commands: [
       { label: "Rules", command: "!Rules" },
-      { label: "SetRules", command: "!SetRules [text]" },
+      { label: "SetRules", command: "!SetRules <text>" },
     ],
     examples: [
       { description: "View group rules", command: "!Rules" },
@@ -1389,7 +1391,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     description: "Generate or retrieve the group's invite link that can be shared with others to join the group. Only admins can generate new links.",
     commands: [
       { label: "GetLink", command: "!GetLink" },
-      { label: "Link", command: "!Link" },
+      { label: "Alias", command: "!Link" },
     ],
     examples: [
       { description: "Get group invite link", command: "!GetLink" },
@@ -1402,8 +1404,8 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     summary: "Get weather information for a city",
     description: "Display current weather conditions and forecast for any city. Shows temperature, humidity, wind speed, and weather description.",
     commands: [
-      { label: "Weather", command: "!Weather [city]" },
-      { label: "Weather (Alt)", command: ".Weather [city]" },
+      { label: "Weather", command: "!Weather <city>" },
+      { label: "Alias", command: ".Weather <city>" },
     ],
     examples: [
       { description: "Get weather for Tehran", command: "!Weather Tehran" },
@@ -1418,12 +1420,89 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     description: "Configure photo-related settings for the group or set a profile photo. Reply to an image to set it as the group photo (admin only).",
     commands: [
       { label: "SetPhoto", command: "!SetPhoto" },
-      { label: "SetGroupPhoto", command: "!SetGroupPhoto" },
+      { label: "Alias", command: "!SetGroupPhoto" },
     ],
     examples: [
       { description: "Set group photo (reply to image)", command: "!SetPhoto" },
     ],
   },
+];
+
+const MANDATORY_ADD_HELP_DATA: HelpItemConfig[] = [
+  {
+    id: "config",
+    name: "Configuration",
+    icon: "⚙️",
+    summary: "Enable and configure Mandatory Add",
+    description: "Commands to enable/disable the feature and set the number of invites required.",
+    commands: [
+      { label: "Enable", command: "!ForceAdd on" },
+      { label: "Disable", command: "!ForceAdd off" },
+      { label: "SetLimit", command: "!SetForceAdd <count>" },
+      { label: "SetTime", command: "!ForceAddTime <min>" },
+    ],
+    examples: [
+      { description: "Require 3 invites", command: "!SetForceAdd 3" },
+      { description: "Allow 5 minutes before restricting", command: "!ForceAddTime 5" }
+    ]
+  },
+  {
+    id: "message",
+    name: "Message Customization",
+    icon: "📝",
+    summary: "Customize the warning message",
+    description: "Set a custom message to be displayed when a user tries to speak without meeting invite requirements.",
+    commands: [
+      { label: "SetMessage", command: "!SetForceAddText" },
+      { label: "DelMessage", command: "!DelForceAddText" },
+    ],
+    examples: [
+      { description: "Set custom text (interactive)", command: "!SetForceAddText" }
+    ]
+  },
+  {
+    id: "management",
+    name: "Management & Info",
+    icon: "📊",
+    summary: "Manage records and check status",
+    description: "View status, check user invites, and clean up Old/All add records.",
+    commands: [
+      { label: "Status", command: "!ForceAddStatus" },
+      { label: "UserInfo", command: "!ForceAddInfo (reply)" },
+      { label: "Clean Records", command: "!CleanForceAdd" }
+    ],
+    examples: []
+  }
+];
+
+const MANDATORY_MEMBERSHIP_HELP_DATA: HelpItemConfig[] = [
+  {
+    id: "config",
+    name: "Configuration",
+    icon: "⚙️",
+    summary: "Enable and configure Force Join",
+    description: "Commands to enable/disable mandatory channel membership.",
+    commands: [
+      { label: "Enable", command: "!ForceJoin on" },
+      { label: "Disable", command: "!ForceJoin off" },
+      { label: "Status", command: "!ForceJoinStatus" }
+    ],
+    examples: []
+  },
+  {
+    id: "message",
+    name: "Message Customization",
+    icon: "📝",
+    summary: "Customize the warning message",
+    description: "Set the message shown to users who haven't joined the channel.",
+    commands: [
+      { label: "SetMessage", command: "!SetForceJoinText <text>" },
+      { label: "DelMessage", command: "!DelForceJoinText" }
+    ],
+    examples: [
+      { description: "Set message", command: "!SetForceJoinText Please join our channel first!" }
+    ]
+  }
 ];
 
 const INLINE_LIST_CONFIGS: InlineListConfig[] = [
@@ -1443,7 +1522,7 @@ const INLINE_LIST_CONFIGS: InlineListConfig[] = [
     id: "vip",
     title: "⭐ VIP Members",
     supportsAdd: true,
-    commandUsage: "!vip @username or !vip {user_id}",
+    commandUsage: "!vip <username> or !vip <user_id>",
     commandExample: "!vip @john or !vip 123456789",
     addPrompt: "Send user ID or @username to add as VIP.\n\n💡 VIP members bypass all content restrictions.",
     description: "VIP users who bypass ALL content filtering rules. Their messages are never deleted or restricted."
@@ -1452,7 +1531,7 @@ const INLINE_LIST_CONFIGS: InlineListConfig[] = [
     id: "muted",
     title: "🔇 Muted",
     supportsAdd: true,
-    commandUsage: "!mute [hours] (reply to user)",
+    commandUsage: "!mute <hours> (reply to user)",
     commandExample: "!mute 24",
     addPrompt: "Send User ID to mute (permanently).\n\n⚠️ Note: Only User IDs are supported currently.",
     description: "Users who have been muted via !mute command. They cannot send messages until the mute expires."
@@ -1461,7 +1540,7 @@ const INLINE_LIST_CONFIGS: InlineListConfig[] = [
     id: "banned",
     title: "🚫 Banned",
     supportsAdd: true,
-    commandUsage: "!ban [hours] (reply to user)",
+    commandUsage: "!ban <hours> (reply to user)",
     commandExample: "!ban 1",
     addPrompt: "Send User ID to ban.\n\n⚠️ Note: Only User IDs are supported currently.",
     description: "Users who have been banned via !ban command. They are removed from the group and cannot rejoin."
@@ -1478,7 +1557,7 @@ const INLINE_LIST_CONFIGS: InlineListConfig[] = [
     id: "exempt",
     title: "✅ Exempt",
     supportsAdd: true,
-    commandUsage: "!exempt @username or !exempt {user_id}",
+    commandUsage: "!exempt <username> or !exempt <user_id>",
     commandExample: "!exempt @john",
     addPrompt: "Send user ID or @username to exempt from rules.\n\n💡 Exempt users are not affected by content restrictions.",
     description: "Users exempt from content filtering. Unlike VIP, they still receive warnings but messages aren't deleted."
@@ -1487,7 +1566,7 @@ const INLINE_LIST_CONFIGS: InlineListConfig[] = [
     id: "filters",
     title: "🚷 Filtered Keywords",
     supportsAdd: true,
-    commandUsage: "!filter {word}",
+    commandUsage: "!filter <word>",
     commandExample: "!filter spam",
     addPrompt: "Send word(s) to filter.\n\n📝 Format:\n• Single: spam\n• Multiple: spam,scam,fake",
     description: "Blacklisted words that will be detected and messages containing them will be deleted."
@@ -1496,7 +1575,7 @@ const INLINE_LIST_CONFIGS: InlineListConfig[] = [
     id: "whitelist",
     title: "✔️ Allowed Keywords",
     supportsAdd: true,
-    commandUsage: "!whitelist (reply)",
+    commandUsage: "!whitelist (reply to message)",
     commandExample: "Reply to a message and send !whitelist",
     addPrompt: "Send word(s) to allow (comma-separated).",
     description: "Whitelisted words that are allowed even if they match other filters."
@@ -1505,7 +1584,7 @@ const INLINE_LIST_CONFIGS: InlineListConfig[] = [
     id: "forward_whitelist",
     title: "↪️ Allowed Forwards",
     supportsAdd: true,
-    commandUsage: "!allowforward @channel",
+    commandUsage: "!allowforward <channel>",
     commandExample: "!allowforward @mychannel",
     addPrompt: "Send channel username (e.g., @channel) to allow forwards from.",
     description: "Channels that forwards are allowed from. If forward restriction is on, only these channels are permitted."
@@ -7560,6 +7639,251 @@ bot.action(/^fw_help_entertainment_item:(-?\d+):([a-z_]+)$/, async (ctx) => {
   if (!chatId || !itemId) return;
 
   await showHelpEntertainmentDetail(ctx, chatId, itemId);
+});
+
+// ============================================
+// MANDATORY ADD HELP KEYBOARDS AND DISPLAY
+// ============================================
+
+function buildHelpMandatoryAddKeyboard(chatId: string): InlineKeyboard {
+  const rows: any[] = [];
+  for (const item of MANDATORY_ADD_HELP_DATA) {
+    const label = `${item.icon} ${item.name}`;
+    rows.push([Markup.button.callback(label, `fw_help_mandatory_add_item:${chatId}:${item.id}`)]);
+  }
+  rows.push([Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)]);
+  return Markup.inlineKeyboard(rows);
+}
+
+async function showHelpMandatoryAdd(ctx: Context, chatId: string): Promise<void> {
+  const lines: string[] = [];
+  lines.push("➕ <b>Mandatory Add Guide</b>");
+  lines.push("");
+  lines.push("<i>Require members to add new users to the group before they can send messages.</i>");
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("Select a category below to see commands:");
+
+  await replyOrEditRoot(ctx, lines.join("\n"), buildHelpMandatoryAddKeyboard(chatId));
+}
+
+async function showHelpMandatoryAddDetail(ctx: Context, chatId: string, itemId: string): Promise<void> {
+  const item = MANDATORY_ADD_HELP_DATA.find((i) => i.id === itemId);
+  if (!item) {
+    await ctx.answerCbQuery("Item not found", { show_alert: true });
+    return;
+  }
+
+  const lines: string[] = [];
+  lines.push(`${item.icon} <b>${item.name}</b>`);
+  lines.push("");
+  lines.push(`<i>${item.summary}</i>`);
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push(item.description);
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("<b>📝 Commands:</b>");
+  lines.push("");
+  for (const cmd of item.commands) {
+    lines.push(`› <code>${cmd.command}</code>`);
+  }
+
+  if (item.examples && item.examples.length > 0) {
+    lines.push("");
+    lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+    lines.push("");
+    lines.push("<b>💡 Examples:</b>");
+    lines.push("");
+    for (const ex of item.examples) {
+      lines.push(`• ${ex.description}`);
+      lines.push(`  ⮨ <code>${ex.command}</code>`);
+    }
+  }
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback("◀️ Back to Mandatory Add", `fw_help_mandatory_add:${chatId}`)],
+    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+  ]);
+
+  await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
+}
+
+// ============================================
+// MANDATORY MEMBERSHIP HELP KEYBOARDS AND DISPLAY
+// ============================================
+
+function buildHelpMandatoryMembershipKeyboard(chatId: string): InlineKeyboard {
+  const rows: any[] = [];
+  for (const item of MANDATORY_MEMBERSHIP_HELP_DATA) {
+    const label = `${item.icon} ${item.name}`;
+    rows.push([Markup.button.callback(label, `fw_help_mandatory_membership_item:${chatId}:${item.id}`)]);
+  }
+  rows.push([Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)]);
+  return Markup.inlineKeyboard(rows);
+}
+
+async function showHelpMandatoryMembership(ctx: Context, chatId: string): Promise<void> {
+  const lines: string[] = [];
+  lines.push("📌 <b>Mandatory Membership Guide</b>");
+  lines.push("");
+  lines.push("<i>Force users to join your target channel before they can chat in your group. This is great for cross-promoting channels.</i>");
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("Select a category below to see commands:");
+
+  await replyOrEditRoot(ctx, lines.join("\n"), buildHelpMandatoryMembershipKeyboard(chatId));
+}
+
+async function showHelpMandatoryMembershipDetail(ctx: Context, chatId: string, itemId: string): Promise<void> {
+  const item = MANDATORY_MEMBERSHIP_HELP_DATA.find((i) => i.id === itemId);
+  if (!item) {
+    await ctx.answerCbQuery("Item not found", { show_alert: true });
+    return;
+  }
+
+  const lines: string[] = [];
+  lines.push(`${item.icon} <b>${item.name}</b>`);
+  lines.push("");
+  lines.push(`<i>${item.summary}</i>`);
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push(item.description);
+  lines.push("");
+  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("");
+  lines.push("<b>📝 Commands:</b>");
+  lines.push("");
+  for (const cmd of item.commands) {
+    lines.push(`› <code>${cmd.command}</code>`);
+  }
+
+  if (item.examples && item.examples.length > 0) {
+    lines.push("");
+    lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+    lines.push("");
+    lines.push("<b>💡 Examples:</b>");
+    lines.push("");
+    for (const ex of item.examples) {
+      lines.push(`• ${ex.description}`);
+      lines.push(`  ⮨ <code>${ex.command}</code>`);
+    }
+  }
+
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback("◀️ Back to Mandatory Membership", `fw_help_mandatory_membership:${chatId}`)],
+    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+  ]);
+
+  await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
+}
+
+// Mandatory Add menu handler
+bot.action(/^fw_help_mandatory_add:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_help_mandatory_add:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  await showHelpMandatoryAdd(ctx, chatId);
+});
+
+// Mandatory Add item detail handler
+bot.action(/^fw_help_mandatory_add_item:(-?\d+):([a-z_]+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_help_mandatory_add_item:(-?\d+):([a-z_]+)$/);
+  const chatId = match?.[1];
+  const itemId = match?.[2];
+  if (!chatId || !itemId) return;
+
+  await showHelpMandatoryAddDetail(ctx, chatId, itemId);
+});
+
+// Mandatory Membership menu handler
+bot.action(/^fw_help_mandatory_membership:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_help_mandatory_membership:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  await showHelpMandatoryMembership(ctx, chatId);
+});
+
+// Mandatory Membership item detail handler
+bot.action(/^fw_help_mandatory_membership_item:(-?\d+):([a-z_]+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_help_mandatory_membership_item:(-?\d+):([a-z_]+)$/);
+  const chatId = match?.[1];
+  const itemId = match?.[2];
+  if (!chatId || !itemId) return;
+
+  await showHelpMandatoryMembershipDetail(ctx, chatId, itemId);
+});
+
+// Generic help section routing handler (Fix for missing handler)
+bot.action(/^fw_help_section:(-?\d+):([a-z_]+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_help_section:(-?\d+):([a-z_]+)$/);
+  const chatId = match?.[1];
+  const sectionId = match?.[2];
+  if (!chatId || !sectionId) return;
+
+  switch (sectionId) {
+    case "lock_management":
+      await showHelpLocks(ctx, chatId, 1);
+      break;
+    case "settings":
+      await showHelpSettings(ctx, chatId);
+      break;
+    case "tabchi":
+      await showHelpTabchi(ctx, chatId);
+      break;
+    case "user_panel":
+      await ctx.reply("To access the User Panel, use the command `!UserPanel` or click the button below.", Markup.inlineKeyboard([
+        [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)]
+      ]));
+      break;
+    case "user_penalties":
+      await showHelpPenalties(ctx, chatId);
+      break;
+    case "promote_demote":
+      await showHelpPromote(ctx, chatId);
+      break;
+    case "word_filter":
+      await showHelpWordFilter(ctx, chatId);
+      break;
+    case "cleanup":
+      await showHelpCleanup(ctx, chatId);
+      break;
+    case "mandatory_add":
+      await showHelpMandatoryAdd(ctx, chatId);
+      break;
+    case "welcome":
+      // Assuming showHelpWelcome exists as it was implemented in previous session
+      await showHelpWelcome(ctx, chatId);
+      break;
+    case "mandatory_membership":
+      await showHelpMandatoryMembership(ctx, chatId);
+      break;
+    case "activity_stats":
+      await showHelpStats(ctx, chatId);
+      break;
+    case "entertainment":
+      await showHelpEntertainment(ctx, chatId);
+      break;
+    default:
+      await ctx.answerCbQuery("Section not implemented yet", { show_alert: true });
+  }
 });
 
 // ============================================

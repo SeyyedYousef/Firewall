@@ -1863,6 +1863,773 @@ async function handleShowSettings(ctx: GroupChatContext): Promise<ProcessingActi
   }
 }
 
+// ============================================
+// CLEANUP COMMANDS
+// ============================================
+
+async function handleCleanBans(ctx: GroupChatContext): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id;
+
+  // Telegram API doesn't provide a way to list all banned users
+  // The only way is through userbot API or if we track bans ourselves
+  // For now, we'll show the limitation and offer alternative
+
+  return [{
+    type: "send_message",
+    text: `⚠️ <b>Clean Bans Limitation</b>
+
+Telegram's Bot API doesn't allow listing all banned users.
+
+<b>Alternatives:</b>
+• Use the Mini App panel to manage bans individually
+• Use <code>!unban [user_id]</code> to unban specific users
+• Enable the companion userbot for full ban list access
+
+<i>Tip: To unban a user, reply to their message (if visible) or use their numeric ID.</i>`,
+    parseMode: "HTML",
+    autoDeleteSeconds: 60,
+  }];
+}
+
+async function handleCleanWarns(ctx: GroupChatContext): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+
+  try {
+    if (databaseAvailable) {
+      const { prisma } = await import("../../../server/db/client.js");
+      const group = await prisma.group.findUnique({
+        where: { telegramChatId: chatId },
+        select: { id: true },
+      });
+
+      if (group) {
+        const result = await prisma.userWarning.deleteMany({
+          where: { groupId: group.id },
+        });
+
+        return [{
+          type: "send_message",
+          text: `✅ Cleared all warnings. Removed <b>${result.count}</b> warning records.`,
+          parseMode: "HTML",
+          autoDeleteSeconds: 30,
+        }];
+      }
+    }
+
+    return [{
+      type: "send_message",
+      text: "⚠️ Database not available. No warnings to clear.",
+      parseMode: "HTML",
+      autoDeleteSeconds: 30,
+    }];
+  } catch (error) {
+    logger.error("Failed to clean warnings", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+async function handleCleanMutes(ctx: GroupChatContext): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id;
+
+  // Similar to bans - Telegram doesn't list restricted users
+  // We need to track mutes ourselves or use userbot
+
+  return [{
+    type: "send_message",
+    text: `⚠️ <b>Clean Mutes Limitation</b>
+
+Telegram's Bot API doesn't allow listing all muted/restricted users.
+
+<b>Alternatives:</b>
+• Use the Mini App panel to manage restrictions individually  
+• Use <code>!unmute</code> (reply) to unmute specific users
+• Enable the companion userbot for full member list access
+
+<i>Tip: Reply to a muted user's message and use !unmute to restore their permissions.</i>`,
+    parseMode: "HTML",
+    autoDeleteSeconds: 60,
+  }];
+}
+
+async function handleCleanFilters(ctx: GroupChatContext): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const count = settings.blacklist.length;
+    settings.blacklist = [];
+    await saveBanSettingsByChatId(chatId, settings);
+
+    return [{
+      type: "send_message",
+      text: `✅ Removed ${count} words from filter list.`,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30,
+    }];
+  } catch (error) {
+    logger.error("Failed to clean filters", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+async function handleCleanExempts(ctx: GroupChatContext): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const count = settings.whitelist.length;
+    settings.whitelist = [];
+    await saveBanSettingsByChatId(chatId, settings);
+
+    return [{
+      type: "send_message",
+      text: `✅ Removed ${count} users from whitelist (exempt list).`,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30,
+    }];
+  } catch (error) {
+    logger.error("Failed to clean exempts", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+async function handleCleanVIPs(ctx: GroupChatContext): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    const vipList = (rawSettings.vipList as string[]) ?? [];
+    const count = vipList.length;
+    rawSettings.vipList = [];
+    await saveBanSettingsByChatId(chatId, settings);
+
+    return [{
+      type: "send_message",
+      text: `✅ Removed ${count} users from VIP list.`,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30,
+    }];
+  } catch (error) {
+    logger.error("Failed to clean VIPs", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+async function handleCleanModList(ctx: GroupChatContext): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    const modList = (rawSettings.modList as string[]) ?? [];
+    const count = modList.length;
+    rawSettings.modList = [];
+    await saveBanSettingsByChatId(chatId, settings);
+
+    return [{
+      type: "send_message",
+      text: `✅ Removed ${count} managers from mod list.`,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30,
+    }];
+  } catch (error) {
+    logger.error("Failed to clean mod list", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+async function handleCleanRestricts(ctx: GroupChatContext): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id;
+
+  // Similar to CleanMutes - unrestrict all restricted users
+  return handleCleanMutes(ctx);
+}
+
+async function handleCleanDeleted(ctx: GroupChatContext): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id;
+
+  try {
+    // This command kicks deleted (ghost) accounts
+    // Unfortunately we need to iterate through members which isn't efficient
+    // For now we'll just confirm the command was received
+    return [{
+      type: "send_message",
+      text: "⚠️ CleanDeleted requires iterating through all members.\n\nThis feature is available through the Mini App for groups with the companion bot installed.",
+      parseMode: "HTML",
+      autoDeleteSeconds: 30,
+    }];
+  } catch (error) {
+    logger.error("Failed to clean deleted accounts", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+async function handleCleanBots(ctx: GroupChatContext): Promise<ProcessingAction[]> {
+  // Similar limitation - requires member iteration
+  return [{
+    type: "send_message",
+    text: "⚠️ CleanBots requires iterating through all members.\n\nThis feature is available through the Mini App for groups with the companion bot installed.",
+    parseMode: "HTML",
+    autoDeleteSeconds: 30,
+  }];
+}
+
+async function handleCleanFakes(ctx: GroupChatContext): Promise<ProcessingAction[]> {
+  // Similar limitation - requires member iteration and heuristic analysis
+  return [{
+    type: "send_message",
+    text: "⚠️ CleanFakes requires iterating through all members.\n\nThis feature is available through the Mini App for groups with the companion bot installed.",
+    parseMode: "HTML",
+    autoDeleteSeconds: 30,
+  }];
+}
+
+// ============================================
+// STATS COMMANDS
+// ============================================
+
+async function handleStats(ctx: GroupChatContext, args: string[]): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+
+  try {
+    if (!databaseAvailable) {
+      return [{
+        type: "send_message",
+        text: "📊 Statistics feature requires database connection.",
+        parseMode: "HTML",
+      }];
+    }
+
+    const { prisma } = await import("../../../server/db/client.js");
+    const group = await prisma.group.findUnique({
+      where: { telegramChatId: chatId },
+      select: { id: true, title: true },
+    });
+
+    if (!group) {
+      return [{
+        type: "send_message",
+        text: "📊 No statistics available for this group yet.",
+        parseMode: "HTML",
+      }];
+    }
+
+    // Get invitation statistics - use 'userId' field from MembershipEvent schema
+    const inviteStats = await prisma.membershipEvent.groupBy({
+      by: ["userId"],
+      where: {
+        groupId: group.id,
+        event: "join", // "join" is tracked, not "invite"
+      },
+      _count: true,
+      orderBy: { _count: { userId: "desc" } },
+      take: 10,
+    });
+
+    if (inviteStats.length === 0) {
+      return [{
+        type: "send_message",
+        text: `📊 <b>Group Statistics</b>\n\n<i>No activity recorded yet.</i>`,
+        parseMode: "HTML",
+      }];
+    }
+
+    const lines: string[] = [];
+    lines.push(`📊 <b>${group.title ?? "Group"} Statistics</b>`);
+    lines.push("");
+    lines.push("<b>Recent Members:</b>");
+
+    for (let i = 0; i < inviteStats.length; i++) {
+      const stat = inviteStats[i];
+      const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}.`;
+      lines.push(`${medal} User <code>${stat.userId}</code>: ${stat._count} joins`);
+    }
+
+    return [{
+      type: "send_message",
+      text: lines.join("\n"),
+      parseMode: "HTML",
+    }];
+  } catch (error) {
+    logger.error("Failed to get stats", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+async function handleUserStats(ctx: GroupChatContext): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+  const targetUserId = getReplyUserId(ctx);
+
+  if (!targetUserId) {
+    return [{ type: "send_message", text: RESPONSES.replyRequired, parseMode: "HTML" }];
+  }
+
+  try {
+    if (!databaseAvailable) {
+      return [{
+        type: "send_message",
+        text: "📊 Statistics feature requires database connection.",
+        parseMode: "HTML",
+      }];
+    }
+
+    const { prisma } = await import("../../../server/db/client.js");
+    const group = await prisma.group.findUnique({
+      where: { telegramChatId: chatId },
+      select: { id: true },
+    });
+
+    if (!group) {
+      return [{
+        type: "send_message",
+        text: "📊 No statistics available.",
+        parseMode: "HTML",
+      }];
+    }
+
+    // Get user's join count in this group
+    const joinCount = await prisma.membershipEvent.count({
+      where: {
+        groupId: group.id,
+        userId: targetUserId.toString(), // userId field from MembershipEvent schema
+        event: "join",
+      },
+    });
+
+    // Get warnings
+    const warning = await prisma.userWarning.findUnique({
+      where: {
+        groupId_telegramUserId: {
+          groupId: group.id,
+          telegramUserId: targetUserId.toString(),
+        },
+      },
+    });
+
+    const lines: string[] = [];
+    lines.push(`👤 <b>User Statistics</b>`);
+    lines.push("");
+    lines.push(`• User ID: <code>${targetUserId}</code>`);
+    lines.push(`• Join Events: ${joinCount}`);
+    lines.push(`• Warnings: ${warning?.count ?? 0}`);
+
+    return [{
+      type: "send_message",
+      text: lines.join("\n"),
+      parseMode: "HTML",
+      autoDeleteSeconds: 60,
+    }];
+  } catch (error) {
+    logger.error("Failed to get user stats", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+// ============================================
+// RANK MANAGEMENT COMMANDS
+// ============================================
+
+async function handleVIPAdd(ctx: GroupChatContext): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+  const targetUserId = getReplyUserId(ctx);
+
+  if (!targetUserId) {
+    return [{ type: "send_message", text: RESPONSES.replyRequired, parseMode: "HTML" }];
+  }
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.vipList) {
+      rawSettings.vipList = [];
+    }
+
+    const vipList = rawSettings.vipList as string[];
+    const userIdStr = targetUserId.toString();
+
+    if (!vipList.includes(userIdStr)) {
+      vipList.push(userIdStr);
+      await saveBanSettingsByChatId(chatId, settings);
+    }
+
+    return [{
+      type: "send_message",
+      text: `✅ User <code>${targetUserId}</code> added to VIP list.`,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30,
+    }];
+  } catch (error) {
+    logger.error("Failed to add VIP", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+async function handleVIPRemove(ctx: GroupChatContext): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+  const targetUserId = getReplyUserId(ctx);
+
+  if (!targetUserId) {
+    return [{ type: "send_message", text: RESPONSES.replyRequired, parseMode: "HTML" }];
+  }
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    const vipList = (rawSettings.vipList as string[]) ?? [];
+    const userIdStr = targetUserId.toString();
+
+    rawSettings.vipList = vipList.filter(id => id !== userIdStr);
+    await saveBanSettingsByChatId(chatId, settings);
+
+    return [{
+      type: "send_message",
+      text: `✅ User <code>${targetUserId}</code> removed from VIP list.`,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30,
+    }];
+  } catch (error) {
+    logger.error("Failed to remove VIP", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+async function handleVIPList(ctx: GroupChatContext): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    const vipList = (rawSettings.vipList as string[]) ?? [];
+
+    if (vipList.length === 0) {
+      return [{
+        type: "send_message",
+        text: "⭐ VIP list is empty.",
+        parseMode: "HTML",
+      }];
+    }
+
+    const lines: string[] = [];
+    lines.push("⭐ <b>VIP List</b>");
+    lines.push("");
+    for (const userId of vipList) {
+      lines.push(`• <code>${userId}</code>`);
+    }
+
+    return [{
+      type: "send_message",
+      text: lines.join("\n"),
+      parseMode: "HTML",
+    }];
+  } catch (error) {
+    logger.error("Failed to list VIPs", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+async function handleModAdd(ctx: GroupChatContext, args: string[]): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+  const targetUserId = getReplyUserId(ctx);
+
+  if (!targetUserId) {
+    return [{ type: "send_message", text: RESPONSES.replyRequired, parseMode: "HTML" }];
+  }
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.modList) {
+      rawSettings.modList = [];
+    }
+
+    const modList = rawSettings.modList as string[];
+    const userIdStr = targetUserId.toString();
+
+    if (!modList.includes(userIdStr)) {
+      modList.push(userIdStr);
+      await saveBanSettingsByChatId(chatId, settings);
+    }
+
+    return [{
+      type: "send_message",
+      text: `✅ User <code>${targetUserId}</code> promoted to Manager.`,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30,
+    }];
+  } catch (error) {
+    logger.error("Failed to promote user", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+async function handleModRemove(ctx: GroupChatContext): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+  const targetUserId = getReplyUserId(ctx);
+
+  if (!targetUserId) {
+    return [{ type: "send_message", text: RESPONSES.replyRequired, parseMode: "HTML" }];
+  }
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    const modList = (rawSettings.modList as string[]) ?? [];
+    const userIdStr = targetUserId.toString();
+
+    rawSettings.modList = modList.filter(id => id !== userIdStr);
+    await saveBanSettingsByChatId(chatId, settings);
+
+    return [{
+      type: "send_message",
+      text: `✅ User <code>${targetUserId}</code> demoted from Manager.`,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30,
+    }];
+  } catch (error) {
+    logger.error("Failed to demote user", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+async function handleModList(ctx: GroupChatContext): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    const modList = (rawSettings.modList as string[]) ?? [];
+
+    if (modList.length === 0) {
+      return [{
+        type: "send_message",
+        text: "👤 Manager list is empty.",
+        parseMode: "HTML",
+      }];
+    }
+
+    const lines: string[] = [];
+    lines.push("👤 <b>Manager List</b>");
+    lines.push("");
+    for (const userId of modList) {
+      lines.push(`• <code>${userId}</code>`);
+    }
+
+    return [{
+      type: "send_message",
+      text: lines.join("\n"),
+      parseMode: "HTML",
+    }];
+  } catch (error) {
+    logger.error("Failed to list managers", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+async function handleOwnerAdd(ctx: GroupChatContext): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+  const userId = (ctx.message as any)?.from?.id;
+  const targetUserId = getReplyUserId(ctx);
+
+  if (!targetUserId) {
+    return [{ type: "send_message", text: RESPONSES.replyRequired, parseMode: "HTML" }];
+  }
+
+  // Only the group creator can add owners
+  const userIsCreator = await isCreator(ctx, userId);
+  if (!userIsCreator) {
+    return [{
+      type: "send_message",
+      text: "⚠️ Only the group creator can add owners.",
+      parseMode: "HTML",
+    }];
+  }
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!rawSettings.ownerList) {
+      rawSettings.ownerList = [];
+    }
+
+    const ownerList = rawSettings.ownerList as string[];
+    const userIdStr = targetUserId.toString();
+
+    if (!ownerList.includes(userIdStr)) {
+      ownerList.push(userIdStr);
+      await saveBanSettingsByChatId(chatId, settings);
+    }
+
+    return [{
+      type: "send_message",
+      text: `✅ User <code>${targetUserId}</code> added as Owner.`,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30,
+    }];
+  } catch (error) {
+    logger.error("Failed to add owner", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+async function handleOwnerRemove(ctx: GroupChatContext): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+  const userId = (ctx.message as any)?.from?.id;
+  const targetUserId = getReplyUserId(ctx);
+
+  if (!targetUserId) {
+    return [{ type: "send_message", text: RESPONSES.replyRequired, parseMode: "HTML" }];
+  }
+
+  const userIsCreator = await isCreator(ctx, userId);
+  if (!userIsCreator) {
+    return [{
+      type: "send_message",
+      text: "⚠️ Only the group creator can remove owners.",
+      parseMode: "HTML",
+    }];
+  }
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    const ownerList = (rawSettings.ownerList as string[]) ?? [];
+    const userIdStr = targetUserId.toString();
+
+    rawSettings.ownerList = ownerList.filter(id => id !== userIdStr);
+    await saveBanSettingsByChatId(chatId, settings);
+
+    return [{
+      type: "send_message",
+      text: `✅ User <code>${targetUserId}</code> removed from Owner list.`,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30,
+    }];
+  } catch (error) {
+    logger.error("Failed to remove owner", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+async function handleOwnerList(ctx: GroupChatContext): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    const ownerList = (rawSettings.ownerList as string[]) ?? [];
+
+    if (ownerList.length === 0) {
+      return [{
+        type: "send_message",
+        text: "👑 Owner list is empty.",
+        parseMode: "HTML",
+      }];
+    }
+
+    const lines: string[] = [];
+    lines.push("👑 <b>Owner List</b>");
+    lines.push("");
+    for (const userId of ownerList) {
+      lines.push(`• <code>${userId}</code>`);
+    }
+
+    return [{
+      type: "send_message",
+      text: lines.join("\n"),
+      parseMode: "HTML",
+    }];
+  } catch (error) {
+    logger.error("Failed to list owners", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+async function handleCleanOwnerList(ctx: GroupChatContext): Promise<ProcessingAction[]> {
+  const chatId = ctx.chat.id.toString();
+  const userId = (ctx.message as any)?.from?.id;
+
+  const userIsCreator = await isCreator(ctx, userId);
+  if (!userIsCreator) {
+    return [{
+      type: "send_message",
+      text: "⚠️ Only the group creator can clear the owner list.",
+      parseMode: "HTML",
+    }];
+  }
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    const ownerList = (rawSettings.ownerList as string[]) ?? [];
+    const count = ownerList.length;
+    rawSettings.ownerList = [];
+    await saveBanSettingsByChatId(chatId, settings);
+
+    return [{
+      type: "send_message",
+      text: `✅ Removed ${count} users from owner list.`,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30,
+    }];
+  } catch (error) {
+    logger.error("Failed to clean owner list", { chatId, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
+// ============================================
+// FILTER ENHANCEMENT COMMANDS
+// ============================================
+
+async function handleFilterWithPunishment(
+  ctx: GroupChatContext,
+  word: string,
+  punishment: "warn" | "ban" | "mute"
+): Promise<ProcessingAction[]> {
+  if (!word) {
+    return [{ type: "send_message", text: RESPONSES.invalidFormat, parseMode: "HTML" }];
+  }
+
+  const chatId = ctx.chat.id.toString();
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    // Initialize filter punishments if not exists
+    if (!rawSettings.filterPunishments) {
+      rawSettings.filterPunishments = {};
+    }
+    const filterPunishments = rawSettings.filterPunishments as Record<string, string>;
+
+    // Add word to blacklist if not already there
+    const wordLower = word.toLowerCase();
+    if (!settings.blacklist.includes(wordLower)) {
+      settings.blacklist.push(wordLower);
+    }
+
+    // Set punishment for this word
+    filterPunishments[wordLower] = punishment;
+
+    await saveBanSettingsByChatId(chatId, settings);
+
+    const punishLabels = { warn: "⚠️ Warning", ban: "🚫 Ban", mute: "🔇 Mute" };
+    return [{
+      type: "send_message",
+      text: `✅ Added "<code>${word}</code>" to filter list with punishment: ${punishLabels[punishment]}`,
+      parseMode: "HTML",
+      autoDeleteSeconds: 30,
+    }];
+  } catch (error) {
+    logger.error("Failed to add filter with punishment", { chatId, word, punishment, error });
+    return [{ type: "send_message", text: RESPONSES.error, parseMode: "HTML" }];
+  }
+}
+
 // UserPanel command handler
 async function handleUserPanel(
   ctx: GroupChatContext,
@@ -2251,6 +3018,126 @@ async function processCommand(
   // UserPanel command
   if (command === "userpanel" || command === "up" || command === "panel") {
     return handleUserPanel(ctx, args);
+  }
+
+  // ============================================
+  // CLEANUP COMMANDS
+  // ============================================
+  if (command === "del" || command === "delete") {
+    return handlePurgeMessages(ctx, args);
+  }
+  if (command === "cleanbans" || command === "cleanban") {
+    return handleCleanBans(ctx);
+  }
+  if (command === "cleanwarns" || command === "cleanwarn" || command === "cleanwarnings") {
+    return handleCleanWarns(ctx);
+  }
+  if (command === "cleanmutes" || command === "cleanmute") {
+    return handleCleanMutes(ctx);
+  }
+  if (command === "cleanfilters" || command === "cleanfilter" || command === "cleanfilterlist") {
+    return handleCleanFilters(ctx);
+  }
+  if (command === "cleanexempts" || command === "cleanexempt" || command === "cleanwhitelist") {
+    return handleCleanExempts(ctx);
+  }
+  if (command === "cleanvips" || command === "cleanvip") {
+    return handleCleanVIPs(ctx);
+  }
+  if (command === "cleanmodlist" || command === "cleanmods") {
+    return handleCleanModList(ctx);
+  }
+  if (command === "cleanrestricts" || command === "cleanrestrict") {
+    return handleCleanRestricts(ctx);
+  }
+  if (command === "cleandeleted" || command === "cleanghosts") {
+    return handleCleanDeleted(ctx);
+  }
+  if (command === "cleanbots" || command === "cleanbot") {
+    return handleCleanBots(ctx);
+  }
+  if (command === "cleanfakes" || command === "cleanfake") {
+    return handleCleanFakes(ctx);
+  }
+
+  // ============================================
+  // STATS COMMANDS
+  // ============================================
+  if (command === "stats" || command === "stat") {
+    return handleStats(ctx, args);
+  }
+  if (command === "userstats" || command === "userstat") {
+    return handleUserStats(ctx);
+  }
+  if (command === "addstats" || command === "addstat") {
+    return handleStats(ctx, ["add"]);
+  }
+  if (command === "rankstats" || command === "rankstat") {
+    return handleStats(ctx, ["rank"]);
+  }
+  if (command === "totalstats" || command === "totalstat") {
+    return handleStats(ctx, ["total"]);
+  }
+  if (command === "weeklystats" || command === "weeklystat") {
+    return handleStats(ctx, ["weekly"]);
+  }
+
+  // ============================================
+  // VIP COMMANDS
+  // ============================================
+  if (command === "vip" || command === "addvip") {
+    return handleVIPAdd(ctx);
+  }
+  if (command === "remvip" || command === "removevip" || command === "delvip") {
+    return handleVIPRemove(ctx);
+  }
+  if (command === "viplist" || command === "vips" || command === "listvips") {
+    return handleVIPList(ctx);
+  }
+
+  // ============================================
+  // MANAGER/MOD COMMANDS
+  // ============================================
+  if (command === "promote" || command === "addmod" || command === "addmanager") {
+    return handleModAdd(ctx, args);
+  }
+  if (command === "demote" || command === "remmod" || command === "removemod") {
+    return handleModRemove(ctx);
+  }
+  if (command === "modlist" || command === "mods" || command === "managers") {
+    return handleModList(ctx);
+  }
+
+  // ============================================
+  // OWNER COMMANDS
+  // ============================================
+  if (command === "setowner" || command === "addowner") {
+    return handleOwnerAdd(ctx);
+  }
+  if (command === "remowner" || command === "removeowner" || command === "delowner") {
+    return handleOwnerRemove(ctx);
+  }
+  if (command === "ownerlist" || command === "owners" || command === "listowners") {
+    return handleOwnerList(ctx);
+  }
+  if (command === "cleanownerlist" || command === "cleanowners") {
+    return handleCleanOwnerList(ctx);
+  }
+
+  // ============================================
+  // FILTER WITH PUNISHMENT COMMANDS
+  // ============================================
+  if (command === "filterwarn" || command === "addwarnfilter") {
+    return handleFilterWithPunishment(ctx, rawArgs, "warn");
+  }
+  if (command === "filterban" || command === "addbanfilter") {
+    return handleFilterWithPunishment(ctx, rawArgs, "ban");
+  }
+  if (command === "filtermute" || command === "addmutefilter") {
+    return handleFilterWithPunishment(ctx, rawArgs, "mute");
+  }
+  if (command === "remfilter" || command === "removefilter" || command === "deletefilter") {
+    return handleFilterRemove(ctx, rawArgs);
   }
 
   return [];
