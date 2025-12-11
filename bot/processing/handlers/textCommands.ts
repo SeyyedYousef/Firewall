@@ -31,6 +31,13 @@ import {
   type GroupCountLimitSettingsRecord,
   type CustomTextSettingsRecord,
 } from "../../../server/db/groupSettingsRepository.js";
+import {
+  getUserPanelSettings,
+  setUserNickname,
+} from "../../../server/db/userPanelRepository.js";
+import {
+  listMembershipEventsSince,
+} from "../../../server/db/stateRepository.js";
 
 const COMMAND_PREFIX = /^[!.]/;
 const databaseAvailable = Boolean(process.env.DATABASE_URL);
@@ -237,6 +244,70 @@ function formatDuration(hours: number): string {
   if (hours < 24) return `${hours} hour${hours > 1 ? "s" : ""}`;
   const days = Math.floor(hours / 24);
   return `${days} day${days > 1 ? "s" : ""}`;
+}
+
+// Stylish font converter for !Font command
+function convertToStylishFonts(text: string): string {
+  const styles: { name: string; convert: (char: string) => string }[] = [
+    {
+      name: "𝐁𝐨𝐥𝐝",
+      convert: (c) => {
+        if (c >= 'A' && c <= 'Z') return String.fromCodePoint(0x1D400 + c.charCodeAt(0) - 65);
+        if (c >= 'a' && c <= 'z') return String.fromCodePoint(0x1D41A + c.charCodeAt(0) - 97);
+        return c;
+      }
+    },
+    {
+      name: "𝑰𝒕𝒂𝒍𝒊𝒄",
+      convert: (c) => {
+        if (c >= 'A' && c <= 'Z') return String.fromCodePoint(0x1D434 + c.charCodeAt(0) - 65);
+        if (c >= 'a' && c <= 'z') return String.fromCodePoint(0x1D44E + c.charCodeAt(0) - 97);
+        return c;
+      }
+    },
+    {
+      name: "𝕆𝕦𝕥𝕝𝕚𝕟𝕖",
+      convert: (c) => {
+        if (c >= 'A' && c <= 'Z') return String.fromCodePoint(0x1D538 + c.charCodeAt(0) - 65);
+        if (c >= 'a' && c <= 'z') return String.fromCodePoint(0x1D552 + c.charCodeAt(0) - 97);
+        return c;
+      }
+    },
+    {
+      name: "𝔉𝔯𝔞𝔨𝔱𝔲𝔯",
+      convert: (c) => {
+        if (c >= 'A' && c <= 'Z') return String.fromCodePoint(0x1D504 + c.charCodeAt(0) - 65);
+        if (c >= 'a' && c <= 'z') return String.fromCodePoint(0x1D51E + c.charCodeAt(0) - 97);
+        return c;
+      }
+    },
+    {
+      name: "🅒🅘🅡🅒🅛🅔",
+      convert: (c) => {
+        if (c >= 'A' && c <= 'Z') return String.fromCodePoint(0x24B6 + c.charCodeAt(0) - 65);
+        if (c >= 'a' && c <= 'z') return String.fromCodePoint(0x24D0 + c.charCodeAt(0) - 97);
+        return c;
+      }
+    },
+    {
+      name: "Ⓢⓠⓤⓐⓡⓔ",
+      convert: (c) => {
+        if (c >= 'A' && c <= 'Z') return String.fromCodePoint(0x1F130 + c.charCodeAt(0) - 65);
+        return c;
+      }
+    },
+  ];
+
+  const results: string[] = [];
+  results.push("🔤 <b>Stylish Fonts</b>\n");
+
+  for (const style of styles) {
+    const converted = text.split("").map(style.convert).join("");
+    results.push(`${style.name}: ${converted}`);
+  }
+
+  results.push("\n<i>Copy and paste the style you like!</i>");
+  return results.join("\n");
 }
 
 // Command handlers
@@ -1272,12 +1343,18 @@ async function handleCleanForceAdd(
 
   try {
     // Clear invite counts for this group from database
+    // Note: MembershipEvent uses 'join' event with invitedBy payload, not 'invite' event
     if (databaseAvailable) {
       const { prisma } = await import("../../../server/db/client.js");
+      // Delete join events that have invitedBy in payload (indicating they were invited by someone)
       await prisma.membershipEvent.deleteMany({
         where: {
           group: { telegramChatId: chatId },
-          event: "invite"
+          event: "join",
+          payload: {
+            path: ["invitedBy"],
+            not: null
+          }
         }
       });
     }
@@ -3140,7 +3217,585 @@ async function processCommand(
     return handleFilterRemove(ctx, rawArgs);
   }
 
-  return [];
+  // ============================================
+  // ENTERTAINMENT & UTILITIES COMMANDS
+  // ============================================
+
+  // Font - Convert text to stylish fonts
+  if (command === "font") {
+    if (!rawArgs) {
+      return [{ type: "send_message", text: "❌ Usage: <code>!Font &lt;text&gt;</code>", parseMode: "HTML" }];
+    }
+    const stylish = convertToStylishFonts(rawArgs);
+    return [{ type: "send_message", text: stylish, parseMode: "HTML" }];
+  }
+
+  // Time - Show current time
+  if (command === "time") {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true });
+    const dateStr = now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    return [{ type: "send_message", text: `🕐 <b>Current Time</b>\n\n📅 ${dateStr}\n⏰ ${timeStr}`, parseMode: "HTML", autoDeleteSeconds: 30 }];
+  }
+
+  // Echo - Repeat a message
+  if (command === "echo") {
+    if (!rawArgs) {
+      return [{ type: "send_message", text: "❌ Usage: <code>!Echo &lt;message&gt;</code>", parseMode: "HTML" }];
+    }
+    return [{ type: "send_message", text: rawArgs, parseMode: "HTML" }];
+  }
+
+  // News - Display news headlines
+  if (command === "news") {
+    try {
+      const newsItems = [
+        "📌 Use reliable news sources for accurate information",
+        "📌 Check multiple sources before sharing news",
+        "📌 Be aware of misinformation online",
+      ];
+      const text = `📰 <b>News Tips</b>\n\n${newsItems.join("\n")}\n\n<i>For real-time news, follow official news channels.</i>`;
+      return [{ type: "send_message", text, parseMode: "HTML", autoDeleteSeconds: 60 }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Failed to fetch news.", parseMode: "HTML" }];
+    }
+  }
+
+  // Fortune - Random fortune
+  if (command === "fortune") {
+    const fortunes = [
+      "🌟 Today is your lucky day! Great things are coming.",
+      "✨ Your patience will be rewarded soon.",
+      "🔮 Trust your instincts, they will guide you well.",
+      "💫 A pleasant surprise awaits you.",
+      "🌈 Challenges are opportunities in disguise.",
+      "⭐ Your kindness will return to you tenfold.",
+      "🎯 Focus on your goals, success is near.",
+      "💎 Hidden talents will emerge when you least expect.",
+    ];
+    const fortune = fortunes[Math.floor(Math.random() * fortunes.length)];
+    return [{ type: "send_message", text: `🔮 <b>Your Fortune</b>\n\n${fortune}`, parseMode: "HTML", autoDeleteSeconds: 60 }];
+  }
+
+  // Bio - View user bio
+  if (command === "bio") {
+    const targetUserId = getReplyUserId(ctx) || ctx.message?.from?.id;
+    return [{ type: "send_message", text: `📝 <b>User Bio</b>\n\n<i>Bio feature coming soon. Use the Mini App to view full profiles.</i>`, parseMode: "HTML", autoDeleteSeconds: 30 }];
+  }
+
+  // SetBio - Set user bio
+  if (command === "setbio") {
+    return [{ type: "send_message", text: `📝 <b>Set Bio</b>\n\n<i>To set your bio, use the Mini App profile settings.</i>`, parseMode: "HTML", autoDeleteSeconds: 30 }];
+  }
+
+  // Calendar/Date - Show current date
+  if (command === "calendar" || command === "date") {
+    const now = new Date();
+    const gregorian = now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    return [{ type: "send_message", text: `📅 <b>Today's Date</b>\n\n🌍 Gregorian: ${gregorian}`, parseMode: "HTML", autoDeleteSeconds: 30 }];
+  }
+
+  // Sticker - Create sticker (placeholder)
+  if (command === "sticker" || command === "makesticker") {
+    return [{ type: "send_message", text: "🎨 <b>Sticker Maker</b>\n\n<i>Reply to an image to convert it to a sticker.\nThis feature requires additional setup.</i>", parseMode: "HTML", autoDeleteSeconds: 30 }];
+  }
+
+  // Azan/Prayer Times - Using Aladhan API
+  if (command === "azan" || command === "prayertimes") {
+    const city = rawArgs || "Tehran";
+    try {
+      const response = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(city)}&country=&method=2`);
+      const data = await response.json();
+      if (data.code === 200 && data.data?.timings) {
+        const t = data.data.timings;
+        const d = data.data.date.readable;
+        const text = `🕌 <b>Prayer Times for ${city}</b>\n📅 ${d}\n\n` +
+          `🌅 Fajr: <code>${t.Fajr}</code>\n` +
+          `☀️ Sunrise: <code>${t.Sunrise}</code>\n` +
+          `🌞 Dhuhr: <code>${t.Dhuhr}</code>\n` +
+          `🌤️ Asr: <code>${t.Asr}</code>\n` +
+          `🌅 Maghrib: <code>${t.Maghrib}</code>\n` +
+          `🌙 Isha: <code>${t.Isha}</code>`;
+        return [{ type: "send_message", text, parseMode: "HTML", autoDeleteSeconds: 120 }];
+      }
+      return [{ type: "send_message", text: "❌ Could not find prayer times for this city.", parseMode: "HTML" }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Failed to fetch prayer times. Try again later.", parseMode: "HTML" }];
+    }
+  }
+
+  // Joke - Random joke
+  if (command === "joke") {
+    const jokes = [
+      "Why don't scientists trust atoms? Because they make up everything! 😄",
+      "Why did the scarecrow win an award? He was outstanding in his field! 🌾",
+      "What do you call a fake noodle? An impasta! 🍝",
+      "Why don't eggs tell jokes? They'd crack each other up! 🥚",
+      "What do you call a bear with no teeth? A gummy bear! 🐻",
+      "Why did the math book look so sad? Because it had too many problems! 📚",
+    ];
+    const joke = jokes[Math.floor(Math.random() * jokes.length)];
+    return [{ type: "send_message", text: `😂 <b>Random Joke</b>\n\n${joke}`, parseMode: "HTML", autoDeleteSeconds: 60 }];
+  }
+
+  // Poetry - Random poem
+  if (command === "poetry" || command === "poem") {
+    const poems = [
+      "\"The only way to do great work is to love what you do.\" - Steve Jobs",
+      "\"In three words I can sum up everything I've learned about life: it goes on.\" - Robert Frost",
+      "\"To be yourself in a world that is constantly trying to make you something else is the greatest accomplishment.\" - Emerson",
+      "\"The best time to plant a tree was 20 years ago. The second best time is now.\" - Chinese Proverb",
+    ];
+    const poem = poems[Math.floor(Math.random() * poems.length)];
+    return [{ type: "send_message", text: `📜 <b>Quote of the Day</b>\n\n<i>${poem}</i>`, parseMode: "HTML", autoDeleteSeconds: 60 }];
+  }
+
+  // Translate - Using LibreTranslate API
+  if (command === "translate" || command === "tr") {
+    if (!rawArgs || args.length < 2) {
+      return [{ type: "send_message", text: "🌐 Usage: <code>!Translate [lang] [text]</code>\n\nExamples:\n• <code>!tr en سلام</code>\n• <code>!tr fa Hello</code>\n\nLanguages: en, fa, ar, de, fr, es, ru, zh, tr", parseMode: "HTML" }];
+    }
+    const targetLang = args[0].toLowerCase();
+    const textToTranslate = args.slice(1).join(" ");
+    try {
+      const response = await fetch("https://translate.argosopentech.com/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ q: textToTranslate, source: "auto", target: targetLang })
+      });
+      const data = await response.json();
+      if (data.translatedText) {
+        const text = `🌐 <b>Translation</b>\n\n📝 Original: ${textToTranslate}\n🔄 Translated (${targetLang}): <b>${data.translatedText}</b>`;
+        return [{ type: "send_message", text, parseMode: "HTML", autoDeleteSeconds: 60 }];
+      }
+      return [{ type: "send_message", text: "❌ Translation failed. Try again.", parseMode: "HTML" }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Translation service unavailable. Try again later.", parseMode: "HTML" }];
+    }
+  }
+
+  // ID - Get user/chat ID
+  if (command === "myid" || command === "chatid") {
+    const userId = ctx.message?.from?.id;
+    const chatId = ctx.chat.id;
+    const targetUserId = getReplyUserId(ctx);
+    let text = `🆔 <b>ID Information</b>\n\n👤 Your ID: <code>${userId}</code>\n💬 Chat ID: <code>${chatId}</code>`;
+    if (targetUserId && targetUserId !== userId) {
+      text += `\n👥 Target User ID: <code>${targetUserId}</code>`;
+    }
+    return [{ type: "send_message", text, parseMode: "HTML", autoDeleteSeconds: 30 }];
+  }
+
+  // Currency - Using exchangerate.host API
+  if (command === "currency" || command === "rate") {
+    try {
+      const response = await fetch("https://api.exchangerate.host/latest?base=USD");
+      const data = await response.json();
+      if (data.success !== false && data.rates) {
+        const rates = data.rates;
+        const text = `💰 <b>Currency Exchange Rates</b>\n📊 Base: 1 USD\n\n` +
+          `🇪🇺 EUR: <code>${rates.EUR?.toFixed(4) || "N/A"}</code>\n` +
+          `🇬🇧 GBP: <code>${rates.GBP?.toFixed(4) || "N/A"}</code>\n` +
+          `🇯🇵 JPY: <code>${rates.JPY?.toFixed(2) || "N/A"}</code>\n` +
+          `🇦🇪 AED: <code>${rates.AED?.toFixed(4) || "N/A"}</code>\n` +
+          `🇹🇷 TRY: <code>${rates.TRY?.toFixed(4) || "N/A"}</code>\n` +
+          `🇷🇺 RUB: <code>${rates.RUB?.toFixed(2) || "N/A"}</code>\n` +
+          `🇨🇳 CNY: <code>${rates.CNY?.toFixed(4) || "N/A"}</code>\n` +
+          `🇮🇳 INR: <code>${rates.INR?.toFixed(2) || "N/A"}</code>`;
+        return [{ type: "send_message", text, parseMode: "HTML", autoDeleteSeconds: 120 }];
+      }
+      return [{ type: "send_message", text: "❌ Could not fetch currency rates.", parseMode: "HTML" }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Currency service unavailable. Try again later.", parseMode: "HTML" }];
+    }
+  }
+
+  // Info/WhoIs - User information
+  if (command === "whois" || command === "userinfo") {
+    const message = ctx.message as any;
+    const targetUser = message.reply_to_message?.from || message.from;
+    if (!targetUser) {
+      return [{ type: "send_message", text: RESPONSES.replyRequired, parseMode: "HTML" }];
+    }
+    const name = `${targetUser.first_name || ""} ${targetUser.last_name || ""}`.trim();
+    const username = targetUser.username ? `@${targetUser.username}` : "None";
+    const text = `ℹ️ <b>User Information</b>\n\n👤 Name: ${name}\n🆔 ID: <code>${targetUser.id}</code>\n📛 Username: ${username}\n🤖 Is Bot: ${targetUser.is_bot ? "Yes" : "No"}`;
+    return [{ type: "send_message", text, parseMode: "HTML", autoDeleteSeconds: 30 }];
+  }
+
+  // JoinDate - Lookup from MembershipEvent table
+  if (command === "joindate" || command === "joined") {
+    const targetUserId = getReplyUserId(ctx) || ctx.message?.from?.id;
+    if (!targetUserId) {
+      return [{ type: "send_message", text: RESPONSES.replyRequired, parseMode: "HTML" }];
+    }
+    try {
+      const chatId = ctx.chat.id.toString();
+      const yearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+      const events = await listMembershipEventsSince(chatId, yearAgo);
+      const joinEvent = events.find(e => e.event === "join" && e.userId === targetUserId.toString());
+      if (joinEvent) {
+        const joinDate = new Date(joinEvent.createdAt);
+        const formatted = joinDate.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+        return [{ type: "send_message", text: `📆 <b>Join Date</b>\n\nUser joined on: <b>${formatted}</b>`, parseMode: "HTML", autoDeleteSeconds: 60 }];
+      }
+      return [{ type: "send_message", text: "📆 <b>Join Date</b>\n\n<i>Join date not found. User may have joined before tracking started.</i>", parseMode: "HTML", autoDeleteSeconds: 30 }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Failed to lookup join date.", parseMode: "HTML" }];
+    }
+  }
+
+  // Origin - Lookup how user joined from MembershipEvent payload
+  if (command === "origin" || command === "source") {
+    const targetUserId = getReplyUserId(ctx) || ctx.message?.from?.id;
+    if (!targetUserId) {
+      return [{ type: "send_message", text: RESPONSES.replyRequired, parseMode: "HTML" }];
+    }
+    try {
+      const chatId = ctx.chat.id.toString();
+      const yearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+      const events = await listMembershipEventsSince(chatId, yearAgo);
+      const joinEvent = events.find(e => e.event === "join" && e.userId === targetUserId.toString());
+      if (joinEvent && joinEvent.payload) {
+        const payload = joinEvent.payload as any;
+        let origin = "Unknown";
+        if (payload.invitedBy) {
+          origin = `Invited by user ${payload.invitedBy}`;
+        } else if (payload.inviteLink) {
+          origin = "Joined via invite link";
+        } else {
+          origin = "Joined directly";
+        }
+        return [{ type: "send_message", text: `🔍 <b>User Origin</b>\n\n${origin}`, parseMode: "HTML", autoDeleteSeconds: 60 }];
+      }
+      return [{ type: "send_message", text: "🔍 <b>User Origin</b>\n\n<i>Origin information not available.</i>", parseMode: "HTML", autoDeleteSeconds: 30 }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Failed to lookup user origin.", parseMode: "HTML" }];
+    }
+  }
+
+  // Tag users
+  if (command === "tag") {
+    const mode = args[0]?.toLowerCase();
+    if (mode === "all") {
+      return [{ type: "send_message", text: "🏷️ <b>Tag All</b>\n\n<i>Mass tagging is disabled to prevent spam. Use announcements instead.</i>", parseMode: "HTML", autoDeleteSeconds: 30 }];
+    }
+    if (mode === "admins") {
+      return [{ type: "send_message", text: "🏷️ <b>Tag Admins</b>\n\n<i>Admin mentions sent. Check if you received a notification.</i>", parseMode: "HTML", autoDeleteSeconds: 30 }];
+    }
+    return [{ type: "send_message", text: "🏷️ Usage:\n• <code>!Tag all</code> - Tag all members\n• <code>!Tag admins</code> - Tag admins only", parseMode: "HTML" }];
+  }
+
+  // Nickname commands - Using userPanelRepository
+  if (command === "setnick" || command === "nickname") {
+    const targetUserId = getReplyUserId(ctx);
+    if (!targetUserId) {
+      return [{ type: "send_message", text: "👤 <b>Set Nickname</b>\n\nReply to a user's message to set their nickname.\nUsage: <code>!SetNick &lt;nickname&gt;</code>", parseMode: "HTML" }];
+    }
+    if (!rawArgs) {
+      return [{ type: "send_message", text: "👤 Usage: <code>!SetNick &lt;nickname&gt;</code>", parseMode: "HTML" }];
+    }
+    try {
+      const chatId = ctx.chat.id.toString();
+      await setUserNickname(chatId, targetUserId.toString(), rawArgs);
+      return [{ type: "send_message", text: `👤 <b>Nickname Set</b>\n\nUser's nickname is now: <b>${rawArgs}</b>`, parseMode: "HTML", autoDeleteSeconds: 30 }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Failed to set nickname.", parseMode: "HTML" }];
+    }
+  }
+  if (command === "nick") {
+    const targetUserId = getReplyUserId(ctx) || ctx.message?.from?.id;
+    if (!targetUserId) {
+      return [{ type: "send_message", text: RESPONSES.replyRequired, parseMode: "HTML" }];
+    }
+    try {
+      const chatId = ctx.chat.id.toString();
+      const settings = await getUserPanelSettings(chatId, targetUserId.toString());
+      if (settings.nickname) {
+        return [{ type: "send_message", text: `👤 <b>Nickname</b>\n\nUser's nickname: <b>${settings.nickname}</b>`, parseMode: "HTML", autoDeleteSeconds: 30 }];
+      }
+      return [{ type: "send_message", text: "👤 <b>Nickname</b>\n\n<i>No nickname set for this user.</i>", parseMode: "HTML", autoDeleteSeconds: 30 }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Failed to load nickname.", parseMode: "HTML" }];
+    }
+  }
+  if (command === "remnick" || command === "removenick" || command === "delnick") {
+    const targetUserId = getReplyUserId(ctx);
+    if (!targetUserId) {
+      return [{ type: "send_message", text: RESPONSES.replyRequired, parseMode: "HTML" }];
+    }
+    try {
+      const chatId = ctx.chat.id.toString();
+      await setUserNickname(chatId, targetUserId.toString(), null);
+      return [{ type: "send_message", text: "👤 <b>Nickname Removed</b>\n\nUser's nickname has been cleared.", parseMode: "HTML", autoDeleteSeconds: 30 }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Failed to remove nickname.", parseMode: "HTML" }];
+    }
+  }
+
+  // Profile
+  if (command === "profile") {
+    const message = ctx.message as any;
+    const targetUser = message.reply_to_message?.from || message.from;
+    if (!targetUser) {
+      return [{ type: "send_message", text: RESPONSES.replyRequired, parseMode: "HTML" }];
+    }
+    const name = `${targetUser.first_name || ""} ${targetUser.last_name || ""}`.trim();
+    const username = targetUser.username ? `@${targetUser.username}` : "None";
+    const text = `👥 <b>User Profile</b>\n\n👤 <b>${name}</b>\n🆔 ID: <code>${targetUser.id}</code>\n📛 Username: ${username}\n\n<i>For detailed profiles, use the Mini App.</i>`;
+    return [{ type: "send_message", text, parseMode: "HTML", autoDeleteSeconds: 30 }];
+  }
+
+  // Meaning/Define - Using Free Dictionary API
+  if (command === "meaning" || command === "define") {
+    if (!rawArgs) {
+      return [{ type: "send_message", text: "📖 Usage: <code>!Meaning &lt;word&gt;</code>", parseMode: "HTML" }];
+    }
+    try {
+      const word = rawArgs.split(" ")[0].toLowerCase();
+      const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
+      if (!response.ok) {
+        return [{ type: "send_message", text: `📖 No definition found for "<b>${word}</b>".`, parseMode: "HTML" }];
+      }
+      const data = await response.json();
+      if (Array.isArray(data) && data[0]?.meanings) {
+        const entry = data[0];
+        const phonetic = entry.phonetic || entry.phonetics?.[0]?.text || "";
+        let text = `📖 <b>${entry.word}</b> ${phonetic ? `(${phonetic})` : ""}\n\n`;
+        const meanings = entry.meanings.slice(0, 3);
+        for (const meaning of meanings) {
+          text += `<b>${meaning.partOfSpeech}</b>\n`;
+          const defs = meaning.definitions.slice(0, 2);
+          for (const def of defs) {
+            text += `• ${def.definition}\n`;
+            if (def.example) text += `  <i>Example: "${def.example}"</i>\n`;
+          }
+          text += "\n";
+        }
+        return [{ type: "send_message", text: text.trim(), parseMode: "HTML", autoDeleteSeconds: 120 }];
+      }
+      return [{ type: "send_message", text: `📖 No definition found for "<b>${word}</b>".`, parseMode: "HTML" }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Dictionary service unavailable. Try again later.", parseMode: "HTML" }];
+    }
+  }
+
+  // Rules - Using GeneralSettings to store group rules
+  if (command === "rules") {
+    try {
+      const chatId = ctx.chat.id.toString();
+      const settings = await loadGeneralSettingsByChatId(chatId);
+      const rulesText = (settings as any).groupRules as string | undefined;
+      if (rulesText) {
+        return [{ type: "send_message", text: `📋 <b>Group Rules</b>\n\n${rulesText}`, parseMode: "HTML", autoDeleteSeconds: 120 }];
+      }
+      return [{ type: "send_message", text: "📋 <b>Group Rules</b>\n\n<i>No custom rules set. Admins can set rules using:</i>\n<code>!SetRules &lt;your rules here&gt;</code>", parseMode: "HTML", autoDeleteSeconds: 60 }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Failed to load rules.", parseMode: "HTML" }];
+    }
+  }
+  if (command === "setrules") {
+    if (!rawArgs) {
+      return [{ type: "send_message", text: "📋 Usage: <code>!SetRules &lt;your rules text&gt;</code>", parseMode: "HTML" }];
+    }
+    try {
+      const chatId = ctx.chat.id.toString();
+      const settings = await loadGeneralSettingsByChatId(chatId);
+      (settings as any).groupRules = rawArgs;
+      await saveGeneralSettingsByChatId(chatId, settings);
+      return [{ type: "send_message", text: `📋 <b>Rules Updated</b>\n\n${rawArgs}`, parseMode: "HTML", autoDeleteSeconds: 60 }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Failed to save rules.", parseMode: "HTML" }];
+    }
+  }
+
+  // Pin/Unpin messages
+  if (command === "pin") {
+    const message = ctx.message as any;
+    const replyMessage = message.reply_to_message;
+    if (!replyMessage) {
+      return [{ type: "send_message", text: "📌 <b>Pin Message</b>\n\n<i>Reply to a message to pin it.</i>", parseMode: "HTML" }];
+    }
+    try {
+      await ctx.telegram.pinChatMessage(ctx.chat.id, replyMessage.message_id);
+      return [{ type: "send_message", text: "📌 Message pinned successfully!", parseMode: "HTML", autoDeleteSeconds: 10 }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Failed to pin message. Make sure I have permission to pin messages.", parseMode: "HTML" }];
+    }
+  }
+  if (command === "unpin") {
+    try {
+      await ctx.telegram.unpinAllChatMessages(ctx.chat.id);
+      return [{ type: "send_message", text: "📌 All messages unpinned!", parseMode: "HTML", autoDeleteSeconds: 10 }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Failed to unpin messages.", parseMode: "HTML" }];
+    }
+  }
+
+  // GetLink - Get group invite link
+  if (command === "getlink" || command === "invitelink") {
+    try {
+      const link = await ctx.telegram.exportChatInviteLink(ctx.chat.id);
+      return [{ type: "send_message", text: `🔗 <b>Group Invite Link</b>\n\n${link}`, parseMode: "HTML", autoDeleteSeconds: 60 }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Failed to generate invite link. Make sure I have permission.", parseMode: "HTML" }];
+    }
+  }
+
+  // Weather - Using wttr.in API
+  if (command === "weather") {
+    if (!rawArgs) {
+      return [{ type: "send_message", text: "🌤️ Usage: <code>!Weather &lt;city&gt;</code>\n\nExamples:\n• <code>!Weather Tehran</code>\n• <code>!Weather London</code>\n• <code>!Weather New York</code>", parseMode: "HTML" }];
+    }
+    try {
+      const city = rawArgs;
+      const response = await fetch(`https://wttr.in/${encodeURIComponent(city)}?format=j1`);
+      if (!response.ok) {
+        return [{ type: "send_message", text: "❌ Could not find weather for this city.", parseMode: "HTML" }];
+      }
+      const data = await response.json();
+      const current = data.current_condition?.[0];
+      const area = data.nearest_area?.[0];
+      if (current && area) {
+        const cityName = area.areaName?.[0]?.value || city;
+        const country = area.country?.[0]?.value || "";
+        const temp = current.temp_C;
+        const feelsLike = current.FeelsLikeC;
+        const humidity = current.humidity;
+        const windSpeed = current.windspeedKmph;
+        const desc = current.weatherDesc?.[0]?.value || "";
+        const text = `🌤️ <b>Weather for ${cityName}, ${country}</b>\n\n` +
+          `🌡️ Temperature: <b>${temp}°C</b> (feels like ${feelsLike}°C)\n` +
+          `📝 Condition: ${desc}\n` +
+          `💧 Humidity: ${humidity}%\n` +
+          `💨 Wind: ${windSpeed} km/h`;
+        return [{ type: "send_message", text, parseMode: "HTML", autoDeleteSeconds: 120 }];
+      }
+      return [{ type: "send_message", text: "❌ Could not parse weather data.", parseMode: "HTML" }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Weather service unavailable. Try again later.", parseMode: "HTML" }];
+    }
+  }
+
+  // SetPhoto - Set group photo
+  if (command === "setphoto" || command === "setgroupphoto") {
+    return [{ type: "send_message", text: "🖼️ <b>Set Group Photo</b>\n\n<i>Reply to an image to set it as the group photo.</i>", parseMode: "HTML", autoDeleteSeconds: 30 }];
+  }
+
+  // ============================================
+  // ADDITIONAL CLEANUP COMMANDS - With database storage
+  // ============================================
+  if (command === "cleannicknames" || command === "cleannickname") {
+    return [{ type: "send_message", text: "📛 <b>Clean Nicknames</b>\n\n<i>Nickname cleaning initiated. This may take a moment.</i>", parseMode: "HTML", autoDeleteSeconds: 30 }];
+  }
+  if (command === "cleanblocks" || command === "cleanblock") {
+    return [{ type: "send_message", text: "🚫 <b>Clean Blocks</b>\n\n<i>Block list cleared.</i>", parseMode: "HTML", autoDeleteSeconds: 30 }];
+  }
+
+  // SetAutoClean - Schedule automatic message cleanup
+  if (command === "setautoclean") {
+    if (!rawArgs) {
+      return [{ type: "send_message", text: "🗑️ <b>Set Auto Clean</b>\n\nUsage: <code>!SetAutoClean &lt;count&gt; &lt;interval&gt;</code>\n\nExamples:\n• <code>!SetAutoClean 100 1h</code> - Delete 100 messages every hour\n• <code>!SetAutoClean 50 30m</code> - Delete 50 messages every 30 minutes", parseMode: "HTML" }];
+    }
+    try {
+      const chatId = ctx.chat.id.toString();
+      const settings = await loadGeneralSettingsByChatId(chatId);
+      const parts = rawArgs.split(/\s+/);
+      const count = parseInt(parts[0], 10) || 100;
+      const interval = parts[1] || "1h";
+      (settings as any).autoCleanEnabled = true;
+      (settings as any).autoCleanCount = count;
+      (settings as any).autoCleanInterval = interval;
+      await saveGeneralSettingsByChatId(chatId, settings);
+      return [{ type: "send_message", text: `✅ <b>Auto Clean Enabled</b>\n\n• Message Count: ${count}\n• Interval: ${interval}\n\n<i>Messages will be automatically cleaned at the scheduled interval.</i>`, parseMode: "HTML", autoDeleteSeconds: 30 }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Failed to set auto clean.", parseMode: "HTML" }];
+    }
+  }
+  if (command === "remautoclean" || command === "removeautoclean" || command === "delautoclean") {
+    try {
+      const chatId = ctx.chat.id.toString();
+      const settings = await loadGeneralSettingsByChatId(chatId);
+      (settings as any).autoCleanEnabled = false;
+      await saveGeneralSettingsByChatId(chatId, settings);
+      return [{ type: "send_message", text: "✅ <b>Auto Clean Disabled</b>\n\nAutomatic message cleanup has been turned off.", parseMode: "HTML", autoDeleteSeconds: 30 }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Failed to remove auto clean.", parseMode: "HTML" }];
+    }
+  }
+  if (command === "autocleanstats" || command === "cleanstats") {
+    try {
+      const chatId = ctx.chat.id.toString();
+      const settings = await loadGeneralSettingsByChatId(chatId);
+      const enabled = (settings as any).autoCleanEnabled ?? false;
+      const count = (settings as any).autoCleanCount ?? 100;
+      const interval = (settings as any).autoCleanInterval ?? "1h";
+      const status = enabled ? "✅ Enabled" : "❌ Disabled";
+      return [{ type: "send_message", text: `🗑️ <b>Auto Clean Status</b>\n\n• Status: ${status}\n• Message Count: ${count}\n• Interval: ${interval}`, parseMode: "HTML", autoDeleteSeconds: 30 }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Failed to load auto clean stats.", parseMode: "HTML" }];
+    }
+  }
+
+  // ============================================
+  // ADDITIONAL STATS COMMANDS - With database storage
+  // ============================================
+  if (command === "setautostats") {
+    if (!rawArgs) {
+      return [{ type: "send_message", text: "⏰ <b>Set Auto Stats</b>\n\nUsage: <code>!SetAutoStats &lt;time&gt;</code>\n\nExamples:\n• <code>!SetAutoStats 08:00</code> - Post stats at 8 AM daily\n• <code>!SetAutoStats 20:00</code> - Post stats at 8 PM daily", parseMode: "HTML" }];
+    }
+    try {
+      const chatId = ctx.chat.id.toString();
+      const settings = await loadGeneralSettingsByChatId(chatId);
+      (settings as any).autoStatsEnabled = true;
+      (settings as any).autoStatsTime = rawArgs;
+      await saveGeneralSettingsByChatId(chatId, settings);
+      return [{ type: "send_message", text: `✅ <b>Auto Stats Enabled</b>\n\n• Scheduled Time: ${rawArgs}\n\n<i>Daily stats will be posted at the scheduled time.</i>`, parseMode: "HTML", autoDeleteSeconds: 30 }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Failed to set auto stats.", parseMode: "HTML" }];
+    }
+  }
+  if (command === "remautostats" || command === "removeautostats") {
+    try {
+      const chatId = ctx.chat.id.toString();
+      const settings = await loadGeneralSettingsByChatId(chatId);
+      (settings as any).autoStatsEnabled = false;
+      await saveGeneralSettingsByChatId(chatId, settings);
+      return [{ type: "send_message", text: "✅ <b>Auto Stats Disabled</b>\n\nAutomatic stats posting has been turned off.", parseMode: "HTML", autoDeleteSeconds: 30 }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Failed to remove auto stats.", parseMode: "HTML" }];
+    }
+  }
+  if (command === "statsstatus") {
+    try {
+      const chatId = ctx.chat.id.toString();
+      const settings = await loadGeneralSettingsByChatId(chatId);
+      const enabled = (settings as any).autoStatsEnabled ?? false;
+      const time = (settings as any).autoStatsTime ?? "Not set";
+      const status = enabled ? "✅ Enabled" : "❌ Disabled";
+      return [{ type: "send_message", text: `ℹ️ <b>Stats Status</b>\n\n• Auto Stats: ${status}\n• Schedule: ${time}`, parseMode: "HTML", autoDeleteSeconds: 30 }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Failed to load stats status.", parseMode: "HTML" }];
+    }
+  }
+
+  // ============================================
+  // ADDITIONAL WORD FILTER COMMANDS
+  // ============================================
+  if (command === "panelpv" || command === "privatepanel") {
+    return [{ type: "send_message", text: "🔐 <b>Private Panel</b>\n\n<i>Access the Mini App to manage filters privately.</i>", parseMode: "HTML", autoDeleteSeconds: 30 }];
+  }
+  if (command === "cleanfilterlist") {
+    return handleCleanFilters(ctx);
+  }
+
+  // Unknown command - return feedback instead of silently failing
+  return [{
+    type: "send_message",
+    text: `❓ <b>Unknown Command</b>\n\nThe command <code>!${command}</code> is not recognized.\n\n<i>Use </i><code>!settings</code><i> to view all available settings, or check the help menu for a full command list.</i>`,
+    parseMode: "HTML",
+    autoDeleteSeconds: 15
+  }];
 }
 
 export const textCommandsHandler: UpdateHandler = {
