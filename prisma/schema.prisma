@@ -548,6 +548,7 @@ model UserPanelSettings {
   groupId        String
   telegramUserId String
   nickname       String?  // Optional nickname for this user
+  bio            String?  // Optional bio/description for this user
   lockOverrides  Json?    // Map of lockKey -> state ('default' | 'open' | 'locked')
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt

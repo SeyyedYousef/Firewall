@@ -34,13 +34,42 @@ import {
 import {
   getUserPanelSettings,
   setUserNickname,
+  setUserBio,
 } from "../../../server/db/userPanelRepository.js";
 import {
   listMembershipEventsSince,
 } from "../../../server/db/stateRepository.js";
+import Parser from "rss-parser";
+import sharp from "sharp";
 
 const COMMAND_PREFIX = /^[!.]/;
 const databaseAvailable = Boolean(process.env.DATABASE_URL);
+
+// Font Maps for !Font command
+const FONT_MAPS: Record<string, string> = {
+  monospace: "𝚊𝚋𝚌𝚍𝚎𝚏𝚐𝚑𝚒𝚓𝚔𝚕𝚖𝚗𝚘𝚙𝚚𝚛𝚜𝚝𝚞𝚟𝚠𝚡𝚢𝚣𝙰𝙱𝙲𝙳𝙴𝙵𝙶𝙷𝙸𝙹𝙺𝙻𝙼𝙽𝙾𝙿𝚚𝚁𝚂𝚃𝚄𝚅𝚆𝚇𝚈𝚉𝟶𝟷𝟸𝟹𝟺𝟻𝟼𝟽𝟾𝟿",
+  bold: "𝐚𝐛𝐜𝐝𝐞𝐟𝐠𝐡𝐢𝐣𝐤𝐥𝐦𝐧𝐨𝐩𝐪𝐫𝐬𝐭𝐮𝐯𝐰𝐱𝐲𝐳𝐀𝐁𝐂𝐃𝐄𝐅𝐆𝐇𝐈𝐉𝐊𝐋𝐌𝐍𝐎𝐏𝐐𝐑𝐒𝐓𝐔𝐕𝐖𝐗𝐘𝐙𝟎𝟏𝟐𝟑𝟒𝟓𝟔𝟕𝟖𝟗",
+  italic: "𝘢𝘣𝘤𝘥𝘦𝘧𝘨𝘩𝘪𝘫𝘬𝘭𝘮𝘯𝘰𝘱𝘲𝘳𝘴𝘵𝘶𝘷𝘸𝘹𝘺𝘻𝘈𝘉𝘊𝘋𝘌𝘍𝘎𝘏𝘐𝘑𝘒𝘓𝘔𝘕𝘖𝘗𝘘𝘙𝘚𝘛𝘜𝘝𝘞𝘟𝘠𝘡0123456789",
+  script: "𝓪𝓫𝓬𝓭𝓮𝓯𝓰𝓱𝓲𝓳𝓴𝓵𝓶𝓷𝓸𝓹𝓺𝓻𝓼𝓽𝓾𝓿𝔀𝔁𝔂𝔃𝓐𝓑𝓒𝓓𝓔𝓕𝓖𝓗𝓘𝓙𝓚𝓛𝓜𝓝𝓞𝓟𝓠𝓡𝓢𝓣𝓤𝓥𝓦𝓧𝓨𝓩0123456789",
+  bubbles: "ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩⒶⒷⒸⒹⒺⒻⒼⒽⒾⒿⓀⓁⓂⓃⓄⓅⓆⓇⓈⓉⓊⓋⓌⓍⓎⓏ0①②③④⑤⑥⑦⑧⑨"
+};
+const NORMAL_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+function convertToFont(text: string, style: string): string {
+  const target = FONT_MAPS[style];
+  if (!target) return text;
+
+  // Spread to handle surrogate pairs correctly
+  const targetChars = [...target];
+
+  return text.split('').map(char => {
+    const index = NORMAL_CHARS.indexOf(char);
+    if (index !== -1 && index < targetChars.length) {
+      return targetChars[index];
+    }
+    return char;
+  }).join('');
+}
 
 // Command response messages
 
@@ -3238,6 +3267,31 @@ async function processCommand(
     return [{ type: "send_message", text: `🕐 <b>Current Time</b>\n\n📅 ${dateStr}\n⏰ ${timeStr}`, parseMode: "HTML", autoDeleteSeconds: 30 }];
   }
 
+  // Module-level history tracker to prevent immediate repetition
+  const commandHistory: Record<string, { joke?: number; fortune?: number; poem?: number }> = {};
+
+  function getNonRepeatingIndex(chatId: string, type: "joke" | "fortune" | "poem", max: number): number {
+    if (!commandHistory[chatId]) {
+      commandHistory[chatId] = {};
+    }
+
+    const lastIndex = commandHistory[chatId][type];
+    let newIndex = Math.floor(Math.random() * max);
+
+    // If we picked the same index as last time, try again (simple retry)
+    if (newIndex === lastIndex && max > 1) {
+      newIndex = Math.floor(Math.random() * max);
+    }
+
+    // If still same (rare but possible), just rotate it by 1
+    if (newIndex === lastIndex && max > 1) {
+      newIndex = (newIndex + 1) % max;
+    }
+
+    commandHistory[chatId][type] = newIndex;
+    return newIndex;
+  }
+
   // Echo - Repeat a message
   if (command === "echo") {
     if (!rawArgs) {
@@ -3247,17 +3301,43 @@ async function processCommand(
   }
 
   // News - Display news headlines
+  // Font - Convert text to stylish fonts
+  if (command === "font") {
+    if (!rawArgs) {
+      return [{ type: "send_message", text: "🎨 Usage: <code>!Font &lt;text&gt;</code>\nExample: <code>!Font Hello</code>", parseMode: "HTML" }];
+    }
+
+    let text = `🎨 <b>Stylish Fonts</b>\n\n`;
+    text += `<code>${convertToFont(rawArgs, 'monospace')}</code>\n\n`;
+    text += `<code>${convertToFont(rawArgs, 'bold')}</code>\n\n`;
+    text += `<code>${convertToFont(rawArgs, 'italic')}</code>\n\n`;
+    text += `<code>${convertToFont(rawArgs, 'script')}</code>\n\n`;
+    text += `<code>${convertToFont(rawArgs, 'bubbles')}</code>`;
+
+    return [{ type: "send_message", text, parseMode: "HTML", autoDeleteSeconds: 120 }];
+  }
+
+  // News - Display news headlines from BBC
   if (command === "news") {
     try {
-      const newsItems = [
-        "📌 Use reliable news sources for accurate information",
-        "📌 Check multiple sources before sharing news",
-        "📌 Be aware of misinformation online",
-      ];
-      const text = `📰 <b>News Tips</b>\n\n${newsItems.join("\n")}\n\n<i>For real-time news, follow official news channels.</i>`;
-      return [{ type: "send_message", text, parseMode: "HTML", autoDeleteSeconds: 60 }];
+      const parser = new Parser();
+      // Fetch BBC World News
+      const feed = await parser.parseURL("http://feeds.bbci.co.uk/news/world/rss.xml");
+      const items = feed.items.slice(0, 5);
+
+      let text = `📰 <b>Latest World News (BBC)</b>\n\n`;
+      items.forEach((item) => {
+        const title = item.title?.replace(/<[^>]+>/g, '') || "No Title";
+        const link = item.link || "#";
+        text += `🔹 <a href="${link}">${title}</a>\n\n`;
+      });
+
+      text += `<i>Updated: ${new Date().toLocaleTimeString()}</i>`;
+
+      return [{ type: "send_message", text, parseMode: "HTML", autoDeleteSeconds: 300 }];
     } catch (error) {
-      return [{ type: "send_message", text: "❌ Failed to fetch news.", parseMode: "HTML" }];
+      logger.error("Failed to fetch news", { error });
+      return [{ type: "send_message", text: "❌ Failed to fetch news. Please try again later.", parseMode: "HTML" }];
     }
   }
 
@@ -3272,20 +3352,65 @@ async function processCommand(
       "⭐ Your kindness will return to you tenfold.",
       "🎯 Focus on your goals, success is near.",
       "💎 Hidden talents will emerge when you least expect.",
+      "🦁 Be brave, for fortune favors the bold.",
+      "🌱 Small steps every day lead to big results.",
+      "🕊️ Peace comes from within. Do not seek it without.",
+      "⚓ You are stronger than you think. Hold fast.",
+      "🚀 The sky is not the limit, it's just the beginning.",
+      "🎨 Your creativity is your greatest asset today.",
+      "🤝 A friend in need is a friend indeed. Reach out.",
+      "🗝️ The key to success is in your hands.",
+      "💡 An idea will strike you today that could change everything.",
+      "🌊 Go with the flow, let life take you to new places.",
+      "🏰 Build your dreams on solid ground.",
+      "🎪 Life is a circus, enjoy the show!",
+      "🌺 Happiness blooms from within.",
+      "🎁 The present moment is a gift.",
+      "🛤️ Your path is unique. Embrace the journey.",
+      "🏔️ The view is best from the top of the climb.",
+      "🎭 Be yourself, everyone else is already taken."
     ];
-    const fortune = fortunes[Math.floor(Math.random() * fortunes.length)];
+    const index = getNonRepeatingIndex(ctx.chat.id.toString(), "fortune", fortunes.length);
+    const fortune = fortunes[index];
     return [{ type: "send_message", text: `🔮 <b>Your Fortune</b>\n\n${fortune}`, parseMode: "HTML", autoDeleteSeconds: 60 }];
   }
 
   // Bio - View user bio
   if (command === "bio") {
     const targetUserId = getReplyUserId(ctx) || ctx.message?.from?.id;
-    return [{ type: "send_message", text: `📝 <b>User Bio</b>\n\n<i>Bio feature coming soon. Use the Mini App to view full profiles.</i>`, parseMode: "HTML", autoDeleteSeconds: 30 }];
+    if (!targetUserId) {
+      return [{ type: "send_message", text: RESPONSES.replyRequired, parseMode: "HTML" }];
+    }
+    try {
+      const chatId = ctx.chat.id.toString();
+      const settings = await getUserPanelSettings(chatId, targetUserId.toString());
+      if (settings.bio) {
+        return [{ type: "send_message", text: `📝 <b>User Bio</b>\n\n${settings.bio}`, parseMode: "HTML", autoDeleteSeconds: 60 }];
+      }
+      return [{ type: "send_message", text: `📝 <b>User Bio</b>\n\n<i>No bio set for this user.</i>`, parseMode: "HTML", autoDeleteSeconds: 30 }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Failed to load bio.", parseMode: "HTML" }];
+    }
   }
 
   // SetBio - Set user bio
   if (command === "setbio") {
-    return [{ type: "send_message", text: `📝 <b>Set Bio</b>\n\n<i>To set your bio, use the Mini App profile settings.</i>`, parseMode: "HTML", autoDeleteSeconds: 30 }];
+    const targetUserId = getReplyUserId(ctx);
+    const userIdToSet = targetUserId || ctx.message?.from?.id;
+
+    if (!userIdToSet) return [];
+
+    if (!rawArgs) {
+      return [{ type: "send_message", text: "📝 Usage: <code>!SetBio &lt;text&gt;</code>", parseMode: "HTML" }];
+    }
+
+    try {
+      const chatId = ctx.chat.id.toString();
+      await setUserBio(chatId, userIdToSet.toString(), rawArgs);
+      return [{ type: "send_message", text: `📝 <b>Bio Updated</b>\n\n${rawArgs}`, parseMode: "HTML", autoDeleteSeconds: 30 }];
+    } catch (error) {
+      return [{ type: "send_message", text: "❌ Failed to set bio.", parseMode: "HTML" }];
+    }
   }
 
   // Calendar/Date - Show current date
@@ -3295,9 +3420,42 @@ async function processCommand(
     return [{ type: "send_message", text: `📅 <b>Today's Date</b>\n\n🌍 Gregorian: ${gregorian}`, parseMode: "HTML", autoDeleteSeconds: 30 }];
   }
 
-  // Sticker - Create sticker (placeholder)
+  // Sticker - Create sticker
   if (command === "sticker" || command === "makesticker") {
-    return [{ type: "send_message", text: "🎨 <b>Sticker Maker</b>\n\n<i>Reply to an image to convert it to a sticker.\nThis feature requires additional setup.</i>", parseMode: "HTML", autoDeleteSeconds: 30 }];
+    const message = ctx.message as any;
+    const replyMessage = message.reply_to_message;
+
+    if (!replyMessage || (!replyMessage.photo && !replyMessage.document)) {
+      return [{ type: "send_message", text: "🎨 <b>Sticker Maker</b>\n\n<i>Reply to an image to convert it to a sticker.</i>", parseMode: "HTML", autoDeleteSeconds: 30 }];
+    }
+
+    try {
+      let fileId;
+      if (replyMessage.photo) {
+        // Get the largest photo
+        fileId = replyMessage.photo[replyMessage.photo.length - 1].file_id;
+      } else if (replyMessage.document && replyMessage.document.mime_type?.startsWith("image/")) {
+        fileId = replyMessage.document.file_id;
+      } else {
+        return [{ type: "send_message", text: "❌ Please reply to a valid image.", parseMode: "HTML" }];
+      }
+
+      const fileLink = await ctx.telegram.getFileLink(fileId);
+      const response = await fetch(fileLink.href);
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      const stickerBuffer = await sharp(buffer)
+        .resize({ width: 512, height: 512, fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .webp()
+        .toBuffer();
+
+      await ctx.replyWithSticker({ source: stickerBuffer });
+      return [];
+    } catch (error) {
+      logger.error("Failed to create sticker", { error });
+      return [{ type: "send_message", text: "❌ Failed to create sticker. Ensure the image is valid.", parseMode: "HTML" }];
+    }
   }
 
   // Azan/Prayer Times - Using Aladhan API
@@ -3333,20 +3491,62 @@ async function processCommand(
       "Why don't eggs tell jokes? They'd crack each other up! 🥚",
       "What do you call a bear with no teeth? A gummy bear! 🐻",
       "Why did the math book look so sad? Because it had too many problems! 📚",
+      "What did the janitor say when he jumped out of the closet? Supplies! 🎉",
+      "Why did the coffee file a police report? It got mugged. ☕",
+      "What do you call a factory that makes okay products? A satisfactory. 🏭",
+      "Why don't skeletons fight each other? They don't have the guts. 💀",
+      "Correction: What do you call a fish wearing a bowtie? Sofishticated. 🐟",
+      "How does a penguin build its house? Igloos it together. 🐧",
+      "Why did the bicycle fall over? Because it was two-tired. 🚲",
+      "What do you call cheese that isn't yours? Nacho cheese. 🧀",
+      "Why couldn't the leopard play hide and seek? Because he was always spotted. 🐆",
+      "What is a computer's favorite snack? Computer chips. 💻",
+      "Why did the golfer bring two pairs of pants? In case he got a hole in one. ⛳",
+      "What do you call a pile of cats? A meowtain. 🐱",
+      "Why do bees have sticky hair? Because they use a honeycomb. 🐝",
+      "What do you call a sleeping bull? A bulldozer. 🐂",
+      "How do you make a tissue dance? You put a little boogie in it. 🤧",
+      "Why was the math book sad? It had too many problems. 📘",
+      "What do you call a belt made of watches? A waist of time. ⌚",
+      "Why did the tomato turn red? Because it saw the salad dressing. 🍅",
+      "What do you call a pony with a cough? A little horse. 🐴",
+      "What did the grape do when he got stepped on? Nothing but let out a little wine. 🍇",
+      "Why can't you give Elsa a balloon? Because she will let it go. 🎈",
+      "What do you call a magic dog? A labracadabrador. 🐕",
+      "Where do fruits go on vacation? Pear-is! 🍐",
+      "What did 0 say to 8? Nice belt! 🎱"
     ];
-    const joke = jokes[Math.floor(Math.random() * jokes.length)];
+    const index = getNonRepeatingIndex(ctx.chat.id.toString(), "joke", jokes.length);
+    const joke = jokes[index];
     return [{ type: "send_message", text: `😂 <b>Random Joke</b>\n\n${joke}`, parseMode: "HTML", autoDeleteSeconds: 60 }];
   }
 
-  // Poetry - Random poem
+  // Poetry - Random poem/quote
   if (command === "poetry" || command === "poem") {
     const poems = [
       "\"The only way to do great work is to love what you do.\" - Steve Jobs",
       "\"In three words I can sum up everything I've learned about life: it goes on.\" - Robert Frost",
       "\"To be yourself in a world that is constantly trying to make you something else is the greatest accomplishment.\" - Emerson",
       "\"The best time to plant a tree was 20 years ago. The second best time is now.\" - Chinese Proverb",
+      "\"Believe you can and you're halfway there.\" - Theodore Roosevelt",
+      "\"It always seems impossible until it's done.\" - Nelson Mandela",
+      "\"Happiness depends upon ourselves.\" - Aristotle",
+      "\"Turn your wounds into wisdom.\" - Oprah Winfrey",
+      "\"Change the world by being yourself.\" - Amy Poehler",
+      "\"Every moment is a fresh beginning.\" - T.S. Eliot",
+      "\"Never regret anything that made you smile.\" - Mark Twain",
+      "\"Everything you can imagine is real.\" - Pablo Picasso",
+      "\"Simplicity is the ultimate sophistication.\" - Leonardo da Vinci",
+      "\"Whatever you look for, you will find.\" - Unknown",
+      "\"Do what you can, with what you have, where you are.\" - Theodore Roosevelt",
+      "\"Life is 10% what happens to us and 90% how we react to it.\" - Charles R. Swindoll",
+      "\"Your time is limited, so don't waste it living someone else's life.\" - Steve Jobs",
+      "\"Be the change that you wish to see in the world.\" - Mahatma Gandhi",
+      "\"If you tell the truth, you don't have to remember anything.\" - Mark Twain",
+      "\"A friend to all is a friend to none.\" - Aristotle"
     ];
-    const poem = poems[Math.floor(Math.random() * poems.length)];
+    const index = getNonRepeatingIndex(ctx.chat.id.toString(), "poem", poems.length);
+    const poem = poems[index];
     return [{ type: "send_message", text: `📜 <b>Quote of the Day</b>\n\n<i>${poem}</i>`, parseMode: "HTML", autoDeleteSeconds: 60 }];
   }
 

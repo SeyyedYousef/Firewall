@@ -853,11 +853,11 @@ const WORDFILTER_HELP_DATA: WordFilterHelpData[] = [
     summary: "Filter words one at a time with optional punishments",
     description: "Block specific words in the group. When a filtered word is sent, the bot deletes the message. Optionally, set a punishment for the sender (warn, ban, or mute).",
     commands: [
-      { label: "AddFilter", command: "!AddFilter <word>" },
-      { label: "FilterWarn", command: "!FilterWarn <word>" },
-      { label: "FilterBan", command: "!FilterBan <word>" },
-      { label: "FilterMute", command: "!FilterMute <word>" },
-      { label: "RemFilter", command: "!RemFilter <word>" },
+      { label: "AddFilter", command: "!AddFilter &lt;word&gt;" },
+      { label: "FilterWarn", command: "!FilterWarn &lt;word&gt;" },
+      { label: "FilterBan", command: "!FilterBan &lt;word&gt;" },
+      { label: "FilterMute", command: "!FilterMute &lt;word&gt;" },
+      { label: "RemFilter", command: "!RemFilter &lt;word&gt;" },
       { label: "FilterList", command: "!FilterList" },
       { label: "CleanFilterList", command: "!CleanFilterList" },
     ],
@@ -959,7 +959,7 @@ const STATS_HELP_DATA: StatsHelpData[] = [
     summary: "View statistics for a specific number of top members",
     description: "Use this command to view statistics for a custom number of top users. Specify the number of members you want to see in the statistics.\n\nFor example, 'Stats 30 mem' will show the top 30 most active members.",
     commands: [
-      { label: "Stats N mem", command: "!Stats <N> mem" },
+      { label: "Stats N mem", command: "!Stats &lt;N&gt; mem" },
     ],
     examples: [
       { description: "View top 30 members", command: "!Stats 30 mem" },
@@ -1063,8 +1063,8 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     summary: "Convert text to various stylish and decorative fonts",
     description: "Using this command, you can convert any text into beautiful and stylish fonts. The bot will display your text in multiple font variations that you can copy and use anywhere.",
     commands: [
-      { label: "Font", command: "!Font <text>" },
-      { label: "Alias", command: ".Font <text>" },
+      { label: "Font", command: "!Font &lt;text&gt;" },
+      { label: "Alias", command: ".Font &lt;text&gt;" },
     ],
     examples: [
       { description: "Convert 'Hello' to stylish fonts", command: "!Font Hello" },
@@ -1091,8 +1091,8 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     summary: "Echo/repeat a message through the bot",
     description: "The bot will repeat whatever text you send after the command. Useful for making announcements or repeating important messages.",
     commands: [
-      { label: "Echo", command: "!Echo <text>" },
-      { label: "Alias", command: ".Echo <text>" },
+      { label: "Echo", command: "!Echo &lt;text&gt;" },
+      { label: "Alias", command: ".Echo &lt;text&gt;" },
     ],
     examples: [
       { description: "Echo a message", command: "!Echo Welcome everyone!" },
@@ -1134,7 +1134,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     description: "View or set a custom biography for yourself or view another user's bio. Reply to a user's message to see their bio.",
     commands: [
       { label: "Bio", command: "!Bio" },
-      { label: "SetBio", command: "!SetBio <text>" },
+      { label: "SetBio", command: "!SetBio &lt;text&gt;" },
     ],
     examples: [
       { description: "View your bio", command: "!Bio" },
@@ -1218,8 +1218,8 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     summary: "Translate text between languages",
     description: "Translate text from one language to another. Specify the target language code followed by the text to translate, or reply to a message to translate it.",
     commands: [
-      { label: "Translate", command: "!Translate <lang> <text>" },
-      { label: "Alias", command: "!Tr <lang> <text>" },
+      { label: "Translate", command: "!Translate &lt;lang&gt; &lt;text&gt;" },
+      { label: "Alias", command: "!Tr &lt;lang&gt; &lt;text&gt;" },
     ],
     examples: [
       { description: "Translate to English", command: "!Translate en سلام" },
@@ -1318,7 +1318,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     summary: "Set or view user nicknames",
     description: "Assign a custom nickname to a user that will be displayed by the bot. Reply to a user to set their nickname or view existing nicknames.",
     commands: [
-      { label: "SetNick", command: "!SetNick <name>" },
+      { label: "SetNick", command: "!SetNick &lt;name&gt;" },
       { label: "Nick", command: "!Nick" },
       { label: "RemNick", command: "!RemNick" },
     ],
@@ -1348,8 +1348,8 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     summary: "Get the definition/meaning of a word",
     description: "Look up the dictionary definition of any word. Supports multiple languages and provides detailed explanations with examples.",
     commands: [
-      { label: "Meaning", command: "!Meaning <word>" },
-      { label: "Define", command: "!Define <word>" },
+      { label: "Meaning", command: "!Meaning &lt;word&gt;" },
+      { label: "Define", command: "!Define &lt;word&gt;" },
     ],
     examples: [
       { description: "Get meaning of 'serendipity'", command: "!Meaning serendipity" },
@@ -1363,7 +1363,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     description: "View the current group rules, or admins can set/update the rules. The rules message will be pinned or sent as needed.",
     commands: [
       { label: "Rules", command: "!Rules" },
-      { label: "SetRules", command: "!SetRules <text>" },
+      { label: "SetRules", command: "!SetRules &lt;text&gt;" },
     ],
     examples: [
       { description: "View group rules", command: "!Rules" },
@@ -1404,8 +1404,8 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
     summary: "Get weather information for a city",
     description: "Display current weather conditions and forecast for any city. Shows temperature, humidity, wind speed, and weather description.",
     commands: [
-      { label: "Weather", command: "!Weather <city>" },
-      { label: "Alias", command: ".Weather <city>" },
+      { label: "Weather", command: "!Weather &lt;city&gt;" },
+      { label: "Alias", command: ".Weather &lt;city&gt;" },
     ],
     examples: [
       { description: "Get weather for Tehran", command: "!Weather Tehran" },
@@ -1438,8 +1438,8 @@ const MANDATORY_ADD_HELP_DATA: HelpItemConfig[] = [
     commands: [
       { label: "Enable", command: "!ForceAdd on" },
       { label: "Disable", command: "!ForceAdd off" },
-      { label: "SetLimit", command: "!SetForceAdd <count>" },
-      { label: "SetTime", command: "!ForceAddTime <min>" },
+      { label: "SetLimit", command: "!SetForceAdd &lt;count&gt;" },
+      { label: "SetTime", command: "!ForceAddTime &lt;min&gt;" },
     ],
     examples: [
       { description: "Require 3 invites", command: "!SetForceAdd 3" },
@@ -1496,7 +1496,7 @@ const MANDATORY_MEMBERSHIP_HELP_DATA: HelpItemConfig[] = [
     summary: "Customize the warning message",
     description: "Set the message shown to users who haven't joined the channel.",
     commands: [
-      { label: "SetMessage", command: "!SetForceJoinText <text>" },
+      { label: "SetMessage", command: "!SetForceJoinText &lt;text&gt;" },
       { label: "DelMessage", command: "!DelForceJoinText" }
     ],
     examples: [

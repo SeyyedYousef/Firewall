@@ -15,6 +15,7 @@ export type UserPanelSettingsRecord = {
     groupId: string;
     telegramUserId: string;
     nickname: string | null;
+    bio: string | null;
     lockOverrides: UserLockOverrides;
 };
 
@@ -22,6 +23,7 @@ const DEFAULT_SETTINGS: UserPanelSettingsRecord = {
     groupId: "",
     telegramUserId: "",
     nickname: null,
+    bio: null,
     lockOverrides: {},
 };
 
@@ -63,6 +65,7 @@ export async function getUserPanelSettings(
             groupId: chatId,
             telegramUserId,
             nickname: settings.nickname,
+            bio: (settings as any).bio ?? null,
             lockOverrides: (settings.lockOverrides as UserLockOverrides) ?? {},
         };
     } catch (error) {
@@ -105,10 +108,12 @@ export async function saveUserPanelSettings(
                 groupId: group.id,
                 telegramUserId,
                 nickname: settings.nickname ?? null,
+                bio: settings.bio ?? null,
                 lockOverrides: settings.lockOverrides ?? {},
             },
             update: {
                 nickname: settings.nickname,
+                bio: settings.bio,
                 lockOverrides: settings.lockOverrides ?? {},
                 updatedAt: new Date(),
             },
@@ -166,6 +171,21 @@ export async function setUserNickname(
     await saveUserPanelSettings(chatId, telegramUserId, {
         ...settings,
         nickname,
+    });
+}
+
+/**
+ * Set user bio
+ */
+export async function setUserBio(
+    chatId: string,
+    telegramUserId: string,
+    bio: string | null
+): Promise<void> {
+    const settings = await getUserPanelSettings(chatId, telegramUserId);
+    await saveUserPanelSettings(chatId, telegramUserId, {
+        ...settings,
+        bio,
     });
 }
 
