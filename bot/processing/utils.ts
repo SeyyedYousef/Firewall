@@ -570,20 +570,59 @@ async function sendMessage(ctx: GroupChatContext, action: Extract<ProcessingActi
     baseOptions.message_thread_id = threadId;
   }
 
-  // Optionally attach promo button as inline keyboard when enabled in settings.
-  // PREMIUM FEATURE: Promo button is only available for Premium groups
+  // Handle inlineKeyboard from action (for UserPanel and similar features)
+  if (action.inlineKeyboard && action.inlineKeyboard.length > 0) {
+    (baseOptions as any).reply_markup = {
+      inline_keyboard: action.inlineKeyboard,
+    };
+  }
+
+  // Optionally attach promo button as inline keyboard.
+  // LOGIC:
+  // - Premium groups: Can customize/disable via settings (hasPromoButton(chatId) returns true)
+  // - Free groups: Mandatory enabled with default text/url (hasPromoButton(chatId) returns false)
   const chatId = ctx.chat.id.toString();
-  const shouldAttachPromo = action.attachPromoButton !== false && hasPromoButton(chatId);
-  if (databaseAvailable && shouldAttachPromo) {
+  const shouldCheckPromo = action.attachPromoButton !== false;
+
+  if (databaseAvailable && shouldCheckPromo) {
     try {
-      const { loadCustomTextSettingsByChatId } = await import("../../server/db/groupSettingsRepository.js");
-      const customTexts = await loadCustomTextSettingsByChatId(chatId);
-      const enabled = customTexts.promoButtonEnabled;
-      const text = (customTexts.promoButtonText ?? "").trim();
-      const url = (customTexts.promoButtonUrl ?? "").trim();
+      const { loadCustomTextSettingsByChatId, DEFAULT_CUSTOM_TEXTS } = await import("../../server/db/groupSettingsRepository.js");
+
+      // Check if group has the capability to customize the promo button (Premium feature)
+      // hasPromoButton() checks if the "promoButton" feature flag is enabled for this group
+      const canCustomizePromo = hasPromoButton(chatId);
+
+      let enabled = true;
+      let text = DEFAULT_CUSTOM_TEXTS.promoButtonText;
+      let url = DEFAULT_CUSTOM_TEXTS.promoButtonUrl;
+
+      if (canCustomizePromo) {
+        // Premium group: Respect their settings
+        const customTexts = await loadCustomTextSettingsByChatId(chatId);
+        enabled = customTexts.promoButtonEnabled;
+        const customText = (customTexts.promoButtonText ?? "").trim();
+        const customUrl = (customTexts.promoButtonUrl ?? "").trim();
+
+        if (customText) text = customText;
+        if (customUrl) url = customUrl;
+      }
+
       if (enabled && text && url) {
+        // If an inline keyboard is already provided by the action (e.g. for UserPanel),
+        // we should append the promo button to it or start a new row.
+        // However, the current logic overrides reply_markup. 
+        // We should merge if possible, or prioritize the action's keyboard if it's "functional" 
+        // but the requirement says "under all messages".
+
+        // Let's perform a merge strategy
+        const existingMarkup = (baseOptions as any).reply_markup as { inline_keyboard?: any[][] } | undefined;
+        let keyboard = existingMarkup?.inline_keyboard ? [...existingMarkup.inline_keyboard] : [];
+
+        // Add promo button as a new row
+        keyboard.push([{ text, url }]);
+
         (baseOptions as any).reply_markup = {
-          inline_keyboard: [[{ text, url }]],
+          inline_keyboard: keyboard,
         };
       }
     } catch (error) {
@@ -594,12 +633,7 @@ async function sendMessage(ctx: GroupChatContext, action: Extract<ProcessingActi
     }
   }
 
-  // Handle inlineKeyboard from action (for UserPanel and similar features)
-  if (action.inlineKeyboard && action.inlineKeyboard.length > 0) {
-    (baseOptions as any).reply_markup = {
-      inline_keyboard: action.inlineKeyboard,
-    };
-  }
+
 
   try {
     const sent = await ctx.telegram.sendMessage(ctx.chat.id, action.text, baseOptions as any);

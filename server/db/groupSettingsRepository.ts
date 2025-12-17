@@ -696,7 +696,7 @@ export async function saveMandatoryMembershipSettings(
   return normalized;
 }
 
-const DEFAULT_CUSTOM_TEXTS: CustomTextSettingsRecord = {
+export const DEFAULT_CUSTOM_TEXTS: CustomTextSettingsRecord = {
   welcomeMessage:
     "👋 <b>Welcome, {user}!</b>\n\n" +
     "Welcome to <b>{group}</b>. We're glad to have you here!\n\n",
@@ -727,7 +727,7 @@ const DEFAULT_CUSTOM_TEXTS: CustomTextSettingsRecord = {
     "<i>Once you've joined, you can start chatting!</i>",
   promoButtonEnabled: true,
   promoButtonText: "🛡 Protected by Firewall Bot",
-  promoButtonUrl: "https://t.me/Firewall_Robot",
+  promoButtonUrl: "https://t.me/FirewallmainBot",
 };
 
 function sanitizeUrl(value: unknown, fallback: string): string {

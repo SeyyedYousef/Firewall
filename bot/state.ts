@@ -2562,11 +2562,12 @@ export function upgradeGroupToPremium(chatId: string): GroupRecord | null {
     removeUserFreeGroup(group.ownerId, chatId);
   }
 
-  // Update the group to premium
+  // Update the group to premium with all premium features enabled
   return upsertGroup({
     chatId,
     subscriptionType: "premium",
     adsEnabled: false,
+    premiumFeatures: { ...DEFAULT_PREMIUM_FEATURES },
   } as any);
 }
 

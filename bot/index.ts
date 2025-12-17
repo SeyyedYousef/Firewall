@@ -1875,7 +1875,7 @@ function buildStartKeyboard(): InlineKeyboard {
         : Markup.button.callback(label("start_channel", content.buttons.channel), actionId("channel"))
     ],
     [
-      Markup.button.callback(label("start_commands", content.buttons.commands), actionId("commands")),
+      Markup.button.callback("❓ Help", "fw_inline_help:global"),
       Markup.button.callback(label("start_info", content.buttons.info), actionId("info"))
     ]
   ]);
@@ -2868,7 +2868,7 @@ const INLINE_LOCK_TOGGLE_REGEX = /^fw_inline_lock:(-?\d+):(\d+):([a-z0-9_]+)$/;
 const INLINE_LISTS_REGEX = /^fw_inline_lists:(-?\d+)$/;
 const INLINE_LIST_DETAIL_REGEX = /^fw_inline_list:(-?\d+):([a-z0-9_]+)$/;
 const INLINE_LIST_ADD_REGEX = /^fw_inline_add:(-?\d+):([a-z0-9_]+)$/;
-const INLINE_HELP_REGEX = /^fw_inline_help:(-?\d+)$/;
+const INLINE_HELP_REGEX = /^fw_inline_help:(.+)$/;
 const INLINE_ADVANCED_REGEX = /^fw_inline_advanced:(-?\d+)$/;
 
 // UserPanel callback patterns
@@ -2942,7 +2942,7 @@ function buildInlineGroupMenuKeyboard(chatId: string): InlineKeyboard {
       Markup.button.callback("📋 Lists", listsCallback),
     ],
     [
-      Markup.button.callback("❓ Help", helpCallback),
+      Markup.button.callback("⭐ Upgrade to Premium", `group_setup:premium:${chatId}`),
       Markup.button.callback("⚙️ Advanced", advancedCallback),
     ],
     [Markup.button.callback("◀️ Back to Groups", INLINE_BACK_TO_GROUPS)],
@@ -2978,16 +2978,25 @@ function buildInlineHelpKeyboard(chatId: string): InlineKeyboard {
     rows.push(row);
   }
 
-  rows.push([Markup.button.callback("◀️ Back to Panel", `fw_inline_menu:${chatId}`)]);
+  rows.push([
+    chatId === 'global'
+      ? Markup.button.callback("◀️ Back to Main Menu", actionId("managementBack"))
+      : Markup.button.callback("◀️ Back to Panel", `fw_inline_menu:${chatId}`)
+  ]);
   return Markup.inlineKeyboard(rows);
 }
 
 async function showInlineHelp(ctx: Context, chatId: string): Promise<void> {
-  const groups = listGroups();
-  const group = groups.find((g) => g.chatId === chatId) ?? null;
-  const title = group?.title ?? chatId;
+  let title = chatId;
+  if (chatId !== 'global') {
+    const groups = listGroups();
+    const group = groups.find((g) => g.chatId === chatId) ?? null;
+    title = group?.title ?? chatId;
+  } else {
+    title = "General Help";
+  }
 
-  const message = `❓ <b>Help Center</b>\n\nGroup: ${title}\n\nSelect a topic to learn more:`;
+  const message = `❓ <b>Help Center</b>\n\nContext: ${title}\n\nSelect a topic to learn more:`;
   await replyOrEditRoot(ctx, message, buildInlineHelpKeyboard(chatId));
 }
 
@@ -7365,10 +7374,10 @@ bot.action(/^fw_help_section:(-?\d+):([a-z_]+)$/, async (ctx) => {
 });
 
 // Lock Management submenu handler (paginated list of locks)
-bot.action(/^fw_help_locks:(-?\d+):(\d+)$/, async (ctx) => {
+bot.action(/^fw_help_locks:(.+):(\d+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(/^fw_help_locks:(-?\d+):(\d+)$/);
+  const match = data.match(/^fw_help_locks:(.+):(\d+)$/);
   const chatId = match?.[1];
   const pageRaw = match?.[2];
   const page = pageRaw ? Number.parseInt(pageRaw, 10) || 1 : 1;
@@ -7378,10 +7387,10 @@ bot.action(/^fw_help_locks:(-?\d+):(\d+)$/, async (ctx) => {
 });
 
 // Individual lock detail handler
-bot.action(/^fw_help_lock:(-?\d+):([a-z_]+)$/, async (ctx) => {
+bot.action(/^fw_help_lock:(.+):([a-z_]+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(/^fw_help_lock:(-?\d+):([a-z_]+)$/);
+  const match = data.match(/^fw_help_lock:(.+):([a-z_]+)$/);
   const chatId = match?.[1];
   const lockId = match?.[2];
   if (!chatId || !lockId) return;
@@ -7390,10 +7399,10 @@ bot.action(/^fw_help_lock:(-?\d+):([a-z_]+)$/, async (ctx) => {
 });
 
 // User Penalties submenu handler
-bot.action(/^fw_help_penalties:(-?\d+)$/, async (ctx) => {
+bot.action(/^fw_help_penalties:(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(/^fw_help_penalties:(-?\d+)$/);
+  const match = data.match(/^fw_help_penalties:(.+)$/);
   const chatId = match?.[1];
   if (!chatId) return;
 
@@ -7401,10 +7410,10 @@ bot.action(/^fw_help_penalties:(-?\d+)$/, async (ctx) => {
 });
 
 // Individual penalty detail handler
-bot.action(/^fw_help_penalty:(-?\d+):([a-z_]+)$/, async (ctx) => {
+bot.action(/^fw_help_penalty:(.+):([a-z_]+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(/^fw_help_penalty:(-?\d+):([a-z_]+)$/);
+  const match = data.match(/^fw_help_penalty:(.+):([a-z_]+)$/);
   const chatId = match?.[1];
   const penaltyId = match?.[2];
   if (!chatId || !penaltyId) return;
@@ -7413,10 +7422,10 @@ bot.action(/^fw_help_penalty:(-?\d+):([a-z_]+)$/, async (ctx) => {
 });
 
 // Settings submenu handler
-bot.action(/^fw_help_settings:(-?\d+)$/, async (ctx) => {
+bot.action(/^fw_help_settings:(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(/^fw_help_settings:(-?\d+)$/);
+  const match = data.match(/^fw_help_settings:(.+)$/);
   const chatId = match?.[1];
   if (!chatId) return;
 
@@ -7424,10 +7433,10 @@ bot.action(/^fw_help_settings:(-?\d+)$/, async (ctx) => {
 });
 
 // Individual setting detail handler
-bot.action(/^fw_help_setting:(-?\d+):([a-z_]+)$/, async (ctx) => {
+bot.action(/^fw_help_setting:(.+):([a-z_]+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(/^fw_help_setting:(-?\d+):([a-z_]+)$/);
+  const match = data.match(/^fw_help_setting:(.+):([a-z_]+)$/);
   const chatId = match?.[1];
   const settingId = match?.[2];
   if (!chatId || !settingId) return;
@@ -7436,10 +7445,10 @@ bot.action(/^fw_help_setting:(-?\d+):([a-z_]+)$/, async (ctx) => {
 });
 
 // Promote & Demote submenu handler
-bot.action(/^fw_help_promote:(-?\d+)$/, async (ctx) => {
+bot.action(/^fw_help_promote:(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(/^fw_help_promote:(-?\d+)$/);
+  const match = data.match(/^fw_help_promote:(.+)$/);
   const chatId = match?.[1];
   if (!chatId) return;
 
@@ -7447,10 +7456,10 @@ bot.action(/^fw_help_promote:(-?\d+)$/, async (ctx) => {
 });
 
 // Individual rank detail handler
-bot.action(/^fw_help_rank:(-?\d+):([a-z_]+)$/, async (ctx) => {
+bot.action(/^fw_help_rank:(.+):([a-z_]+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(/^fw_help_rank:(-?\d+):([a-z_]+)$/);
+  const match = data.match(/^fw_help_rank:(.+):([a-z_]+)$/);
   const chatId = match?.[1];
   const rankId = match?.[2];
   if (!chatId || !rankId) return;
@@ -7459,10 +7468,10 @@ bot.action(/^fw_help_rank:(-?\d+):([a-z_]+)$/, async (ctx) => {
 });
 
 // Cleanup menu handler
-bot.action(/^fw_help_cleanup:(-?\d+)$/, async (ctx) => {
+bot.action(/^fw_help_cleanup:(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(/^fw_help_cleanup:(-?\d+)$/);
+  const match = data.match(/^fw_help_cleanup:(.+)$/);
   const chatId = match?.[1];
   if (!chatId) return;
 
@@ -7470,10 +7479,10 @@ bot.action(/^fw_help_cleanup:(-?\d+)$/, async (ctx) => {
 });
 
 // Individual cleanup item detail handler
-bot.action(/^fw_help_cleanup_item:(-?\d+):([a-z_]+)$/, async (ctx) => {
+bot.action(/^fw_help_cleanup_item:(.+):([a-z_]+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(/^fw_help_cleanup_item:(-?\d+):([a-z_]+)$/);
+  const match = data.match(/^fw_help_cleanup_item:(.+):([a-z_]+)$/);
   const chatId = match?.[1];
   const itemId = match?.[2];
   if (!chatId || !itemId) return;
@@ -7482,10 +7491,10 @@ bot.action(/^fw_help_cleanup_item:(-?\d+):([a-z_]+)$/, async (ctx) => {
 });
 
 // Word Filter menu handler
-bot.action(/^fw_help_wordfilter:(-?\d+)$/, async (ctx) => {
+bot.action(/^fw_help_wordfilter:(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(/^fw_help_wordfilter:(-?\d+)$/);
+  const match = data.match(/^fw_help_wordfilter:(.+)$/);
   const chatId = match?.[1];
   if (!chatId) return;
 
@@ -7493,10 +7502,10 @@ bot.action(/^fw_help_wordfilter:(-?\d+)$/, async (ctx) => {
 });
 
 // Individual word filter item detail handler
-bot.action(/^fw_help_wordfilter_item:(-?\d+):([a-z_]+)$/, async (ctx) => {
+bot.action(/^fw_help_wordfilter_item:(.+):([a-z_]+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(/^fw_help_wordfilter_item:(-?\d+):([a-z_]+)$/);
+  const match = data.match(/^fw_help_wordfilter_item:(.+):([a-z_]+)$/);
   const chatId = match?.[1];
   const itemId = match?.[2];
   if (!chatId || !itemId) return;
@@ -7505,10 +7514,10 @@ bot.action(/^fw_help_wordfilter_item:(-?\d+):([a-z_]+)$/, async (ctx) => {
 });
 
 // Activity Statistics menu handler
-bot.action(/^fw_help_stats:(-?\d+)$/, async (ctx) => {
+bot.action(/^fw_help_stats:(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(/^fw_help_stats:(-?\d+)$/);
+  const match = data.match(/^fw_help_stats:(.+)$/);
   const chatId = match?.[1];
   if (!chatId) return;
 
@@ -7516,10 +7525,10 @@ bot.action(/^fw_help_stats:(-?\d+)$/, async (ctx) => {
 });
 
 // Individual stats item detail handler
-bot.action(/^fw_help_stats_item:(-?\d+):([a-z_]+)$/, async (ctx) => {
+bot.action(/^fw_help_stats_item:(.+):([a-z_]+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(/^fw_help_stats_item:(-?\d+):([a-z_]+)$/);
+  const match = data.match(/^fw_help_stats_item:(.+):([a-z_]+)$/);
   const chatId = match?.[1];
   const itemId = match?.[2];
   if (!chatId || !itemId) return;
@@ -7619,10 +7628,10 @@ async function showHelpEntertainmentDetail(ctx: Context, chatId: string, itemId:
 }
 
 // Entertainment menu handler
-bot.action(/^fw_help_entertainment:(-?\d+)$/, async (ctx) => {
+bot.action(/^fw_help_entertainment:(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(/^fw_help_entertainment:(-?\d+)$/);
+  const match = data.match(/^fw_help_entertainment:(.+)$/);
   const chatId = match?.[1];
   if (!chatId) return;
 
@@ -7630,10 +7639,10 @@ bot.action(/^fw_help_entertainment:(-?\d+)$/, async (ctx) => {
 });
 
 // Individual entertainment item detail handler
-bot.action(/^fw_help_entertainment_item:(-?\d+):([a-z_]+)$/, async (ctx) => {
+bot.action(/^fw_help_entertainment_item:(.+):([a-z_]+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(/^fw_help_entertainment_item:(-?\d+):([a-z_]+)$/);
+  const match = data.match(/^fw_help_entertainment_item:(.+):([a-z_]+)$/);
   const chatId = match?.[1];
   const itemId = match?.[2];
   if (!chatId || !itemId) return;
@@ -7784,10 +7793,10 @@ async function showHelpMandatoryMembershipDetail(ctx: Context, chatId: string, i
 }
 
 // Mandatory Add menu handler
-bot.action(/^fw_help_mandatory_add:(-?\d+)$/, async (ctx) => {
+bot.action(/^fw_help_mandatory_add:(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(/^fw_help_mandatory_add:(-?\d+)$/);
+  const match = data.match(/^fw_help_mandatory_add:(.+)$/);
   const chatId = match?.[1];
   if (!chatId) return;
 
@@ -7795,10 +7804,10 @@ bot.action(/^fw_help_mandatory_add:(-?\d+)$/, async (ctx) => {
 });
 
 // Mandatory Add item detail handler
-bot.action(/^fw_help_mandatory_add_item:(-?\d+):([a-z_]+)$/, async (ctx) => {
+bot.action(/^fw_help_mandatory_add_item:(.+):([a-z_]+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(/^fw_help_mandatory_add_item:(-?\d+):([a-z_]+)$/);
+  const match = data.match(/^fw_help_mandatory_add_item:(.+):([a-z_]+)$/);
   const chatId = match?.[1];
   const itemId = match?.[2];
   if (!chatId || !itemId) return;
@@ -7807,10 +7816,10 @@ bot.action(/^fw_help_mandatory_add_item:(-?\d+):([a-z_]+)$/, async (ctx) => {
 });
 
 // Mandatory Membership menu handler
-bot.action(/^fw_help_mandatory_membership:(-?\d+)$/, async (ctx) => {
+bot.action(/^fw_help_mandatory_membership:(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(/^fw_help_mandatory_membership:(-?\d+)$/);
+  const match = data.match(/^fw_help_mandatory_membership:(.+)$/);
   const chatId = match?.[1];
   if (!chatId) return;
 
@@ -7818,10 +7827,10 @@ bot.action(/^fw_help_mandatory_membership:(-?\d+)$/, async (ctx) => {
 });
 
 // Mandatory Membership item detail handler
-bot.action(/^fw_help_mandatory_membership_item:(-?\d+):([a-z_]+)$/, async (ctx) => {
+bot.action(/^fw_help_mandatory_membership_item:(.+):([a-z_]+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(/^fw_help_mandatory_membership_item:(-?\d+):([a-z_]+)$/);
+  const match = data.match(/^fw_help_mandatory_membership_item:(.+):([a-z_]+)$/);
   const chatId = match?.[1];
   const itemId = match?.[2];
   if (!chatId || !itemId) return;
@@ -7830,10 +7839,10 @@ bot.action(/^fw_help_mandatory_membership_item:(-?\d+):([a-z_]+)$/, async (ctx) 
 });
 
 // Generic help section routing handler (Fix for missing handler)
-bot.action(/^fw_help_section:(-?\d+):([a-z_]+)$/, async (ctx) => {
+bot.action(/^fw_help_section:(.+):([a-z_]+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(/^fw_help_section:(-?\d+):([a-z_]+)$/);
+  const match = data.match(/^fw_help_section:(.+):([a-z_]+)$/);
   const chatId = match?.[1];
   const sectionId = match?.[2];
   if (!chatId || !sectionId) return;

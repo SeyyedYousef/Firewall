@@ -256,12 +256,12 @@ export function GroupGeneralSettingsPage() {
       setSettings((prev) =>
         prev
           ? {
-              ...prev,
-              autoWarning: {
-                ...prev.autoWarning,
-                ...patch,
-              },
-            }
+            ...prev,
+            autoWarning: {
+              ...prev.autoWarning,
+              ...patch,
+            },
+          }
           : prev,
       );
       setDirty(true);
@@ -768,87 +768,7 @@ export function GroupGeneralSettingsPage() {
           </Card>
         </PremiumLock>
 
-        {/* WEBHOOK - Premium Feature */}
-        <PremiumLock
-          isLocked={group?.subscriptionType !== 'premium'}
-          message="Custom webhooks are a Premium feature. Upgrade to receive real-time notifications."
-          onUpgradeClick={() => navigate(`/stars`, { state: { focusGroupId: groupId } })}
-        >
-          <Card className={styles.card}>
-            <div className={styles.cardHeader}>
-              <div>
-                <Title level="3" className={styles.cardTitle}>
-                  Custom webhook <PremiumLockIcon />
-                </Title>
-                <Text weight="2" className={styles.cardHint}>
-                  Receive real-time notifications to your server.
-                </Text>
-              </div>
-              <Switch
-                checked={settings.webhookConfig.enabled}
-                onChange={(event) => {
-                  setSettings({
-                    ...settings,
-                    webhookConfig: { ...settings.webhookConfig, enabled: event.target.checked }
-                  });
-                  setDirty(true);
-                }}
-              />
-            </div>
-            {settings.webhookConfig.enabled && (
-              <div className={styles.field}>
-                <Text weight="2" className={styles.fieldLabel}>Webhook URL</Text>
-                <Input
-                  type="url"
-                  placeholder="https://your-server.com/webhook"
-                  value={settings.webhookConfig.url}
-                  onChange={(event) => {
-                    setSettings({
-                      ...settings,
-                      webhookConfig: { ...settings.webhookConfig, url: event.target.value }
-                    });
-                    setDirty(true);
-                  }}
-                />
-                <Text weight="2" className={styles.fieldHint}>
-                  Events: warnings, bans, mutes, and member joins will be sent to this URL.
-                </Text>
-              </div>
-            )}
-          </Card>
-        </PremiumLock>
-
-        {/* PRIORITY PROCESSING - Premium Feature */}
-        <PremiumLock
-          isLocked={group?.subscriptionType !== 'premium'}
-          message="Priority processing is a Premium feature. Upgrade for faster message handling."
-          onUpgradeClick={() => navigate(`/stars`, { state: { focusGroupId: groupId } })}
-        >
-          <Card className={styles.card}>
-            <div className={styles.cardHeader}>
-              <div>
-                <Title level="3" className={styles.cardTitle}>
-                  Priority processing <PremiumLockIcon />
-                </Title>
-                <Text weight="2" className={styles.cardHint}>
-                  Your group's messages are processed with higher priority.
-                </Text>
-              </div>
-              <Switch
-                checked={settings.priorityProcessing}
-                onChange={(event) => {
-                  setSettings({ ...settings, priorityProcessing: event.target.checked });
-                  setDirty(true);
-                }}
-              />
-            </div>
-            <Text weight="2" className={styles.fieldHint}>
-              {settings.priorityProcessing
-                ? '✅ Priority processing is active. Your messages are handled faster.'
-                : 'Enable to get faster message processing and reduced latency.'}
-            </Text>
-          </Card>
-        </PremiumLock>
+        {/* Note: Webhook and Priority Processing are auto-enabled for Premium groups */}
       </main>
 
       <footer className={styles.saveBar}>

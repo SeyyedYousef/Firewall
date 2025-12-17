@@ -87,14 +87,17 @@ function findPlan(plans: StarsPlan[], planId: string | null): StarsPlan | null {
 
 const PREMIUM_BENEFITS = [
   { icon: '🚫', title: 'No Ads', desc: 'Remove all promotional messages from your group' },
-  { icon: '⚡', title: 'Faster Speed', desc: 'Priority processing for faster bot response' },
+  { icon: '⚡', title: 'Priority Processing', desc: 'Faster message handling and reduced latency' },
   { icon: '🗳️', title: 'Vote to Mute', desc: 'Allow members to vote to mute spammers' },
   { icon: '🧩', title: 'Advanced Captcha', desc: 'Image and math captchas for better protection' },
-  { icon: '📋', title: 'Mandatory Membership', desc: 'Require users to join channels before messaging' },
+  { icon: '📋', title: 'Mandatory Membership', desc: 'Require users to join up to 3 channels before messaging' },
   { icon: '➕', title: 'Mandatory Add', desc: 'Require users to invite members before messaging' },
   { icon: '🔘', title: 'Custom Promo Button', desc: 'Customize or disable the promotional button' },
   { icon: '📊', title: 'Advanced Analytics', desc: 'Detailed group statistics and insights' },
   { icon: '⚠️', title: 'Auto Warning', desc: 'Automated warning system with custom thresholds' },
+  { icon: '🕐', title: 'Custom Schedule', desc: 'Set specific hours for features to be active' },
+  { icon: '🔇', title: 'Extra Silence Windows', desc: 'Add more quiet period schedules' },
+  { icon: '📝', title: 'Detailed Warnings', desc: 'Rich warning messages with violation details' },
 ];
 
 export function StarsPage() {
@@ -329,6 +332,18 @@ export function StarsPage() {
 
   return (
     <div className={styles.page} dir='ltr'>
+      {/* Why Premium - First thing users should see */}
+      <section className={styles.section}>
+        <Button
+          mode='outline'
+          size='l'
+          stretched
+          onClick={() => setShowBenefitsModal(true)}
+        >
+          ✨ Why Premium?
+        </Button>
+      </section>
+
       <section className={styles.section}>
         <Text weight='2' className={styles.stepTitle}>{TEXT.stepTarget}</Text>
         <div className={styles.tabRow}>
@@ -488,14 +503,7 @@ export function StarsPage() {
                 <span className={styles.summaryValue}>{selectedPlan ? `${formatNumber(selectedPlan.price)} Stars` : '-'}</span>
               </div>
             </div>
-            <Button
-              mode='outline'
-              size='l'
-              stretched
-              onClick={() => setShowBenefitsModal(true)}
-            >
-              ✨ Why Premium?
-            </Button>
+
             <Button
               mode='filled'
               size='l'
