@@ -2971,6 +2971,15 @@ async function processCommand(
   if (command === "filterlist" || command === "filters" || command === "listfilters") {
     return handleFilterList(ctx);
   }
+  if (command === "filterwarn") {
+    return handleFilterWithPunishment(ctx, rawArgs, "warn");
+  }
+  if (command === "filterban") {
+    return handleFilterWithPunishment(ctx, rawArgs, "ban");
+  }
+  if (command === "filtermute") {
+    return handleFilterWithPunishment(ctx, rawArgs, "mute");
+  }
 
   // Purge commands
   if (command === "purge" || command === "clean" || command === "clear") {

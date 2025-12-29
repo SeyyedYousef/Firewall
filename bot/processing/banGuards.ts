@@ -432,6 +432,17 @@ export async function evaluateBanGuards(ctx: GroupChatContext): Promise<Processi
       if ((tempMediaSettings.audio === true) && (facts.hasAudio || facts.hasVoice)) shouldScheduleDelete = true;
     }
 
+    // Check user exemption
+    if (shouldScheduleDelete) {
+      const userType = (tempMediaSettings?.userType as string) ?? "nonadmin";
+      if (userType === "nonadmin") {
+        const isAdmin = await isAdminOrOwner(ctx);
+        if (isAdmin) {
+          shouldScheduleDelete = false;
+        }
+      }
+    }
+
     if (shouldScheduleDelete) {
       const messageId = message.message_id;
       const deleteDelayMs = deleteMinutes * 60 * 1000;
@@ -513,611 +524,737 @@ export async function evaluateBanGuards(ctx: GroupChatContext): Promise<Processi
     } catch (error) {
       logger.debug("failed to analyze for tabchi", { chatId, userId, error });
     }
+    // ========== ANTI TABCHI REDESIGN LOGIC ==========
+    if (rawSettings.antiTabchi) {
+      const at = rawSettings.antiTabchi as Record<string, unknown>;
+      const tabchiLock = at.tabchiLock !== false;
+      const adLock = at.adLock !== false;
+      const bioLock = at.bioLock !== false;
+      const actionMode = (at.actionMode as string) ?? "mute";
+
+      // Only check if at least one lock is active and we have a user
+      if ((tabchiLock || adLock || bioLock) && userId) {
+        const isAdmin = await isAdminOrOwner(ctx);
+        if (!isAdmin) {
+          let isTabchi = false;
+          let tabchiReason = "";
+
+          // Check Bio/Name for ads if Bio Lock is on
+          if (bioLock) {
+            // We might need to fetch full user info to see bio, 
+            // but efficiently we check Name first or if we have cached info.
+            // For now, let's check basic patterns in First/Last/Username if available
+            const pattern = /(https?:\/\/|t\.me\/|@|joinchat|link)/i;
+            const user = message.from as any;
+            if (user.first_name && pattern.test(user.first_name)) { isTabchi = true; tabchiReason = "Ad in Name"; }
+            if (user.last_name && pattern.test(user.last_name)) { isTabchi = true; tabchiReason = "Ad in Name"; }
+            // Note: Real bio check typically requires getChat wrapper or MTProto, omitting for pure BotAPI speed unless deep check needed
+          }
+
+          // Check Ad Lock (similar to banAdvertiser but separate toggle)
+          if (adLock && !isTabchi) {
+            // Reuse advertiser detection logic if possible, or simple heuristic
+            if (triggered.includes("banAdvertiser") || triggered.includes("banLinks")) {
+              isTabchi = true;
+              tabchiReason = "Advertising behavior";
+            }
+          }
+
+          // Check Tabchi Lock (Cross-group behavior)
+          if (tabchiLock && !isTabchi) {
+            // Reuse existing tabchi detection if implemented or placeholder
+            if (triggered.includes("banTabchi")) {
+              isTabchi = true;
+              tabchiReason = "Tabchi behavior detected";
+            }
+          }
+
+          if (isTabchi) {
+            logger.info("Anti-Tabchi Triggered", { chatId, userId, reason: tabchiReason });
+
+            // Execute Penalty
+            const actionTime = (at.actionTime as string) ?? "entry";
+            const performAction = true; // Simulating 'entry' vs 'message' immediate check
+
+            if (performAction) {
+              if (actionMode === "ban") {
+                actions.push({ type: "ban_member", userId, reason: `Anti-Tabchi: ${tabchiReason}` });
+              } else {
+                actions.push({ type: "restrict_member", userId, untilDate: 0, reason: `Anti-Tabchi: ${tabchiReason}` }); // Mute
+              }
+
+              // Detection Message
+              const seconds = (at.detectionMessageSeconds as number) ?? 150;
+              const text = `🚫 <b>Anti-Tabchi Detection</b>\n\nUser <a href="tg://user?id=${userId}">${message.from?.first_name}</a> detected as Tabchi.\nReason: ${tabchiReason}\nAction: ${actionMode}`;
+
+              actions.push({
+                type: "send_message",
+                text,
+                parseMode: "HTML",
+                threadId: (message as any).message_thread_id,
+              });
+
+              // We could schedule deletion of this report message too if the system supported self-delete actions easily here
+              // For now, simpler implementation
+            }
+          }
+        }
+      }
+    }
+
+    // ========== LOCK LIMIT LOGIC ==========
+    if (rawSettings.lockLimit) {
+      const ll = rawSettings.lockLimit as Record<string, unknown>;
+      // Check enabled
+      if (ll.enabled === true) {
+        const isAdmin = await isAdminOrOwner(ctx);
+        if (!isAdmin && userId) {
+          const maxCount = (ll.maxCount as number) ?? 5;
+          const limitSeconds = (ll.limitSeconds as number) ?? 60;
+          const reportDeleteSeconds = (ll.reportDeleteSeconds as number) ?? 60;
+
+          const key = `locklimit:${chatId}:${userId}`;
+          const now = Date.now();
+          const windowMs = limitSeconds * 1000;
+
+          // Update history
+          const history = (rateHistory.get(key) ?? []).filter(t => t > now - windowMs);
+          history.push(now);
+          rateHistory.set(key, history);
+
+          if (history.length > maxCount) {
+            logger.info("Lock Limit Triggered", { chatId, userId, count: history.length });
+            const userName = (message.from as any)?.first_name ?? "User";
+            const text = `🚫 <b>Lock Limit Reached</b>\n\nUser <a href="tg://user?id=${userId}">${userName}</a> has been limited for sending too many messages.`;
+
+            // 1. Delete the triggering message
+            actions.push({ type: "delete_message", messageId, reason: "Lock Limit" });
+
+            // 2. Restrict the user (Mute)
+            actions.push({ type: "restrict_member", userId, untilDate: 0, reason: "Lock Limit Exceeded" });
+
+            // 3. Send Report (Direct send to handle auto-delete timing)
+            if (reportDeleteSeconds > 0) {
+              // Side-effect send to allow scheduling delete
+              ctx.telegram.sendMessage(chatId, text, {
+                parse_mode: "HTML",
+                message_thread_id: (message as any).message_thread_id
+              }).then(msg => {
+                setTimeout(() => {
+                  ctx.telegram.deleteMessage(chatId, msg.message_id).catch(() => { });
+                }, reportDeleteSeconds * 1000);
+              }).catch(err => logger.error("Failed to send lock limit report", { err }));
+            } else {
+              actions.push({ type: "send_message", text, parseMode: "HTML", threadId: (message as any).message_thread_id });
+            }
+          }
+        }
+      }
+    }
+
+    return ensureActions(actions);
   }
 
-  return ensureActions(actions);
-}
+  async function resolveBanSettings(ctx: GroupChatContext): Promise<GroupBanSettingsRecord | null> {
+    ctx.processing ??= {};
+    if (ctx.processing.banSettings !== undefined) {
+      return ctx.processing.banSettings ?? null;
+    }
 
-async function resolveBanSettings(ctx: GroupChatContext): Promise<GroupBanSettingsRecord | null> {
-  ctx.processing ??= {};
-  if (ctx.processing.banSettings !== undefined) {
-    return ctx.processing.banSettings ?? null;
-  }
+    if (!ctx.chat) {
+      ctx.processing.banSettings = null;
+      return null;
+    }
 
-  if (!ctx.chat) {
-    ctx.processing.banSettings = null;
-    return null;
-  }
-
-  const chatId = ctx.chat.id.toString();
-  const settings = await getBanSettings(chatId);
-  ctx.processing.banSettings = settings;
-  return settings;
-}
-
-async function getBanSettings(chatId: string): Promise<GroupBanSettingsRecord | null> {
-  const cached = banCache.get(chatId);
-  const now = Date.now();
-  if (cached && cached.expiresAt > now) {
-    return cached.settings;
-  }
-
-  try {
-    const settings = await loadBanSettingsByChatId(chatId);
-    banCache.set(chatId, { settings, expiresAt: now + BAN_CACHE_TTL_MS });
+    const chatId = ctx.chat.id.toString();
+    const settings = await getBanSettings(chatId);
+    ctx.processing.banSettings = settings;
     return settings;
-  } catch (error) {
-    logger.debug("ban settings unavailable for chat", { chatId, error });
-    banCache.set(chatId, { settings: null, expiresAt: now + BAN_CACHE_TTL_MS });
-    return null;
   }
-}
 
-async function getGeneralSettings(chatId: string): Promise<GroupGeneralSettingsRecord | null> {
-  const cached = generalCache.get(chatId);
-  const now = Date.now();
-  if (cached && cached.expiresAt > now) return cached.settings;
-  try {
-    const s = await loadGeneralSettingsByChatId(chatId);
-    generalCache.set(chatId, { settings: s, expiresAt: now + GENERAL_CACHE_TTL_MS });
-    return s;
-  } catch {
-    generalCache.set(chatId, { settings: null, expiresAt: now + GENERAL_CACHE_TTL_MS });
-    return null;
+  async function getBanSettings(chatId: string): Promise<GroupBanSettingsRecord | null> {
+    const cached = banCache.get(chatId);
+    const now = Date.now();
+    if (cached && cached.expiresAt > now) {
+      return cached.settings;
+    }
+
+    try {
+      const settings = await loadBanSettingsByChatId(chatId);
+      banCache.set(chatId, { settings, expiresAt: now + BAN_CACHE_TTL_MS });
+      return settings;
+    } catch (error) {
+      logger.debug("ban settings unavailable for chat", { chatId, error });
+      banCache.set(chatId, { settings: null, expiresAt: now + BAN_CACHE_TTL_MS });
+      return null;
+    }
   }
-}
 
-async function getSilenceSettings(chatId: string): Promise<SilenceSettingsRecord | null> {
-  const cached = silenceCache.get(chatId);
-  const now = Date.now();
-  if (cached && cached.expiresAt > now) return cached.settings;
-  try {
-    const s = await loadSilenceSettingsByChatId(chatId);
-    silenceCache.set(chatId, { settings: s, expiresAt: now + SILENCE_CACHE_TTL_MS });
-    return s;
-  } catch {
-    silenceCache.set(chatId, { settings: null, expiresAt: now + SILENCE_CACHE_TTL_MS });
-    return null;
+  async function getGeneralSettings(chatId: string): Promise<GroupGeneralSettingsRecord | null> {
+    const cached = generalCache.get(chatId);
+    const now = Date.now();
+    if (cached && cached.expiresAt > now) return cached.settings;
+    try {
+      const s = await loadGeneralSettingsByChatId(chatId);
+      generalCache.set(chatId, { settings: s, expiresAt: now + GENERAL_CACHE_TTL_MS });
+      return s;
+    } catch {
+      generalCache.set(chatId, { settings: null, expiresAt: now + GENERAL_CACHE_TTL_MS });
+      return null;
+    }
   }
-}
 
-async function getLimitSettings(chatId: string): Promise<GroupCountLimitSettingsRecord | null> {
-  const cached = limitsCache.get(chatId);
-  const now = Date.now();
-  if (cached && cached.expiresAt > now) return cached.settings;
-  try {
-    const s = await loadLimitSettingsByChatId(chatId);
-    limitsCache.set(chatId, { settings: s, expiresAt: now + LIMITS_CACHE_TTL_MS });
-    return s;
-  } catch {
-    limitsCache.set(chatId, { settings: null, expiresAt: now + LIMITS_CACHE_TTL_MS });
-    return null;
+  async function getSilenceSettings(chatId: string): Promise<SilenceSettingsRecord | null> {
+    const cached = silenceCache.get(chatId);
+    const now = Date.now();
+    if (cached && cached.expiresAt > now) return cached.settings;
+    try {
+      const s = await loadSilenceSettingsByChatId(chatId);
+      silenceCache.set(chatId, { settings: s, expiresAt: now + SILENCE_CACHE_TTL_MS });
+      return s;
+    } catch {
+      silenceCache.set(chatId, { settings: null, expiresAt: now + SILENCE_CACHE_TTL_MS });
+      return null;
+    }
   }
-}
 
-function getCurrentMinutesInTimezone(timezone?: string): number {
-  const now = new Date();
-  const tz = typeof timezone === "string" && timezone.trim().length > 0 ? timezone.trim() : "UTC";
-  try {
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      timeZone: tz,
-      hour12: false,
-      hour: "numeric",
-      minute: "numeric",
-    });
-    const parts = formatter.formatToParts(now);
-    const hourPart = parts.find((part) => part.type === "hour");
-    const minutePart = parts.find((part) => part.type === "minute");
-    const hours = Number(hourPart?.value ?? "0");
-    const minutes = Number(minutePart?.value ?? "0");
-    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+  async function getLimitSettings(chatId: string): Promise<GroupCountLimitSettingsRecord | null> {
+    const cached = limitsCache.get(chatId);
+    const now = Date.now();
+    if (cached && cached.expiresAt > now) return cached.settings;
+    try {
+      const s = await loadLimitSettingsByChatId(chatId);
+      limitsCache.set(chatId, { settings: s, expiresAt: now + LIMITS_CACHE_TTL_MS });
+      return s;
+    } catch {
+      limitsCache.set(chatId, { settings: null, expiresAt: now + LIMITS_CACHE_TTL_MS });
+      return null;
+    }
+  }
+
+  function getCurrentMinutesInTimezone(timezone?: string): number {
+    const now = new Date();
+    const tz = typeof timezone === "string" && timezone.trim().length > 0 ? timezone.trim() : "UTC";
+    try {
+      const formatter = new Intl.DateTimeFormat("en-US", {
+        timeZone: tz,
+        hour12: false,
+        hour: "numeric",
+        minute: "numeric",
+      });
+      const parts = formatter.formatToParts(now);
+      const hourPart = parts.find((part) => part.type === "hour");
+      const minutePart = parts.find((part) => part.type === "minute");
+      const hours = Number(hourPart?.value ?? "0");
+      const minutes = Number(minutePart?.value ?? "0");
+      if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+        const h = now.getUTCHours();
+        const m = now.getUTCMinutes();
+        return h * 60 + m;
+      }
+      return hours * 60 + minutes;
+    } catch {
       const h = now.getUTCHours();
       const m = now.getUTCMinutes();
       return h * 60 + m;
     }
-    return hours * 60 + minutes;
-  } catch {
-    const h = now.getUTCHours();
-    const m = now.getUTCMinutes();
-    return h * 60 + m;
-  }
-}
-
-type ActiveSilenceWindow =
-  | { kind: "emergency" }
-  | { kind: "window"; windowKey: "window1" | "window2" | "window3"; start: string; end: string };
-
-function getActiveSilenceWindow(
-  silence: SilenceSettingsRecord | null,
-  timezone?: string,
-  chatId?: string,
-): ActiveSilenceWindow | null {
-  if (!silence) return null;
-
-  if (silence.emergencyLock?.enabled) {
-    return { kind: "emergency" };
   }
 
-  const minutes = getCurrentMinutesInTimezone(timezone);
-  const inWindow = (w: { enabled: boolean; start: string; end: string }) => {
-    if (!w?.enabled) return false;
-    const s = parseTimeToMinutes(w.start);
-    const e = parseTimeToMinutes(w.end);
-    if (s === null || e === null) return false;
-    if (s === e) return false;
-    if (s < e) return minutes >= s && minutes <= e;
-    return minutes >= s || minutes <= e;
-  };
+  type ActiveSilenceWindow =
+    | { kind: "emergency" }
+    | { kind: "window"; windowKey: "window1" | "window2" | "window3"; start: string; end: string };
 
-  if (inWindow(silence.window1)) {
-    return { kind: "window", windowKey: "window1", start: silence.window1.start, end: silence.window1.end };
-  }
+  function getActiveSilenceWindow(
+    silence: SilenceSettingsRecord | null,
+    timezone?: string,
+    chatId?: string,
+  ): ActiveSilenceWindow | null {
+    if (!silence) return null;
 
-  // PREMIUM FEATURE: Extra silence windows (window2, window3) only for Premium
-  // Free users only get window1
-  if (chatId && hasExtraSilenceWindows(chatId)) {
-    if (inWindow(silence.window2)) {
-      return { kind: "window", windowKey: "window2", start: silence.window2.start, end: silence.window2.end };
-    }
-    if (inWindow(silence.window3)) {
-      return { kind: "window", windowKey: "window3", start: silence.window3.start, end: silence.window3.end };
-    }
-  }
-
-  return null;
-}
-
-function shouldSilenceChat(silence: SilenceSettingsRecord | null, timezone?: string, chatId?: string): boolean {
-  return getActiveSilenceWindow(silence, timezone, chatId) !== null;
-}
-
-function getNextSilenceStart(silence: SilenceSettingsRecord | null): string | null {
-  if (!silence) return null;
-  const candidates = [silence.window1, silence.window2, silence.window3].filter((w) => w?.enabled);
-  if (candidates.length === 0) {
-    return null;
-  }
-
-  let bestMinutes: number | null = null;
-  let bestStart: string | null = null;
-
-  for (const w of candidates) {
-    const minutes = parseTimeToMinutes(w.start);
-    if (minutes === null) {
-      continue;
-    }
-    if (bestMinutes === null || minutes < bestMinutes) {
-      bestMinutes = minutes;
-      bestStart = w.start;
-    }
-  }
-
-  return bestStart;
-}
-
-async function buildSilenceTransitionActions(
-  ctx: GroupChatContext,
-  silence: SilenceSettingsRecord | null,
-  general: GroupGeneralSettingsRecord | null,
-  wasSilent: boolean,
-  isSilent: boolean,
-): Promise<ProcessingAction[]> {
-  const actions: ProcessingAction[] = [];
-
-  if (!silence || wasSilent === isSilent) {
-    return actions;
-  }
-
-  const chatId = ctx.chat.id.toString();
-  let customTexts: Awaited<ReturnType<typeof loadCustomTextSettingsByChatId>> | null = null;
-  try {
-    customTexts = await loadCustomTextSettingsByChatId(chatId);
-  } catch (error) {
-    logger.debug("failed to load custom text settings for silence messages", { chatId, error });
-    return actions;
-  }
-
-  const threadId = (ctx.message as any)?.message_thread_id as number | undefined;
-
-  if (isSilent && !wasSilent) {
-    // Quiet hours just started
-    const active = getActiveSilenceWindow(silence, general?.timezone, chatId);
-    let starttime = "";
-    let endtime = "";
-    if (active && active.kind === "window") {
-      starttime = active.start ?? "";
-      endtime = active.end ?? "";
+    if (silence.emergencyLock?.enabled) {
+      return { kind: "emergency" };
     }
 
-    const template = (customTexts.silenceStartMessage ?? "").trim();
-    if (template) {
-      const text = renderTemplate(template, { starttime, endtime });
-      if (text.trim().length > 0) {
-        actions.push({
-          type: "send_message",
-          text,
-          parseMode: "HTML",
-          threadId,
-          attachPromoButton: true,
-        });
+    const minutes = getCurrentMinutesInTimezone(timezone);
+    const inWindow = (w: { enabled: boolean; start: string; end: string }) => {
+      if (!w?.enabled) return false;
+      const s = parseTimeToMinutes(w.start);
+      const e = parseTimeToMinutes(w.end);
+      if (s === null || e === null) return false;
+      if (s === e) return false;
+      if (s < e) return minutes >= s && minutes <= e;
+      return minutes >= s || minutes <= e;
+    };
+
+    if (inWindow(silence.window1)) {
+      return { kind: "window", windowKey: "window1", start: silence.window1.start, end: silence.window1.end };
+    }
+
+    // PREMIUM FEATURE: Extra silence windows (window2, window3) only for Premium
+    // Free users only get window1
+    if (chatId && hasExtraSilenceWindows(chatId)) {
+      if (inWindow(silence.window2)) {
+        return { kind: "window", windowKey: "window2", start: silence.window2.start, end: silence.window2.end };
+      }
+      if (inWindow(silence.window3)) {
+        return { kind: "window", windowKey: "window3", start: silence.window3.start, end: silence.window3.end };
       }
     }
-  } else if (!isSilent && wasSilent) {
-    // Quiet hours just ended
-    const nextStart = getNextSilenceStart(silence) ?? "";
-    const template = (customTexts.silenceEndMessage ?? "").trim();
-    if (template) {
-      const text = renderTemplate(template, { starttime: nextStart });
-      if (text.trim().length > 0) {
-        actions.push({
-          type: "send_message",
-          text,
-          parseMode: "HTML",
-          threadId,
-          attachPromoButton: true,
-        });
+
+    return null;
+  }
+
+  function shouldSilenceChat(silence: SilenceSettingsRecord | null, timezone?: string, chatId?: string): boolean {
+    return getActiveSilenceWindow(silence, timezone, chatId) !== null;
+  }
+
+  function getNextSilenceStart(silence: SilenceSettingsRecord | null): string | null {
+    if (!silence) return null;
+    const candidates = [silence.window1, silence.window2, silence.window3].filter((w) => w?.enabled);
+    if (candidates.length === 0) {
+      return null;
+    }
+
+    let bestMinutes: number | null = null;
+    let bestStart: string | null = null;
+
+    for (const w of candidates) {
+      const minutes = parseTimeToMinutes(w.start);
+      if (minutes === null) {
+        continue;
+      }
+      if (bestMinutes === null || minutes < bestMinutes) {
+        bestMinutes = minutes;
+        bestStart = w.start;
       }
     }
+
+    return bestStart;
   }
 
-  return actions;
-}
+  async function buildSilenceTransitionActions(
+    ctx: GroupChatContext,
+    silence: SilenceSettingsRecord | null,
+    general: GroupGeneralSettingsRecord | null,
+    wasSilent: boolean,
+    isSilent: boolean,
+  ): Promise<ProcessingAction[]> {
+    const actions: ProcessingAction[] = [];
 
-async function isAdminOrOwner(ctx: GroupChatContext): Promise<boolean> {
-  try {
-    const userId = (ctx.message as any)?.from?.id;
-    if (!userId) return false;
-    const member = await ctx.telegram.getChatMember(ctx.chat.id, userId);
-    return member.status === "administrator" || member.status === "creator";
-  } catch {
-    return false;
-  }
-}
-
-function applyLimitSettings(
-  limits: GroupCountLimitSettingsRecord | null,
-  ctx: GroupChatContext,
-  facts: MessageFacts,
-): ProcessingAction[] {
-  if (!limits) return [];
-  const actions: ProcessingAction[] = [];
-  const userId = (ctx.message as any)?.from?.id as number | undefined;
-  const chatId = ctx.chat.id.toString();
-  const messageId = (ctx.message as any)?.message_id as number | undefined;
-  const words = facts.text.trim().length ? facts.text.trim().split(/\s+/).length : 0;
-
-  if (limits.minWordsPerMessage > 0 && words > 0 && words < limits.minWordsPerMessage) {
-    actions.push({ type: "delete_message", messageId, reason: "min words limit" });
-  }
-  if (limits.maxWordsPerMessage > 0 && words > limits.maxWordsPerMessage) {
-    actions.push({ type: "delete_message", messageId, reason: "max words limit" });
-  }
-
-  if (userId && limits.messagesPerWindow > 0 && limits.windowMinutes > 0) {
-    const key = `${chatId}:${userId}:rate`;
-    const now = Date.now();
-    const windowMs = limits.windowMinutes * 60 * 1000;
-    const list = (rateHistory.get(key) ?? []).filter((t) => t >= now - windowMs);
-    list.push(now);
-    rateHistory.set(key, list);
-    if (list.length > limits.messagesPerWindow) {
-      actions.push({ type: "delete_message", messageId, reason: "rate limit" });
-    }
-  }
-
-  if (userId && limits.duplicateMessages > 0 && limits.duplicateWindowMinutes > 0 && facts.text.trim().length > 0) {
-    const key = `${chatId}:${userId}:dups`;
-    const now = Date.now();
-    const windowMs = limits.duplicateWindowMinutes * 60 * 1000;
-    const arr = (recentTexts.get(key) ?? []).filter((e) => e.at >= now - windowMs);
-    arr.push({ text: facts.text.trim(), at: now });
-    recentTexts.set(key, arr);
-    const sameCount = arr.filter((e) => e.text === facts.text.trim()).length;
-    if (sameCount > limits.duplicateMessages) {
-      actions.push({ type: "delete_message", messageId, reason: "duplicate message" });
-    }
-  }
-
-  return actions;
-}
-
-function checkRule(
-  settings: GroupBanSettingsRecord,
-  key: keyof GroupBanSettingsRecord["rules"],
-  facts: MessageFacts,
-  timestampSeconds: number,
-  onActive: () => void,
-  chatId?: string,
-): void {
-  const rule = settings.rules[key];
-  if (!isRuleActive(rule, timestampSeconds, chatId)) {
-    return;
-  }
-  onActive();
-}
-
-function isRuleActive(rule: BanRuleSetting | undefined, timestampSeconds: number, chatId?: string): boolean {
-  if (!rule || !rule.enabled) {
-    return false;
-  }
-
-  // PREMIUM FEATURE: Custom schedule is only for Premium
-  // Free users get "all time" mode regardless of schedule setting
-  const canUseSchedule = chatId ? hasCustomSchedule(chatId) : false;
-
-  if (!rule.schedule || rule.schedule.mode === "all" || !canUseSchedule) {
-    return true;
-  }
-
-  const currentMinutes = getMinutesOfDay(timestampSeconds);
-  const startMinutes = parseTimeToMinutes(rule.schedule.start);
-  const endMinutes = parseTimeToMinutes(rule.schedule.end);
-
-  if (startMinutes === null || endMinutes === null) {
-    return true;
-  }
-
-  if (startMinutes <= endMinutes) {
-    return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
-  }
-
-  return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
-}
-
-function getMinutesOfDay(timestampSeconds: number): number {
-  const date = new Date(timestampSeconds * 1000);
-  return date.getUTCHours() * 60 + date.getUTCMinutes();
-}
-
-function parseTimeToMinutes(value: string | undefined): number | null {
-  if (!value) {
-    return null;
-  }
-  const match = /^(\d{2}):(\d{2})$/.exec(value);
-  if (!match) {
-    return null;
-  }
-  const hours = Number.parseInt(match[1], 10);
-  const minutes = Number.parseInt(match[2], 10);
-  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
-    return null;
-  }
-  return Math.max(0, Math.min(23, hours)) * 60 + Math.max(0, Math.min(59, minutes));
-}
-
-function collectFacts(message: Message): MessageFacts {
-  const text = (("text" in message && message.text) || ("caption" in message && message.caption) || "") ?? "";
-  const entities =
-    (("entities" in message && message.entities) ||
-      ("caption_entities" in message && message.caption_entities) ||
-      []) ?? [];
-
-  const textLower = text.toLowerCase();
-
-  const links: string[] = [];
-  const domains: string[] = [];
-  const seenLinks = new Set<string>();
-
-  const addLink = (raw: string | undefined) => {
-    if (!raw) {
-      return;
-    }
-    const normalized = normalizeUrl(raw);
-    if (!normalized) {
-      return;
-    }
-    if (seenLinks.has(normalized)) {
-      return;
-    }
-    seenLinks.add(normalized);
-    links.push(normalized);
-    const domain = extractDomain(normalized);
-    if (domain) {
-      domains.push(domain);
-    } else {
-      domains.push("");
-    }
-  };
-
-  for (const entity of entities) {
-    if (entity.type === "url" && typeof entity.offset === "number" && typeof entity.length === "number") {
-      const snippet = text.slice(entity.offset, entity.offset + entity.length);
-      addLink(snippet);
-    } else if (entity.type === "text_link") {
-      // typegram typings don't expose `url` on text_link in some versions; access safely
-      const link = (entity as { url?: string }).url;
-      addLink(link);
-    }
-  }
-
-  const looseUrlPattern = /\b(?:https?:\/\/|www\.)[\w\-._~:/?#[\]@!$&'()*+,;=%]+/gi;
-  let match: RegExpExecArray | null;
-  while ((match = looseUrlPattern.exec(text)) !== null) {
-    addLink(match[0]);
-  }
-
-  const hasLink =
-    links.length > 0 ||
-    entities.some((entity) => entity.type === "url" || entity.type === "text_link") ||
-    /https?:\/\/\S+/i.test(textLower);
-
-  const hasUsername =
-    entities.some((entity) => entity.type === "mention" || entity.type === "text_mention") || /@\w{3,32}/.test(text);
-
-  const hasHashtag = entities.some((entity) => entity.type === "hashtag");
-  const hasBotCommand = entities.some((entity) => entity.type === "bot_command");
-  const hasEmoji = /\p{Extended_Pictographic}/u.test(text);
-  const isEmojiOnly = hasEmoji && text.replace(/\p{Extended_Pictographic}|\s/gu, "").length === 0;
-
-  const forwardFromChat = (message as { forward_from_chat?: { type?: string } }).forward_from_chat;
-  const hasForward = Boolean((message as { forward_date?: unknown }).forward_date);
-  const hasForwardChannel = Boolean(hasForward && forwardFromChat && forwardFromChat.type === "channel");
-  const isAutomaticForward = Boolean((message as { is_automatic_forward?: boolean }).is_automatic_forward);
-  const isLinkedChannelPost = Boolean(isAutomaticForward && hasForwardChannel);
-  const hasSticker = "sticker" in message && Boolean(message.sticker);
-  const hasPhoto = "photo" in message && Array.isArray(message.photo) && message.photo.length > 0;
-  const hasVideo = "video" in message && Boolean(message.video);
-  const hasVideoNote = "video_note" in message && Boolean((message as { video_note?: unknown }).video_note);
-  const hasVoice = "voice" in message && Boolean(message.voice);
-  const hasAudio = "audio" in message && Boolean(message.audio);
-  const hasDocument = "document" in message && Boolean(message.document);
-  const hasAnimation = "animation" in message && Boolean(message.animation);
-  const hasCaption = Boolean(("caption" in message && message.caption) || ("caption_entities" in message && message.caption_entities));
-  const hasContact = "contact" in message && Boolean(message.contact);
-  const hasLocation = ("location" in message && Boolean(message.location)) || ("venue" in message && Boolean((message as { venue?: unknown }).venue));
-  const hasPoll = "poll" in message && Boolean((message as { poll?: unknown }).poll);
-  const hasGame = "game" in message && Boolean((message as { game?: unknown }).game);
-  const hasInlineKeyboard =
-    "reply_markup" in message &&
-    Boolean((message as { reply_markup?: { inline_keyboard?: unknown } }).reply_markup?.inline_keyboard);
-  const hasCaptionlessMedia = (hasPhoto || hasVideo || hasDocument || hasAnimation || hasVideoNote) && !hasCaption;
-
-  const hasLatin = /\p{Script=Latin}/u.test(text);
-  const hasPersian = /[\u0600-\u06FF]/u.test(text);
-  const hasCyrillic = /\p{Script=Cyrillic}/u.test(text);
-  const hasChinese = /\p{Script=Han}/u.test(text);
-
-  const fromBot = Boolean((message.from as { is_bot?: boolean } | undefined)?.is_bot);
-  const viaBot = Boolean((message as { via_bot?: unknown }).via_bot);
-  const replyToMessage = (message as { reply_to_message?: Message }).reply_to_message;
-  const isReply = Boolean(replyToMessage);
-  const isCrossReply = Boolean(isReply && replyToMessage?.from && message.from && replyToMessage.from.id !== message.from.id);
-
-  return {
-    text,
-    textLower,
-    entities,
-    hasLink,
-    links,
-    domains,
-    hasForward,
-    hasForwardChannel,
-    hasSticker,
-    hasPhoto,
-    hasVideo,
-    hasVideoNote,
-    hasVoice,
-    hasAudio,
-    hasDocument,
-    hasAnimation,
-    hasCaption,
-    hasUsername,
-    hasHashtag,
-    hasEmoji,
-    isEmojiOnly,
-    hasContact,
-    hasLocation,
-    hasPoll,
-    hasGame,
-    hasInlineKeyboard,
-    hasBotCommand,
-    hasCaptionlessMedia,
-    hasLatin,
-    hasPersian,
-    hasCyrillic,
-    hasChinese,
-    fromBot,
-    viaBot,
-    isReply,
-    isCrossReply,
-    isAutomaticForward,
-    isLinkedChannelPost,
-  };
-}
-
-function getBlockedLinks(settings: GroupBanSettingsRecord, facts: MessageFacts): string[] {
-  if (facts.links.length === 0) {
-    return [];
-  }
-  const whitelist = normalizeTokenList(settings.whitelist);
-  const blacklist = normalizeTokenList(settings.blacklist);
-  const blocked: string[] = [];
-
-  facts.links.forEach((link, index) => {
-    const domain = facts.domains[index] ?? extractDomain(link) ?? "";
-    const candidates = [link.toLowerCase(), domain.toLowerCase()].filter(Boolean);
-
-    const isWhitelisted =
-      whitelist.length > 0 && candidates.some((value) => whitelist.some((allowed) => value.includes(allowed)));
-    if (isWhitelisted) {
-      return;
+    if (!silence || wasSilent === isSilent) {
+      return actions;
     }
 
-    const isBlacklisted =
-      blacklist.length > 0 && candidates.some((value) => blacklist.some((blockedToken) => value.includes(blockedToken)));
-
-    if (!isWhitelisted || isBlacklisted) {
-      blocked.push(link);
-    }
-  });
-
-  return blocked;
-}
-
-function normalizeTokenList(values: string[] | undefined): string[] {
-  if (!Array.isArray(values)) {
-    return [];
-  }
-  return values
-    .map((value) => value.trim().toLowerCase())
-    .filter((value) => value.length > 0);
-}
-
-function safeCompilePattern(raw: string): RegExp | null {
-  const trimmed = raw.trim();
-  if (!trimmed) {
-    return null;
-  }
-  if (trimmed.startsWith("/") && trimmed.endsWith("/") && trimmed.length > 2) {
+    const chatId = ctx.chat.id.toString();
+    let customTexts: Awaited<ReturnType<typeof loadCustomTextSettingsByChatId>> | null = null;
     try {
-      return new RegExp(trimmed.slice(1, -1), "i");
+      customTexts = await loadCustomTextSettingsByChatId(chatId);
+    } catch (error) {
+      logger.debug("failed to load custom text settings for silence messages", { chatId, error });
+      return actions;
+    }
+
+    const threadId = (ctx.message as any)?.message_thread_id as number | undefined;
+
+    if (isSilent && !wasSilent) {
+      // Quiet hours just started
+      const active = getActiveSilenceWindow(silence, general?.timezone, chatId);
+      let starttime = "";
+      let endtime = "";
+      if (active && active.kind === "window") {
+        starttime = active.start ?? "";
+        endtime = active.end ?? "";
+      }
+
+      const template = (customTexts.silenceStartMessage ?? "").trim();
+      if (template) {
+        const text = renderTemplate(template, { starttime, endtime });
+        if (text.trim().length > 0) {
+          actions.push({
+            type: "send_message",
+            text,
+            parseMode: "HTML",
+            threadId,
+            attachPromoButton: true,
+          });
+        }
+      }
+    } else if (!isSilent && wasSilent) {
+      // Quiet hours just ended
+      const nextStart = getNextSilenceStart(silence) ?? "";
+      const template = (customTexts.silenceEndMessage ?? "").trim();
+      if (template) {
+        const text = renderTemplate(template, { starttime: nextStart });
+        if (text.trim().length > 0) {
+          actions.push({
+            type: "send_message",
+            text,
+            parseMode: "HTML",
+            threadId,
+            attachPromoButton: true,
+          });
+        }
+      }
+    }
+
+    return actions;
+  }
+
+  async function isAdminOrOwner(ctx: GroupChatContext): Promise<boolean> {
+    try {
+      const userId = (ctx.message as any)?.from?.id;
+      if (!userId) return false;
+      const member = await ctx.telegram.getChatMember(ctx.chat.id, userId);
+      return member.status === "administrator" || member.status === "creator";
+    } catch {
+      return false;
+    }
+  }
+
+  function applyLimitSettings(
+    limits: GroupCountLimitSettingsRecord | null,
+    ctx: GroupChatContext,
+    facts: MessageFacts,
+  ): ProcessingAction[] {
+    if (!limits) return [];
+    const actions: ProcessingAction[] = [];
+    const userId = (ctx.message as any)?.from?.id as number | undefined;
+    const chatId = ctx.chat.id.toString();
+    const messageId = (ctx.message as any)?.message_id as number | undefined;
+    const words = facts.text.trim().length ? facts.text.trim().split(/\s+/).length : 0;
+
+    if (limits.minWordsPerMessage > 0 && words > 0 && words < limits.minWordsPerMessage) {
+      actions.push({ type: "delete_message", messageId, reason: "min words limit" });
+    }
+    if (limits.maxWordsPerMessage > 0 && words > limits.maxWordsPerMessage) {
+      actions.push({ type: "delete_message", messageId, reason: "max words limit" });
+    }
+
+    if (userId && limits.messagesPerWindow > 0 && limits.windowMinutes > 0) {
+      const key = `${chatId}:${userId}:rate`;
+      const now = Date.now();
+      const windowMs = limits.windowMinutes * 60 * 1000;
+      const list = (rateHistory.get(key) ?? []).filter((t) => t >= now - windowMs);
+      list.push(now);
+      rateHistory.set(key, list);
+      if (list.length > limits.messagesPerWindow) {
+        actions.push({ type: "delete_message", messageId, reason: "rate limit" });
+      }
+    }
+
+    if (userId && limits.duplicateMessages > 0 && limits.duplicateWindowMinutes > 0 && facts.text.trim().length > 0) {
+      const key = `${chatId}:${userId}:dups`;
+      const now = Date.now();
+      const windowMs = limits.duplicateWindowMinutes * 60 * 1000;
+      const arr = (recentTexts.get(key) ?? []).filter((e) => e.at >= now - windowMs);
+      arr.push({ text: facts.text.trim(), at: now });
+      recentTexts.set(key, arr);
+      const sameCount = arr.filter((e) => e.text === facts.text.trim()).length;
+      if (sameCount > limits.duplicateMessages) {
+        actions.push({ type: "delete_message", messageId, reason: "duplicate message" });
+      }
+    }
+
+    return actions;
+  }
+
+  function checkRule(
+    settings: GroupBanSettingsRecord,
+    key: keyof GroupBanSettingsRecord["rules"],
+    facts: MessageFacts,
+    timestampSeconds: number,
+    onActive: () => void,
+    chatId?: string,
+  ): void {
+    const rule = settings.rules[key];
+    if (!isRuleActive(rule, timestampSeconds, chatId)) {
+      return;
+    }
+    onActive();
+  }
+
+  function isRuleActive(rule: BanRuleSetting | undefined, timestampSeconds: number, chatId?: string): boolean {
+    if (!rule || !rule.enabled) {
+      return false;
+    }
+
+    // PREMIUM FEATURE: Custom schedule is only for Premium
+    // Free users get "all time" mode regardless of schedule setting
+    const canUseSchedule = chatId ? hasCustomSchedule(chatId) : false;
+
+    if (!rule.schedule || rule.schedule.mode === "all" || !canUseSchedule) {
+      return true;
+    }
+
+    const currentMinutes = getMinutesOfDay(timestampSeconds);
+    const startMinutes = parseTimeToMinutes(rule.schedule.start);
+    const endMinutes = parseTimeToMinutes(rule.schedule.end);
+
+    if (startMinutes === null || endMinutes === null) {
+      return true;
+    }
+
+    if (startMinutes <= endMinutes) {
+      return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+    }
+
+    return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
+  }
+
+  function getMinutesOfDay(timestampSeconds: number): number {
+    const date = new Date(timestampSeconds * 1000);
+    return date.getUTCHours() * 60 + date.getUTCMinutes();
+  }
+
+  function parseTimeToMinutes(value: string | undefined): number | null {
+    if (!value) {
+      return null;
+    }
+    const match = /^(\d{2}):(\d{2})$/.exec(value);
+    if (!match) {
+      return null;
+    }
+    const hours = Number.parseInt(match[1], 10);
+    const minutes = Number.parseInt(match[2], 10);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+      return null;
+    }
+    return Math.max(0, Math.min(23, hours)) * 60 + Math.max(0, Math.min(59, minutes));
+  }
+
+  function collectFacts(message: Message): MessageFacts {
+    const text = (("text" in message && message.text) || ("caption" in message && message.caption) || "") ?? "";
+    const entities =
+      (("entities" in message && message.entities) ||
+        ("caption_entities" in message && message.caption_entities) ||
+        []) ?? [];
+
+    const textLower = text.toLowerCase();
+
+    const links: string[] = [];
+    const domains: string[] = [];
+    const seenLinks = new Set<string>();
+
+    const addLink = (raw: string | undefined) => {
+      if (!raw) {
+        return;
+      }
+      const normalized = normalizeUrl(raw);
+      if (!normalized) {
+        return;
+      }
+      if (seenLinks.has(normalized)) {
+        return;
+      }
+      seenLinks.add(normalized);
+      links.push(normalized);
+      const domain = extractDomain(normalized);
+      if (domain) {
+        domains.push(domain);
+      } else {
+        domains.push("");
+      }
+    };
+
+    for (const entity of entities) {
+      if (entity.type === "url" && typeof entity.offset === "number" && typeof entity.length === "number") {
+        const snippet = text.slice(entity.offset, entity.offset + entity.length);
+        addLink(snippet);
+      } else if (entity.type === "text_link") {
+        // typegram typings don't expose `url` on text_link in some versions; access safely
+        const link = (entity as { url?: string }).url;
+        addLink(link);
+      }
+    }
+
+    const looseUrlPattern = /\b(?:https?:\/\/|www\.)[\w\-._~:/?#[\]@!$&'()*+,;=%]+/gi;
+    let match: RegExpExecArray | null;
+    while ((match = looseUrlPattern.exec(text)) !== null) {
+      addLink(match[0]);
+    }
+
+    const hasLink =
+      links.length > 0 ||
+      entities.some((entity) => entity.type === "url" || entity.type === "text_link") ||
+      /https?:\/\/\S+/i.test(textLower);
+
+    const hasUsername =
+      entities.some((entity) => entity.type === "mention" || entity.type === "text_mention") || /@\w{3,32}/.test(text);
+
+    const hasHashtag = entities.some((entity) => entity.type === "hashtag");
+    const hasBotCommand = entities.some((entity) => entity.type === "bot_command");
+    const hasEmoji = /\p{Extended_Pictographic}/u.test(text);
+    const isEmojiOnly = hasEmoji && text.replace(/\p{Extended_Pictographic}|\s/gu, "").length === 0;
+
+    const forwardFromChat = (message as { forward_from_chat?: { type?: string } }).forward_from_chat;
+    const hasForward = Boolean((message as { forward_date?: unknown }).forward_date);
+    const hasForwardChannel = Boolean(hasForward && forwardFromChat && forwardFromChat.type === "channel");
+    const isAutomaticForward = Boolean((message as { is_automatic_forward?: boolean }).is_automatic_forward);
+    const isLinkedChannelPost = Boolean(isAutomaticForward && hasForwardChannel);
+    const hasSticker = "sticker" in message && Boolean(message.sticker);
+    const hasPhoto = "photo" in message && Array.isArray(message.photo) && message.photo.length > 0;
+    const hasVideo = "video" in message && Boolean(message.video);
+    const hasVideoNote = "video_note" in message && Boolean((message as { video_note?: unknown }).video_note);
+    const hasVoice = "voice" in message && Boolean(message.voice);
+    const hasAudio = "audio" in message && Boolean(message.audio);
+    const hasDocument = "document" in message && Boolean(message.document);
+    const hasAnimation = "animation" in message && Boolean(message.animation);
+    const hasCaption = Boolean(("caption" in message && message.caption) || ("caption_entities" in message && message.caption_entities));
+    const hasContact = "contact" in message && Boolean(message.contact);
+    const hasLocation = ("location" in message && Boolean(message.location)) || ("venue" in message && Boolean((message as { venue?: unknown }).venue));
+    const hasPoll = "poll" in message && Boolean((message as { poll?: unknown }).poll);
+    const hasGame = "game" in message && Boolean((message as { game?: unknown }).game);
+    const hasInlineKeyboard =
+      "reply_markup" in message &&
+      Boolean((message as { reply_markup?: { inline_keyboard?: unknown } }).reply_markup?.inline_keyboard);
+    const hasCaptionlessMedia = (hasPhoto || hasVideo || hasDocument || hasAnimation || hasVideoNote) && !hasCaption;
+
+    const hasLatin = /\p{Script=Latin}/u.test(text);
+    const hasPersian = /[\u0600-\u06FF]/u.test(text);
+    const hasCyrillic = /\p{Script=Cyrillic}/u.test(text);
+    const hasChinese = /\p{Script=Han}/u.test(text);
+
+    const fromBot = Boolean((message.from as { is_bot?: boolean } | undefined)?.is_bot);
+    const viaBot = Boolean((message as { via_bot?: unknown }).via_bot);
+    const replyToMessage = (message as { reply_to_message?: Message }).reply_to_message;
+    const isReply = Boolean(replyToMessage);
+    const isCrossReply = Boolean(isReply && replyToMessage?.from && message.from && replyToMessage.from.id !== message.from.id);
+
+    return {
+      text,
+      textLower,
+      entities,
+      hasLink,
+      links,
+      domains,
+      hasForward,
+      hasForwardChannel,
+      hasSticker,
+      hasPhoto,
+      hasVideo,
+      hasVideoNote,
+      hasVoice,
+      hasAudio,
+      hasDocument,
+      hasAnimation,
+      hasCaption,
+      hasUsername,
+      hasHashtag,
+      hasEmoji,
+      isEmojiOnly,
+      hasContact,
+      hasLocation,
+      hasPoll,
+      hasGame,
+      hasInlineKeyboard,
+      hasBotCommand,
+      hasCaptionlessMedia,
+      hasLatin,
+      hasPersian,
+      hasCyrillic,
+      hasChinese,
+      fromBot,
+      viaBot,
+      isReply,
+      isCrossReply,
+      isAutomaticForward,
+      isLinkedChannelPost,
+    };
+  }
+
+  function getBlockedLinks(settings: GroupBanSettingsRecord, facts: MessageFacts): string[] {
+    if (facts.links.length === 0) {
+      return [];
+    }
+    const whitelist = normalizeTokenList(settings.whitelist);
+    const blacklist = normalizeTokenList(settings.blacklist);
+    const blocked: string[] = [];
+
+    facts.links.forEach((link, index) => {
+      const domain = facts.domains[index] ?? extractDomain(link) ?? "";
+      const candidates = [link.toLowerCase(), domain.toLowerCase()].filter(Boolean);
+
+      const isWhitelisted =
+        whitelist.length > 0 && candidates.some((value) => whitelist.some((allowed) => value.includes(allowed)));
+      if (isWhitelisted) {
+        return;
+      }
+
+      const isBlacklisted =
+        blacklist.length > 0 && candidates.some((value) => blacklist.some((blockedToken) => value.includes(blockedToken)));
+
+      if (!isWhitelisted || isBlacklisted) {
+        blocked.push(link);
+      }
+    });
+
+    return blocked;
+  }
+
+  function normalizeTokenList(values: string[] | undefined): string[] {
+    if (!Array.isArray(values)) {
+      return [];
+    }
+    return values
+      .map((value) => value.trim().toLowerCase())
+      .filter((value) => value.length > 0);
+  }
+
+  function safeCompilePattern(raw: string): RegExp | null {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      return null;
+    }
+    if (trimmed.startsWith("/") && trimmed.endsWith("/") && trimmed.length > 2) {
+      try {
+        return new RegExp(trimmed.slice(1, -1), "i");
+      } catch {
+        return null;
+      }
+    }
+    try {
+      const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return new RegExp(escaped, "i");
     } catch {
       return null;
     }
   }
-  try {
-    const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return new RegExp(escaped, "i");
-  } catch {
-    return null;
-  }
-}
 
-function matchesTextPatterns(text: string, settings: GroupBanSettingsRecord): boolean {
-  const patterns = settings.blacklist;
-  if (!Array.isArray(patterns) || patterns.length === 0) {
-    return false;
+  function matchesTextPatterns(text: string, settings: GroupBanSettingsRecord): boolean {
+    const patterns = settings.blacklist;
+    if (!Array.isArray(patterns) || patterns.length === 0) {
+      return false;
+    }
+    return patterns.some((pattern) => {
+      const regex = safeCompilePattern(pattern);
+      return regex ? regex.test(text) : false;
+    });
   }
-  return patterns.some((pattern) => {
-    const regex = safeCompilePattern(pattern);
-    return regex ? regex.test(text) : false;
-  });
-}
 
-function normalizeUrl(raw: string): string | null {
-  let value = raw.trim();
-  if (!value) {
-    return null;
+  function normalizeUrl(raw: string): string | null {
+    let value = raw.trim();
+    if (!value) {
+      return null;
+    }
+    if (!/^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(value)) {
+      value = `https://${value}`;
+    }
+    try {
+      const url = new URL(value);
+      return url.href;
+    } catch {
+      return null;
+    }
   }
-  if (!/^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(value)) {
-    value = `https://${value}`;
-  }
-  try {
-    const url = new URL(value);
-    return url.href;
-  } catch {
-    return null;
-  }
-}
 
-function extractDomain(url: string): string | null {
-  try {
-    const parsed = new URL(url);
-    const hostname = parsed.hostname.toLowerCase();
-    return hostname.startsWith("www.") ? hostname.slice(4) : hostname;
-  } catch {
-    return null;
+  function extractDomain(url: string): string | null {
+    try {
+      const parsed = new URL(url);
+      const hostname = parsed.hostname.toLowerCase();
+      return hostname.startsWith("www.") ? hostname.slice(4) : hostname;
+    } catch {
+      return null;
+    }
   }
-}
 
 

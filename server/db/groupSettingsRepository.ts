@@ -58,6 +58,35 @@ export type GroupBanSettingsRecord = {
   rules: Record<BanRuleKey, BanRuleSetting>;
   blacklist: string[];
   whitelist: string[];
+  antiTabchi?: AntiTabchiSettings;
+  autoLock?: AutoLockSettings;
+  lockLimit?: LockLimitSettings;
+};
+
+export type LockLimitSettings = {
+  enabled?: boolean;
+  maxCount?: number;       // Number of allowed messages
+  timeWindow?: number;     // Window duration in minutes (or seconds, but UI says "1 minute", likely minutes) -> Let's store seconds or minutes. Image says "1 minute". Let's store seconds for precision but UI steps in minutes? Or just store minutes.
+  // Actually, standard rate limits are usually per minute or seconds. Let's stick to seconds for logic, but UI shows minutes.
+  // Let's use `limitSeconds`.
+  limitSeconds?: number;
+  reportDeleteSeconds?: number; // How long to keep the report message
+};
+
+export type AutoLockSettings = {
+  // If true, the group will automatically lock during the specified window
+  enabled?: boolean;
+  startTime?: string; // "HH:MM" 24h format
+  endTime?: string;   // "HH:MM" 24h format
+};
+
+export type AntiTabchiSettings = {
+  tabchiLock?: boolean;
+  adLock?: boolean;
+  bioLock?: boolean;
+  actionMode?: "mute" | "ban" | "delete";
+  actionTime?: "entry" | "message";
+  detectionMessageSeconds?: number;
 };
 
 export type AutoWarningPenalty = "delete" | "mute" | "kick";
@@ -319,6 +348,21 @@ function normalizeBanSettings(input: unknown): GroupBanSettingsRecord {
   // Lock Features setting
   if (typeof rawInput.lockFeatures === "boolean") {
     result.lockFeatures = rawInput.lockFeatures;
+  }
+
+  // Anti-Tabchi settings
+  if (rawInput.antiTabchi && typeof rawInput.antiTabchi === "object") {
+    result.antiTabchi = rawInput.antiTabchi;
+  }
+
+  // Auto-Lock settings
+  if (rawInput.autoLock && typeof rawInput.autoLock === "object") {
+    result.autoLock = rawInput.autoLock;
+  }
+
+  // Lock Limit settings
+  if (rawInput.lockLimit && typeof rawInput.lockLimit === "object") {
+    result.lockLimit = rawInput.lockLimit;
   }
 
   return result as GroupBanSettingsRecord;

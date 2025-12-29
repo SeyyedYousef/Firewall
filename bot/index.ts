@@ -1,4 +1,4 @@
-import "dotenv/config";
+﻿import "dotenv/config";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -271,6 +271,8 @@ startAdminMonitor(bot, { ownerId: ownerUserId, getPanelAdmins: panelAdminsProvid
 startInactivityMonitor(bot, { ownerId: ownerUserId, getPanelAdmins: panelAdminsProvider });
 startExpiredGroupsMonitor(bot);
 void startMissionResetJob();
+import { startAutoLockMonitor } from "./jobs/autoLockMonitor.js";
+startAutoLockMonitor(bot);
 
 const REQUIRED_SLIDE_WIDTH = 960;
 const REQUIRED_SLIDE_HEIGHT = 360;
@@ -312,45 +314,45 @@ type InlineListConfig = {
 
 const INLINE_LOCK_ITEMS: InlineLockItem[] = [
   // Page 1: Links & Content Restrictions (10 items)
-  { id: "links", keys: ["banLinks"], label: "🔗 Links", page: 1 },
-  { id: "domains", keys: ["banDomains"], label: "🌐 Domains", page: 1 },
-  { id: "usernames", keys: ["banUsernames"], label: "👤 Usernames", page: 1 },
-  { id: "hashtags", keys: ["banHashtags"], label: "#️⃣ Hashtags", page: 1 },
-  { id: "latin", keys: ["banLatin"], label: "🔤 Latin", page: 1 },
-  { id: "persian", keys: ["banPersian"], label: "🔡 Persian", page: 1 },
-  { id: "text_patterns", keys: ["banTextPatterns"], label: "📝 Text Patterns", page: 1 },
-  { id: "emojis", keys: ["banEmojis"], label: "😀 Emojis", page: 1 },
-  { id: "forward", keys: ["banForward"], label: "↪️ Forward", page: 1 },
-  { id: "forward_channels", keys: ["banForwardChannels"], label: "📢 Forward Channels", page: 1 },
+  { id: "links", keys: ["banLinks"], label: "ðŸ”— Links", page: 1 },
+  { id: "domains", keys: ["banDomains"], label: "ðŸŒ Domains", page: 1 },
+  { id: "usernames", keys: ["banUsernames"], label: "ðŸ‘¤ Usernames", page: 1 },
+  { id: "hashtags", keys: ["banHashtags"], label: "#ï¸âƒ£ Hashtags", page: 1 },
+  { id: "latin", keys: ["banLatin"], label: "ðŸ”¤ Latin", page: 1 },
+  { id: "persian", keys: ["banPersian"], label: "ðŸ”¡ Persian", page: 1 },
+  { id: "text_patterns", keys: ["banTextPatterns"], label: "ðŸ“ Text Patterns", page: 1 },
+  { id: "emojis", keys: ["banEmojis"], label: "ðŸ˜€ Emojis", page: 1 },
+  { id: "forward", keys: ["banForward"], label: "â†ªï¸ Forward", page: 1 },
+  { id: "forward_channels", keys: ["banForwardChannels"], label: "ðŸ“¢ Forward Channels", page: 1 },
 
   // Page 2: Media & Files (12 items)
-  { id: "photos", keys: ["banPhotos"], label: "🖼️ Photos", page: 2 },
-  { id: "videos", keys: ["banVideos"], label: "🎬 Videos", page: 2 },
-  { id: "audio", keys: ["banAudio"], label: "🎵 Audio", page: 2 },
-  { id: "voice", keys: ["banVoice"], label: "🎤 Voice", page: 2 },
-  { id: "gif", keys: ["banGif"], label: "🎞️ GIF", page: 2 },
-  { id: "stickers", keys: ["banStickers"], label: "🎨 Stickers", page: 2 },
-  { id: "files", keys: ["banFiles"], label: "📁 Files", page: 2 },
-  { id: "location", keys: ["banLocation"], label: "📍 Location", page: 2 },
-  { id: "apps", keys: ["banApps"], label: "📱 Apps", page: 2 },
-  { id: "inline_keyboards", keys: ["banInlineKeyboards"], label: "⌨️ Inline Keyboards", page: 2 },
-  { id: "emoji_only", keys: ["banEmojiOnly"], label: "😊 Emoji Only", page: 2 },
-  { id: "captionless", keys: ["banCaptionless"], label: "🚫 Captionless", page: 2 },
+  { id: "photos", keys: ["banPhotos"], label: "ðŸ–¼ï¸ Photos", page: 2 },
+  { id: "videos", keys: ["banVideos"], label: "ðŸŽ¬ Videos", page: 2 },
+  { id: "audio", keys: ["banAudio"], label: "ðŸŽµ Audio", page: 2 },
+  { id: "voice", keys: ["banVoice"], label: "ðŸŽ¤ Voice", page: 2 },
+  { id: "gif", keys: ["banGif"], label: "ðŸŽžï¸ GIF", page: 2 },
+  { id: "stickers", keys: ["banStickers"], label: "ðŸŽ¨ Stickers", page: 2 },
+  { id: "files", keys: ["banFiles"], label: "ðŸ“ Files", page: 2 },
+  { id: "location", keys: ["banLocation"], label: "ðŸ“ Location", page: 2 },
+  { id: "apps", keys: ["banApps"], label: "ðŸ“± Apps", page: 2 },
+  { id: "inline_keyboards", keys: ["banInlineKeyboards"], label: "âŒ¨ï¸ Inline Keyboards", page: 2 },
+  { id: "emoji_only", keys: ["banEmojiOnly"], label: "ðŸ˜Š Emoji Only", page: 2 },
+  { id: "captionless", keys: ["banCaptionless"], label: "ðŸš« Captionless", page: 2 },
 
   // Page 3: Bots, Games & Advanced (11 items)
-  { id: "bots", keys: ["banBots"], label: "🤖 Bots", page: 3 },
-  { id: "bot_inviters", keys: ["banBotInviters"], label: "👥 Bot Inviters", page: 3 },
-  { id: "tabchi", keys: ["banTabchi"], label: "🚫 Tabchi", page: 3 },
-  { id: "advertiser", keys: ["banAdvertiser"], label: "📢 Advertisers", page: 3 },
-  { id: "suspicious_bio", keys: ["banSuspiciousBio"], label: "📝 Suspicious Bio", page: 3 },
-  { id: "phones", keys: ["banPhones"], label: "📞 Phone Numbers", page: 3 },
-  { id: "games", keys: ["banGames"], label: "🎮 Games", page: 3 },
-  { id: "polls", keys: ["banPolls"], label: "📊 Polls", page: 3 },
-  { id: "slash_commands", keys: ["banSlashCommands"], label: "⚡ Slash Commands", page: 3 },
-  { id: "cyrillic", keys: ["banCyrillic"], label: "🔠 Cyrillic", page: 3 },
-  { id: "chinese", keys: ["banChinese"], label: "🈯 Chinese", page: 3 },
-  { id: "user_replies", keys: ["banUserReplies"], label: "💬 User Replies", page: 3 },
-  { id: "cross_replies", keys: ["banCrossReplies"], label: "🔀 Cross Replies", page: 3 },
+  { id: "bots", keys: ["banBots"], label: "ðŸ¤– Bots", page: 3 },
+  { id: "bot_inviters", keys: ["banBotInviters"], label: "ðŸ‘¥ Bot Inviters", page: 3 },
+  { id: "tabchi", keys: ["banTabchi"], label: "ðŸš« Tabchi", page: 3 },
+  { id: "advertiser", keys: ["banAdvertiser"], label: "ðŸ“¢ Advertisers", page: 3 },
+  { id: "suspicious_bio", keys: ["banSuspiciousBio"], label: "ðŸ“ Suspicious Bio", page: 3 },
+  { id: "phones", keys: ["banPhones"], label: "ðŸ“ž Phone Numbers", page: 3 },
+  { id: "games", keys: ["banGames"], label: "ðŸŽ® Games", page: 3 },
+  { id: "polls", keys: ["banPolls"], label: "ðŸ“Š Polls", page: 3 },
+  { id: "slash_commands", keys: ["banSlashCommands"], label: "âš¡ Slash Commands", page: 3 },
+  { id: "cyrillic", keys: ["banCyrillic"], label: "ðŸ”  Cyrillic", page: 3 },
+  { id: "chinese", keys: ["banChinese"], label: "ðŸˆ¯ Chinese", page: 3 },
+  { id: "user_replies", keys: ["banUserReplies"], label: "ðŸ’¬ User Replies", page: 3 },
+  { id: "cross_replies", keys: ["banCrossReplies"], label: "ðŸ”€ Cross Replies", page: 3 },
 ];
 
 const INLINE_LOCK_PAGE_SIZE = 6;
@@ -395,10 +397,10 @@ const USER_PANEL_LOCK_ITEMS: UserPanelLockItem[] = [
 // Get state icon for UserPanel lock
 function getUserLockStateIcon(state: UserLockOverrideState): string {
   switch (state) {
-    case 'locked': return '🔐';
+    case 'locked': return 'ðŸ”';
     case 'open': return 'Open';
     case 'default':
-    default: return '✗';
+    default: return 'âœ—';
   }
 }
 
@@ -430,19 +432,19 @@ type HelpSectionConfig = {
 };
 
 const HELP_SECTIONS: HelpSectionConfig[] = [
-  { id: "lock_management", icon: "🔒", title: "Lock Management", implemented: true },
-  { id: "settings", icon: "⚙️", title: "Settings", implemented: true },
-  { id: "tabchi", icon: "🚫", title: "Tabchi (Spam Bots)", implemented: true },
-  { id: "user_panel", icon: "👤", title: "User Panel", implemented: true },
-  { id: "user_penalties", icon: "⚠️", title: "User Penalties", implemented: true },
-  { id: "promote_demote", icon: "👑", title: "Promote & Demote", implemented: true },
-  { id: "word_filter", icon: "🚷", title: "Word Filter", implemented: true },
-  { id: "cleanup", icon: "🧹", title: "Cleanup", implemented: true },
-  { id: "mandatory_add", icon: "➕", title: "Mandatory Add", implemented: true },
-  { id: "welcome", icon: "👋", title: "Welcome", implemented: true },
-  { id: "mandatory_membership", icon: "📌", title: "Mandatory Membership", implemented: true },
-  { id: "activity_stats", icon: "📊", title: "Activity Statistics", implemented: true },
-  { id: "entertainment", icon: "🎮", title: "Entertainment & Utilities", implemented: true },
+  { id: "lock_management", icon: "ðŸ”’", title: "Lock Management", implemented: true },
+  { id: "settings", icon: "âš™ï¸", title: "Settings", implemented: true },
+  { id: "tabchi", icon: "ðŸš«", title: "Tabchi (Spam Bots)", implemented: true },
+  { id: "user_panel", icon: "ðŸ‘¤", title: "User Panel", implemented: true },
+  { id: "user_penalties", icon: "âš ï¸", title: "User Penalties", implemented: true },
+  { id: "promote_demote", icon: "ðŸ‘‘", title: "Promote & Demote", implemented: true },
+  { id: "word_filter", icon: "ðŸš·", title: "Word Filter", implemented: true },
+  { id: "cleanup", icon: "ðŸ§¹", title: "Cleanup", implemented: true },
+  { id: "mandatory_add", icon: "âž•", title: "Mandatory Add", implemented: true },
+  { id: "welcome", icon: "ðŸ‘‹", title: "Welcome", implemented: true },
+  { id: "mandatory_membership", icon: "ðŸ“Œ", title: "Mandatory Membership", implemented: true },
+  { id: "activity_stats", icon: "ðŸ“Š", title: "Activity Statistics", implemented: true },
+  { id: "entertainment", icon: "ðŸŽ®", title: "Entertainment & Utilities", implemented: true },
 ];
 
 type LockHelpData = {
@@ -459,43 +461,43 @@ type LockHelpData = {
 
 const LOCK_HELP_DATA: LockHelpData[] = [
   // Links & Content
-  { id: "links", name: "Telegram Links", icon: "🔗", whatItDoes: "Blocks all Telegram links (t.me, telegram.me)", example: "t.me/example", commandAlias: "link", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Links", whenToUse: "Prevent spam and unauthorized promotion", limitations: "Also blocks legitimate sharing links" },
-  { id: "domains", name: "External URLs", icon: "🌐", whatItDoes: "Blocks all external website URLs", example: "google.com", commandAlias: "site", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Domains", whenToUse: "Prevent external link spam and phishing", limitations: "Blocks all URLs including safe ones" },
-  { id: "usernames", name: "Usernames/Mentions", icon: "👤", whatItDoes: "Blocks @username mentions", example: "@username", commandAlias: "username", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Usernames", whenToUse: "Prevent tagging spam and promotion", limitations: "May affect legitimate mentions" },
-  { id: "hashtags", name: "Hashtags", icon: "#️⃣", whatItDoes: "Blocks messages containing #hashtags", example: "#trending", commandAlias: "hashtag", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Hashtags", whenToUse: "Prevent hashtag spam", limitations: "Blocks all hashtags" },
-  { id: "latin", name: "English/Latin Text", icon: "🔤", whatItDoes: "Blocks messages with Latin alphabet", example: "Hello, ABC", commandAlias: "english", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Latin", whenToUse: "Enforce non-English only groups", limitations: "Blocks any Latin characters" },
-  { id: "persian", name: "Persian/Arabic Text", icon: "🔡", whatItDoes: "Blocks messages with Persian/Arabic script", example: "سلام", commandAlias: "persian", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Persian", whenToUse: "Enforce non-Persian groups", limitations: "Blocks all Arabic script" },
-  { id: "text_patterns", name: "Text Patterns", icon: "📝", whatItDoes: "Blocks plain text messages", example: "Any text message", commandAlias: "text", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Text Patterns", whenToUse: "Media-only groups", limitations: "Blocks all text" },
-  { id: "emojis", name: "Contains Emojis", icon: "😀", whatItDoes: "Blocks messages containing emojis", example: "Hello 😀", commandAlias: "emoji", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Emojis", whenToUse: "Professional/formal groups", limitations: "Blocks any emoji usage" },
-  { id: "forward", name: "Forwarded Messages", icon: "↪️", whatItDoes: "Blocks all forwarded messages", example: "Forwarded message", commandAlias: "forward", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Forward", whenToUse: "Prevent content from elsewhere", limitations: "Use Forward Whitelist for exceptions" },
-  { id: "forward_channels", name: "Channel Forwards", icon: "📢", whatItDoes: "Blocks messages forwarded from channels", example: "Forwarded from @channel", commandAlias: "channelforward", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Forward Channels", whenToUse: "Block channel promotions", limitations: "User forwards still allowed" },
+  { id: "links", name: "Telegram Links", icon: "ðŸ”—", whatItDoes: "Blocks all Telegram links (t.me, telegram.me)", example: "t.me/example", commandAlias: "link", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Links", whenToUse: "Prevent spam and unauthorized promotion", limitations: "Also blocks legitimate sharing links" },
+  { id: "domains", name: "External URLs", icon: "ðŸŒ", whatItDoes: "Blocks all external website URLs", example: "google.com", commandAlias: "site", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Domains", whenToUse: "Prevent external link spam and phishing", limitations: "Blocks all URLs including safe ones" },
+  { id: "usernames", name: "Usernames/Mentions", icon: "ðŸ‘¤", whatItDoes: "Blocks @username mentions", example: "@username", commandAlias: "username", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Usernames", whenToUse: "Prevent tagging spam and promotion", limitations: "May affect legitimate mentions" },
+  { id: "hashtags", name: "Hashtags", icon: "#ï¸âƒ£", whatItDoes: "Blocks messages containing #hashtags", example: "#trending", commandAlias: "hashtag", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Hashtags", whenToUse: "Prevent hashtag spam", limitations: "Blocks all hashtags" },
+  { id: "latin", name: "English/Latin Text", icon: "ðŸ”¤", whatItDoes: "Blocks messages with Latin alphabet", example: "Hello, ABC", commandAlias: "english", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Latin", whenToUse: "Enforce non-English only groups", limitations: "Blocks any Latin characters" },
+  { id: "persian", name: "Persian/Arabic Text", icon: "ðŸ”¡", whatItDoes: "Blocks messages with Persian/Arabic script", example: "Ø³Ù„Ø§Ù…", commandAlias: "persian", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Persian", whenToUse: "Enforce non-Persian groups", limitations: "Blocks all Arabic script" },
+  { id: "text_patterns", name: "Text Patterns", icon: "ðŸ“", whatItDoes: "Blocks plain text messages", example: "Any text message", commandAlias: "text", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Text Patterns", whenToUse: "Media-only groups", limitations: "Blocks all text" },
+  { id: "emojis", name: "Contains Emojis", icon: "ðŸ˜€", whatItDoes: "Blocks messages containing emojis", example: "Hello ðŸ˜€", commandAlias: "emoji", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Emojis", whenToUse: "Professional/formal groups", limitations: "Blocks any emoji usage" },
+  { id: "forward", name: "Forwarded Messages", icon: "â†ªï¸", whatItDoes: "Blocks all forwarded messages", example: "Forwarded message", commandAlias: "forward", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Forward", whenToUse: "Prevent content from elsewhere", limitations: "Use Forward Whitelist for exceptions" },
+  { id: "forward_channels", name: "Channel Forwards", icon: "ðŸ“¢", whatItDoes: "Blocks messages forwarded from channels", example: "Forwarded from @channel", commandAlias: "channelforward", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Forward Channels", whenToUse: "Block channel promotions", limitations: "User forwards still allowed" },
   // Media & Files
-  { id: "photos", name: "Photos", icon: "🖼️", whatItDoes: "Blocks image uploads", example: "[Photo]", commandAlias: "photo", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Photos", whenToUse: "Text-only discussions", limitations: "Blocks all images" },
-  { id: "videos", name: "Videos", icon: "🎬", whatItDoes: "Blocks video uploads", example: "[Video]", commandAlias: "video", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Videos", whenToUse: "Reduce media clutter", limitations: "Blocks all video content" },
-  { id: "audio", name: "Audio Files", icon: "🎵", whatItDoes: "Blocks audio file uploads", example: "[Audio.mp3]", commandAlias: "audio", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Audio", whenToUse: "Prevent music sharing", limitations: "Blocks all audio files" },
-  { id: "voice", name: "Voice Messages", icon: "🎤", whatItDoes: "Blocks voice notes", example: "[Voice Note]", commandAlias: "voice", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Voice", whenToUse: "Keep discussions readable", limitations: "Blocks all voice messages" },
-  { id: "gif", name: "GIFs/Animations", icon: "🎞️", whatItDoes: "Blocks animated GIFs", example: "[GIF]", commandAlias: "gif", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → GIF", whenToUse: "Reduce visual noise", limitations: "Blocks all animations" },
-  { id: "stickers", name: "Stickers", icon: "🎨", whatItDoes: "Blocks sticker messages", example: "[Sticker]", commandAlias: "sticker", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Stickers", whenToUse: "Professional groups", limitations: "Blocks all stickers" },
-  { id: "files", name: "Files/Documents", icon: "📁", whatItDoes: "Blocks document uploads", example: "[document.pdf]", commandAlias: "file", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Files", whenToUse: "Prevent file sharing", limitations: "Blocks all documents" },
-  { id: "location", name: "Locations", icon: "📍", whatItDoes: "Blocks location sharing", example: "[Location]", commandAlias: "location", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Location", whenToUse: "Privacy concerns", limitations: "Blocks all location shares" },
-  { id: "apps", name: "Apps/Software", icon: "📱", whatItDoes: "Blocks messages sent via specific unofficial apps or identifying as 'via AppName'.", example: "[App Message]", commandAlias: "app", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Apps", whenToUse: "Block third-party integrations", limitations: "May affect legitimate apps" },
-  { id: "inline_keyboards", name: "Inline Keyboards", icon: "⌨️", whatItDoes: "Blocks messages with inline buttons", example: "[Buttons]", commandAlias: "inline", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Inline Keyboards", whenToUse: "Block bot interactions", limitations: "Blocks all inline buttons" },
-  { id: "emoji_only", name: "Emoji-Only Messages", icon: "😊", whatItDoes: "Blocks messages with only emojis (no text)", example: "😀😀😀", commandAlias: "emojionly", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Emoji Only", whenToUse: "Prevent emoji spam", limitations: "Only pure emoji messages" },
-  { id: "captionless", name: "Media Without Caption", icon: "🚫", whatItDoes: "Blocks media without captions", example: "[Photo no text]", commandAlias: "nocaption", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Captionless", whenToUse: "Require context for media", limitations: "All uncaptioned media" },
+  { id: "photos", name: "Photos", icon: "ðŸ–¼ï¸", whatItDoes: "Blocks image uploads", example: "[Photo]", commandAlias: "photo", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Photos", whenToUse: "Text-only discussions", limitations: "Blocks all images" },
+  { id: "videos", name: "Videos", icon: "ðŸŽ¬", whatItDoes: "Blocks video uploads", example: "[Video]", commandAlias: "video", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Videos", whenToUse: "Reduce media clutter", limitations: "Blocks all video content" },
+  { id: "audio", name: "Audio Files", icon: "ðŸŽµ", whatItDoes: "Blocks audio file uploads", example: "[Audio.mp3]", commandAlias: "audio", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Audio", whenToUse: "Prevent music sharing", limitations: "Blocks all audio files" },
+  { id: "voice", name: "Voice Messages", icon: "ðŸŽ¤", whatItDoes: "Blocks voice notes", example: "[Voice Note]", commandAlias: "voice", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Voice", whenToUse: "Keep discussions readable", limitations: "Blocks all voice messages" },
+  { id: "gif", name: "GIFs/Animations", icon: "ðŸŽžï¸", whatItDoes: "Blocks animated GIFs", example: "[GIF]", commandAlias: "gif", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ GIF", whenToUse: "Reduce visual noise", limitations: "Blocks all animations" },
+  { id: "stickers", name: "Stickers", icon: "ðŸŽ¨", whatItDoes: "Blocks sticker messages", example: "[Sticker]", commandAlias: "sticker", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Stickers", whenToUse: "Professional groups", limitations: "Blocks all stickers" },
+  { id: "files", name: "Files/Documents", icon: "ðŸ“", whatItDoes: "Blocks document uploads", example: "[document.pdf]", commandAlias: "file", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Files", whenToUse: "Prevent file sharing", limitations: "Blocks all documents" },
+  { id: "location", name: "Locations", icon: "ðŸ“", whatItDoes: "Blocks location sharing", example: "[Location]", commandAlias: "location", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Location", whenToUse: "Privacy concerns", limitations: "Blocks all location shares" },
+  { id: "apps", name: "Apps/Software", icon: "ðŸ“±", whatItDoes: "Blocks messages sent via specific unofficial apps or identifying as 'via AppName'.", example: "[App Message]", commandAlias: "app", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Apps", whenToUse: "Block third-party integrations", limitations: "May affect legitimate apps" },
+  { id: "inline_keyboards", name: "Inline Keyboards", icon: "âŒ¨ï¸", whatItDoes: "Blocks messages with inline buttons", example: "[Buttons]", commandAlias: "inline", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Inline Keyboards", whenToUse: "Block bot interactions", limitations: "Blocks all inline buttons" },
+  { id: "emoji_only", name: "Emoji-Only Messages", icon: "ðŸ˜Š", whatItDoes: "Blocks messages with only emojis (no text)", example: "ðŸ˜€ðŸ˜€ðŸ˜€", commandAlias: "emojionly", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Emoji Only", whenToUse: "Prevent emoji spam", limitations: "Only pure emoji messages" },
+  { id: "captionless", name: "Media Without Caption", icon: "ðŸš«", whatItDoes: "Blocks media without captions", example: "[Photo no text]", commandAlias: "nocaption", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Captionless", whenToUse: "Require context for media", limitations: "All uncaptioned media" },
   // Bots & Advanced
-  { id: "bots", name: "Bot Messages", icon: "🤖", whatItDoes: "Blocks messages from actual bot accounts", example: "@OtherBot message", commandAlias: "bot", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Bots", whenToUse: "Single-bot groups", limitations: "Blocks all bot messages" },
-  { id: "bot_inviters", name: "Bot Inviters", icon: "👥", whatItDoes: "Bans users who add bots", example: "User adds @SpamBot", commandAlias: "botinviter", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Bot Inviters", whenToUse: "Prevent bot spam", limitations: "User gets banned" },
-  { id: "tabchi", name: "Tabchi Detection", icon: "🚫", whatItDoes: "Detects and bans users who promote other groups/channels", example: "User advertising in multiple groups", commandAlias: "tabchi", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Tabchi", whenToUse: "Prevent cross-group advertising", limitations: "May affect legitimate promoters" },
-  { id: "advertiser", name: "Advertisers", icon: "📢", whatItDoes: "Detects and blocks advertising behavior patterns", example: "User sending promotional content", commandAlias: "advertiser", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Advertisers", whenToUse: "Block spam/ad accounts", limitations: "Uses behavior analysis" },
-  { id: "suspicious_bio", name: "Suspicious Bio", icon: "📝", whatItDoes: "Blocks users with suspicious profile bios", example: "Bio containing ads or spam links", commandAlias: "suspiciousbio", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Suspicious Bio", whenToUse: "Block spammer accounts", limitations: "May affect legitimate users" },
-  { id: "phones", name: "Phone Numbers", icon: "📞", whatItDoes: "Blocks phone numbers", example: "+1234567890", commandAlias: "phone", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Phones", whenToUse: "Prevent contact sharing", limitations: "Blocks all phone formats" },
-  { id: "games", name: "Games", icon: "🎮", whatItDoes: "Blocks Telegram games", example: "[Game]", commandAlias: "game", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Games", whenToUse: "Focus on discussions", limitations: "Blocks all games" },
-  { id: "polls", name: "Polls", icon: "📊", whatItDoes: "Blocks poll creation", example: "[Poll]", commandAlias: "poll", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Polls", whenToUse: "Admin-only polling", limitations: "Blocks all polls" },
-  { id: "slash_commands", name: "Slash Commands", icon: "⚡", whatItDoes: "Blocks /command messages", example: "/start, /help", commandAlias: "slash", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Slash Commands", whenToUse: "Prevent command spam", limitations: "Blocks all /commands" },
-  { id: "cyrillic", name: "Cyrillic Text", icon: "🔠", whatItDoes: "Blocks Cyrillic alphabet messages", example: "Привет", commandAlias: "cyrillic", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Cyrillic", whenToUse: "Non-Russian groups", limitations: "Blocks all Cyrillic" },
-  { id: "chinese", name: "Chinese Text", icon: "🈯", whatItDoes: "Blocks Chinese characters", example: "你好", commandAlias: "chinese", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Chinese", whenToUse: "Non-Chinese groups", limitations: "Blocks all Chinese text" },
-  { id: "user_replies", name: "User Replies", icon: "💬", whatItDoes: "Blocks users from replying to each other's messages within the group", example: "Reply to message", commandAlias: "reply", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → User Replies", whenToUse: "Linear conversation only", limitations: "All reply messages" },
-  { id: "cross_replies", name: "Cross-Chat Replies", icon: "🔀", whatItDoes: "Blocks users from replying to messages from OTHER channels or groups (e.g., linked channel comments)", example: "External reply", commandAlias: "crossreply", miniAppPath: "My Groups → Group Manage → Quick Menu → Content restriction → Cross Replies", whenToUse: "Isolated discussions", limitations: "External replies only" },
+  { id: "bots", name: "Bot Messages", icon: "ðŸ¤–", whatItDoes: "Blocks messages from actual bot accounts", example: "@OtherBot message", commandAlias: "bot", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Bots", whenToUse: "Single-bot groups", limitations: "Blocks all bot messages" },
+  { id: "bot_inviters", name: "Bot Inviters", icon: "ðŸ‘¥", whatItDoes: "Bans users who add bots", example: "User adds @SpamBot", commandAlias: "botinviter", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Bot Inviters", whenToUse: "Prevent bot spam", limitations: "User gets banned" },
+  { id: "tabchi", name: "Tabchi Detection", icon: "ðŸš«", whatItDoes: "Detects and bans users who promote other groups/channels", example: "User advertising in multiple groups", commandAlias: "tabchi", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Tabchi", whenToUse: "Prevent cross-group advertising", limitations: "May affect legitimate promoters" },
+  { id: "advertiser", name: "Advertisers", icon: "ðŸ“¢", whatItDoes: "Detects and blocks advertising behavior patterns", example: "User sending promotional content", commandAlias: "advertiser", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Advertisers", whenToUse: "Block spam/ad accounts", limitations: "Uses behavior analysis" },
+  { id: "suspicious_bio", name: "Suspicious Bio", icon: "ðŸ“", whatItDoes: "Blocks users with suspicious profile bios", example: "Bio containing ads or spam links", commandAlias: "suspiciousbio", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Suspicious Bio", whenToUse: "Block spammer accounts", limitations: "May affect legitimate users" },
+  { id: "phones", name: "Phone Numbers", icon: "ðŸ“ž", whatItDoes: "Blocks phone numbers", example: "+1234567890", commandAlias: "phone", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Phones", whenToUse: "Prevent contact sharing", limitations: "Blocks all phone formats" },
+  { id: "games", name: "Games", icon: "ðŸŽ®", whatItDoes: "Blocks Telegram games", example: "[Game]", commandAlias: "game", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Games", whenToUse: "Focus on discussions", limitations: "Blocks all games" },
+  { id: "polls", name: "Polls", icon: "ðŸ“Š", whatItDoes: "Blocks poll creation", example: "[Poll]", commandAlias: "poll", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Polls", whenToUse: "Admin-only polling", limitations: "Blocks all polls" },
+  { id: "slash_commands", name: "Slash Commands", icon: "âš¡", whatItDoes: "Blocks /command messages", example: "/start, /help", commandAlias: "slash", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Slash Commands", whenToUse: "Prevent command spam", limitations: "Blocks all /commands" },
+  { id: "cyrillic", name: "Cyrillic Text", icon: "ðŸ” ", whatItDoes: "Blocks Cyrillic alphabet messages", example: "ÐŸÑ€Ð¸Ð²ÐµÑ‚", commandAlias: "cyrillic", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Cyrillic", whenToUse: "Non-Russian groups", limitations: "Blocks all Cyrillic" },
+  { id: "chinese", name: "Chinese Text", icon: "ðŸˆ¯", whatItDoes: "Blocks Chinese characters", example: "ä½ å¥½", commandAlias: "chinese", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Chinese", whenToUse: "Non-Chinese groups", limitations: "Blocks all Chinese text" },
+  { id: "user_replies", name: "User Replies", icon: "ðŸ’¬", whatItDoes: "Blocks users from replying to each other's messages within the group", example: "Reply to message", commandAlias: "reply", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ User Replies", whenToUse: "Linear conversation only", limitations: "All reply messages" },
+  { id: "cross_replies", name: "Cross-Chat Replies", icon: "ðŸ”€", whatItDoes: "Blocks users from replying to messages from OTHER channels or groups (e.g., linked channel comments)", example: "External reply", commandAlias: "crossreply", miniAppPath: "My Groups â†’ Group Manage â†’ Quick Menu â†’ Content restriction â†’ Cross Replies", whenToUse: "Isolated discussions", limitations: "External replies only" },
 ];
 
 const HELP_LOCKS_PAGE_SIZE = 8;
@@ -521,7 +523,7 @@ const PENALTY_HELP_DATA: PenaltyHelpData[] = [
   {
     id: "ban",
     name: "Ban",
-    icon: "🚫",
+    icon: "ðŸš«",
     whatItDoes: "Permanently bans a user from the group. The user cannot rejoin until unbanned.",
     example: "Reply to a spammer's message and use the ban command",
     commandEnable: "!Ban",
@@ -533,7 +535,7 @@ const PENALTY_HELP_DATA: PenaltyHelpData[] = [
   {
     id: "ban_plus",
     name: "Ban Plus",
-    icon: "⛔",
+    icon: "â›”",
     whatItDoes: "Bans the user AND deletes all their recent messages from the group.",
     example: "Reply to spam messages to ban and clean up their content",
     commandEnable: "!Ban+",
@@ -545,7 +547,7 @@ const PENALTY_HELP_DATA: PenaltyHelpData[] = [
   {
     id: "kick",
     name: "Kick",
-    icon: "👢",
+    icon: "ðŸ‘¢",
     whatItDoes: "Removes a user from the group but they can rejoin using an invite link.",
     example: "Reply to a user's message and kick them temporarily",
     commandEnable: "!Kick",
@@ -556,7 +558,7 @@ const PENALTY_HELP_DATA: PenaltyHelpData[] = [
   {
     id: "mute",
     name: "Mute",
-    icon: "🔇",
+    icon: "ðŸ”‡",
     whatItDoes: "Permanently restricts a user from sending any messages in the group. (Unspecified duration is permanent)",
     example: "Reply to a disruptive user's message to mute them",
     commandEnable: "!Mute",
@@ -568,9 +570,9 @@ const PENALTY_HELP_DATA: PenaltyHelpData[] = [
   {
     id: "temp_mute",
     name: "Temporary Mute",
-    icon: "⏱️",
+    icon: "â±ï¸",
     whatItDoes: "Mutes a user for a specified duration. Auto-unmutes when time expires.",
-    example: "!Mute 24 — mutes for 24 hours",
+    example: "!Mute 24 â€” mutes for 24 hours",
     commandEnable: "!Mute <hours>",
     commandDisable: "!Unmute (reply)",
     requiresReply: true,
@@ -580,7 +582,7 @@ const PENALTY_HELP_DATA: PenaltyHelpData[] = [
   {
     id: "warn",
     name: "Warning",
-    icon: "⚠️",
+    icon: "âš ï¸",
     whatItDoes: "Issues a formal warning. Warnings accumulate and can trigger auto-actions.",
     example: "Reply to a rule-breaking message to warn the user",
     commandEnable: "!Warn",
@@ -609,58 +611,93 @@ const SETTINGS_HELP_DATA: SettingsHelpData[] = [
   {
     id: "view_settings",
     name: "View Settings",
-    icon: "⚙️",
+    icon: "âš™ï¸",
     whatItDoes: "View all your group's current settings, including active locks, verification status, and other configurations.",
     commands: ["!Settings", "!Status", "!Info"],
   },
   {
     id: "media_lock",
     name: "Media Lock",
-    icon: "🖼️",
+    icon: "ðŸ–¼ï¸",
     whatItDoes: "Control which types of media can be sent. Lock photos, videos, GIFs, stickers, voice messages, and other media types.",
     commands: ["!Lock photo", "!Lock video", "!Lock sticker", "!Lock voice", "!Lock gif", "!Unlock [type]"],
   },
   {
     id: "message_limit",
     name: "Word/Character Limits",
-    icon: "📏",
+    icon: "ðŸ“",
     whatItDoes: "Set minimum and maximum character/word limits for messages. Messages outside these limits are automatically deleted.",
     commands: ["!MaxWords <count>", "!MinWords <count>"],
   },
   {
     id: "add_admin",
     name: "Add Admin",
-    icon: "👑",
+    icon: "ðŸ‘‘",
     whatItDoes: "Add new bot admins to your group with special permissions. Manage or remove admins added by the bot.",
     commands: ["!AddAdmin", "!RemAdmin", "!AdminList"],
   },
   {
     id: "strict_mode",
     name: "Strict Mode",
-    icon: "🔐",
+    icon: "ðŸ”",
     whatItDoes: "When enabled, rules apply to everyone including admins. When disabled, admins are exempt from most restrictions.",
     commands: ["!Strict on", "!Strict off", "!AdminLock on (Alias)"],
   },
   {
     id: "auto_lock",
     name: "Auto Lock (Silence)",
-    icon: "🔒",
+    icon: "ðŸ”’",
     whatItDoes: "Automatically lock the group at specified times. Non-admin messages are deleted during locked periods.",
-    commands: ["!Silence1 from <HH:MM> to <HH:MM>", "!Silence1 off", "!ClearSilence"],
+    commands: ["!Silence1 from <HH:MM> to <HH:MM>", "!Silence2 ...", "!Silence3 ...", "!ClearSilence"],
   },
   {
     id: "group_lock",
     name: "Group Lock",
-    icon: "🚨",
+    icon: "ðŸš¨",
     whatItDoes: "Emergency lock the entire group. Only admins can send messages. Useful for spam attacks or announcements.",
     commands: ["!LockGroup", "!UnlockGroup"],
   },
   {
     id: "flood_control",
     name: "Flood Control",
-    icon: "🌊",
+    icon: "ðŸŒŠ",
     whatItDoes: "Prevent message flooding. Users sending too many messages in a short time are automatically muted. Use !MsgLimit to set per-window limits.",
     commands: ["!Flood on", "!Flood off", "!SetFlood <count> <seconds>", "!MsgLimit <count>"],
+  },
+  {
+    id: "warning_config",
+    name: "Warning Configuration",
+    icon: "âš ï¸",
+    whatItDoes: "Configure automatic warnings and thresholds.",
+    commands: ["!Warning on/off", "!AutoWarn on/off", "!WarnThreshold <count>", "!WarnRetention <days>"],
+  },
+  {
+    id: "public_commands",
+    name: "Public Commands",
+    icon: "ðŸ“¢",
+    whatItDoes: "Toggle whether regular users can use bot commands.",
+    commands: ["!PublicCmds on", "!PublicCmds off"],
+  },
+  {
+    id: "service_messages",
+    name: "Service Messages",
+    icon: "ðŸ‘‹",
+    whatItDoes: "Toggle join/leave messages in the group.",
+    commands: ["!JoinLeave on", "!JoinLeave off"],
+  },
+  {
+    id: "auto_delete",
+    name: "Auto Delete",
+    icon: "ðŸ—‘ï¸",
+    whatItDoes: "Automatically delete bot responses after a delay to keep chat clean.",
+    commands: ["!AutoDelete on/off", "!AutoDelDelay <minutes>"],
+  },
+  {
+    id: "bot_config",
+    name: "Bot Configuration",
+    icon: "ðŸ”§",
+    whatItDoes: "Reload bot configuration or check subscription.",
+    commands: ["!Reload", "!Credit"],
   },
 ];
 
@@ -681,7 +718,7 @@ const RANK_HELP_DATA: RankHelpData[] = [
   {
     id: "owner",
     name: "Owner",
-    icon: "👑",
+    icon: "ðŸ‘‘",
     description: "Highest access level in the group. Owners can change all settings without restrictions and promote/demote users (except other owners).",
     commands: [
       { label: "Set Owner", command: "!SetOwner" },
@@ -694,7 +731,7 @@ const RANK_HELP_DATA: RankHelpData[] = [
   {
     id: "manager",
     name: "Manager",
-    icon: "👤",
+    icon: "ðŸ‘¤",
     description: "Managers can change most settings and restrict/ban regular users. Owners can customize each manager's permissions.",
     commands: [
       { label: "Promote", command: "!Promote" },
@@ -707,7 +744,7 @@ const RANK_HELP_DATA: RankHelpData[] = [
   {
     id: "vip",
     name: "VIP/Special",
-    icon: "⭐",
+    icon: "â­",
     description: "VIP members bypass all content restrictions. Their messages are never deleted or restricted by the bot.",
     commands: [
       { label: "Add VIP", command: "!VIP" },
@@ -734,98 +771,98 @@ const CLEANUP_HELP_DATA: CleanupHelpData[] = [
   {
     id: "messages",
     name: "Messages",
-    icon: "💬",
+    icon: "ðŸ’¬",
     description: "Delete a specified number of messages from the group.\n\nIn groups with fewer than 100 members, cleanup is performed through the bot API (messages from the last 48 hours only).\n\nIn larger groups, install the companion bot for advanced cleanup by message type.\n\nAdmins can set up to five automatic cleanup schedules.",
     commands: ["!Del <count>", "!SetAutoClean", "!RemAutoClean", "!AutoCleanStats"],
   },
   {
     id: "bans",
     name: "Ban List",
-    icon: "🚫",
-    description: "Remove all banned users from the ban list and unban them.\n\n⚠️ Note: Due to Telegram API limits, the bot may not be able to list/unban older bans. Use the Mini App or manual commands for individual management.",
+    icon: "ðŸš«",
+    description: "Remove all banned users from the ban list and unban them.\n\nâš ï¸ Note: Due to Telegram API limits, the bot may not be able to list/unban older bans. Use the Mini App or manual commands for individual management.",
     commands: ["!CleanBans"],
   },
   {
     id: "warns",
     name: "Warning List",
-    icon: "⚠️",
+    icon: "âš ï¸",
     description: "Clear all warning records from the bot's warning database for this group.",
     commands: ["!CleanWarns"],
   },
   {
     id: "mutes",
     name: "Mute List",
-    icon: "🔇",
-    description: "Unmute all muted users and clear the mute list.\n\n⚠️ Note: Due to Telegram API limits, the bot may not be able to list/unmute older mutes. Use the Mini App or manual commands.",
+    icon: "ðŸ”‡",
+    description: "Unmute all muted users and clear the mute list.\n\nâš ï¸ Note: Due to Telegram API limits, the bot may not be able to list/unmute older mutes. Use the Mini App or manual commands.",
     commands: ["!CleanMutes"],
   },
   {
     id: "filters",
     name: "Filter Words",
-    icon: "🚷",
+    icon: "ðŸš·",
     description: "Remove all filtered keywords from the word filter list.",
     commands: ["!CleanFilters"],
   },
   {
     id: "exempts",
     name: "Exempt Users",
-    icon: "✅",
+    icon: "âœ…",
     description: "Remove all users from the exempt (whitelist) list.",
     commands: ["!CleanExempts"],
   },
   {
     id: "modlist",
     name: "Admin Users",
-    icon: "👤",
+    icon: "ðŸ‘¤",
     description: "Demote all bot-assigned managers from the group. Only the bot owner can use this command.",
     commands: ["!CleanModList"],
   },
   {
     id: "vips",
     name: "VIP Users",
-    icon: "⭐",
+    icon: "â­",
     description: "Remove all VIP privileges from users in the group.",
     commands: ["!CleanVIPs"],
   },
   {
     id: "nicknames",
     name: "Nicknames",
-    icon: "📛",
+    icon: "ðŸ“›",
     description: "Clear all stored nicknames from the bot's database.",
     commands: ["!CleanNicknames"],
   },
   {
     id: "blocks",
     name: "Blocked Users",
-    icon: "🚫",
+    icon: "ðŸš«",
     description: "Unblock all users from the bot's block list.",
     commands: ["!CleanBlocks"],
   },
   {
     id: "restricts",
     name: "Restricted Users",
-    icon: "🔒",
+    icon: "ðŸ”’",
     description: "Remove restrictions from all restricted users in the group.",
     commands: ["!CleanRestricts"],
   },
   {
     id: "bots",
     name: "Bots",
-    icon: "🤖",
+    icon: "ðŸ¤–",
     description: "Remove all bots from the group (except Firewall). Only the bot owner can use this command.",
     commands: ["!CleanBots"],
   },
   {
     id: "fakes",
     name: "Fake Accounts",
-    icon: "👻",
+    icon: "ðŸ‘»",
     description: "Kick all detected fake/suspicious accounts from the group.",
     commands: ["!CleanFakes"],
   },
   {
     id: "deleted",
     name: "Deleted Accounts",
-    icon: "🗑️",
+    icon: "ðŸ—‘ï¸",
     description: "Remove all deleted (ghost) accounts from the group membership.",
     commands: ["!CleanDeleted"],
   },
@@ -849,7 +886,7 @@ const WORDFILTER_HELP_DATA: WordFilterHelpData[] = [
   {
     id: "single",
     name: "Single Filtering",
-    icon: "➊",
+    icon: "âžŠ",
     summary: "Filter words one at a time with optional punishments",
     description: "Block specific words in the group. When a filtered word is sent, the bot deletes the message. Optionally, set a punishment for the sender (warn, ban, or mute).",
     commands: [
@@ -869,7 +906,7 @@ const WORDFILTER_HELP_DATA: WordFilterHelpData[] = [
   {
     id: "continuous",
     name: "Continuous Filtering",
-    icon: "➋",
+    icon: "âž‹",
     summary: "Enter filter mode to add multiple words quickly",
     description: "Efficient method for filtering multiple words at once. After sending the command, all words you type will be added to the filter list until you exit the mode.",
     commands: [
@@ -882,9 +919,9 @@ const WORDFILTER_HELP_DATA: WordFilterHelpData[] = [
   {
     id: "private",
     name: "Private Filtering",
-    icon: "➌",
+    icon: "âžŒ",
     summary: "Filter words privately via bot panel",
-    description: "Manage filtered words without exposing commands in the group. Send the command in the group, then go to the bot's private chat and navigate to: Lists → Filter List.",
+    description: "Manage filtered words without exposing commands in the group. Send the command in the group, then go to the bot's private chat and navigate to: Lists â†’ Filter List.",
     commands: [
       { label: "PanelPV", command: "!PanelPV" },
     ],
@@ -913,7 +950,7 @@ const STATS_HELP_DATA: StatsHelpData[] = [
   {
     id: "overview",
     name: "Group Stats Overview",
-    icon: "📊",
+    icon: "ðŸ“Š",
     summary: "View the overall chat and add statistics for all users in the group",
     description: "Using this feature, group admins can view comprehensive statistics about user activity including chat messages and adds (user invitations). The bot displays a ranked list of users based on their contribution to the group.\n\nAdmins can see who is most active in the group and who has invited the most members.",
     commands: [
@@ -927,7 +964,7 @@ const STATS_HELP_DATA: StatsHelpData[] = [
   {
     id: "add_stats",
     name: "Add Stats",
-    icon: "➕",
+    icon: "âž•",
     summary: "View statistics for user invitations (adds) only",
     description: "This command shows statistics specifically for user invitations. See which members have invited the most new users to the group.\n\nUseful for tracking recruitment campaigns or rewarding active inviters.",
     commands: [
@@ -941,7 +978,7 @@ const STATS_HELP_DATA: StatsHelpData[] = [
   {
     id: "rank_stats",
     name: "Rank Stats",
-    icon: "👑",
+    icon: "ðŸ‘‘",
     summary: "View statistics for admins and ranked members only",
     description: "This command displays activity statistics specifically for users who hold a rank in the group (owners, managers, VIPs).\n\nUseful for monitoring admin activity and ensuring ranked members are contributing to the group.",
     commands: [
@@ -955,7 +992,7 @@ const STATS_HELP_DATA: StatsHelpData[] = [
   {
     id: "custom_member",
     name: "Custom Member Count",
-    icon: "🔢",
+    icon: "ðŸ”¢",
     summary: "View statistics for a specific number of top members",
     description: "Use this command to view statistics for a custom number of top users. Specify the number of members you want to see in the statistics.\n\nFor example, 'Stats 30 mem' will show the top 30 most active members.",
     commands: [
@@ -969,7 +1006,7 @@ const STATS_HELP_DATA: StatsHelpData[] = [
   {
     id: "total_stats",
     name: "Total Stats",
-    icon: "📈",
+    icon: "ðŸ“ˆ",
     summary: "View all-time cumulative statistics for the group",
     description: "This command shows the total accumulated statistics since the bot was added to the group. Unlike regular stats which may be time-limited, this shows the complete picture of all activity.",
     commands: [
@@ -983,7 +1020,7 @@ const STATS_HELP_DATA: StatsHelpData[] = [
   {
     id: "weekly_stats",
     name: "Weekly Stats",
-    icon: "📅",
+    icon: "ðŸ“…",
     summary: "View statistics for the current week only",
     description: "This command shows activity statistics for the current week. Useful for tracking weekly performance and comparing activity across different time periods.",
     commands: [
@@ -997,7 +1034,7 @@ const STATS_HELP_DATA: StatsHelpData[] = [
   {
     id: "user_stats",
     name: "User Stats",
-    icon: "👤",
+    icon: "ðŸ‘¤",
     summary: "View detailed statistics for a specific user",
     description: "Reply to a user's message with this command to view their last 7 days of activity statistics. This provides a detailed breakdown of the user's contribution to the group.\n\nThis command requires replying to the target user's message.",
     commands: [
@@ -1011,7 +1048,7 @@ const STATS_HELP_DATA: StatsHelpData[] = [
   {
     id: "auto_stats",
     name: "Auto Stats Schedule",
-    icon: "⏰",
+    icon: "â°",
     summary: "Configure automatic stats posting at scheduled times",
     description: "Admins can enable automatic statistics posting. The bot will automatically send group statistics at the configured times.\n\nYou can set multiple schedules and the bot will post stats according to the configured intervals. Use RemAutoStats to disable a schedule.",
     commands: [
@@ -1026,7 +1063,7 @@ const STATS_HELP_DATA: StatsHelpData[] = [
   {
     id: "stats_status",
     name: "Stats Status",
-    icon: "ℹ️",
+    icon: "â„¹ï¸",
     summary: "View current auto stats configuration",
     description: "This command shows the current status of automatic statistics posting, including all configured schedules and their timing.",
     commands: [
@@ -1059,7 +1096,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "font",
     name: "Stylish Fonts",
-    icon: "🔤",
+    icon: "ðŸ”¤",
     summary: "Convert text to various stylish and decorative fonts",
     description: "Using this command, you can convert any text into beautiful and stylish fonts. The bot will display your text in multiple font variations that you can copy and use anywhere.",
     commands: [
@@ -1073,9 +1110,9 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "time",
     name: "Current Time",
-    icon: "🕐",
+    icon: "ðŸ•",
     summary: "Display the current time based on user's timezone",
-    description: "This command shows the current time. The time is displayed according to the user's configured timezone or the group's default timezone setting.\n\nAdmins can configure the default timezone in Advanced Settings → Timezone.",
+    description: "This command shows the current time. The time is displayed according to the user's configured timezone or the group's default timezone setting.\n\nAdmins can configure the default timezone in Advanced Settings â†’ Timezone.",
     commands: [
       { label: "Time", command: "!Time" },
       { label: "Alias", command: ".Time" },
@@ -1087,7 +1124,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "echo",
     name: "Echo Message",
-    icon: "📢",
+    icon: "ðŸ“¢",
     summary: "Echo/repeat a message through the bot",
     description: "The bot will repeat whatever text you send after the command. Useful for making announcements or repeating important messages.",
     commands: [
@@ -1101,7 +1138,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "news",
     name: "Latest News",
-    icon: "📰",
+    icon: "ðŸ“°",
     summary: "Get the latest news from reliable external sources",
     description: "Fetches and displays the latest news headlines from trusted and reliable external news sources. News is aggregated from reputable international news agencies only.",
     commands: [
@@ -1115,7 +1152,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "fortune",
     name: "Fortune/Horoscope",
-    icon: "🔮",
+    icon: "ðŸ”®",
     summary: "Get a random fortune or horoscope reading",
     description: "Receive a random fortune, daily horoscope, or inspirational message. Great for entertainment and adding some fun to your group.",
     commands: [
@@ -1129,7 +1166,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "bio",
     name: "User Bio",
-    icon: "📝",
+    icon: "ðŸ“",
     summary: "Set or view user biography/description",
     description: "View or set a custom biography for yourself or view another user's bio. Reply to a user's message to see their bio.",
     commands: [
@@ -1144,7 +1181,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "calendar",
     name: "Calendar/Date",
-    icon: "📅",
+    icon: "ðŸ“…",
     summary: "Display current date and calendar information",
     description: "Shows the current date in multiple calendar formats including Gregorian, Persian (Jalali/Shamsi), and Islamic (Hijri) calendars.",
     commands: [
@@ -1158,7 +1195,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "sticker",
     name: "Sticker Maker",
-    icon: "🎨",
+    icon: "ðŸŽ¨",
     summary: "Create custom stickers from images or text",
     description: "Create custom Telegram stickers. Reply to an image to convert it to a sticker, or use text to create text-based stickers.",
     commands: [
@@ -1172,7 +1209,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "azan",
     name: "Prayer Times",
-    icon: "🕌",
+    icon: "ðŸ•Œ",
     summary: "Get Islamic prayer times (Azan)",
     description: "Display the daily Islamic prayer times (Fajr, Dhuhr, Asr, Maghrib, Isha) based on location. Times are calculated for the configured city.",
     commands: [
@@ -1186,7 +1223,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "joke",
     name: "Random Joke",
-    icon: "😂",
+    icon: "ðŸ˜‚",
     summary: "Get a random joke for entertainment",
     description: "The bot will send a random joke to entertain the group. Jokes are clean and appropriate for all audiences.",
     commands: [
@@ -1200,7 +1237,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "poetry",
     name: "Random Poetry",
-    icon: "📜",
+    icon: "ðŸ“œ",
     summary: "Get a random poem or verse",
     description: "Receive a random poem, verse, or literary quote. Great for adding culture and beauty to your group conversations.",
     commands: [
@@ -1214,7 +1251,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "translate",
     name: "Translation",
-    icon: "🌐",
+    icon: "ðŸŒ",
     summary: "Translate text between languages",
     description: "Translate text from one language to another. Specify the target language code followed by the text to translate, or reply to a message to translate it.",
     commands: [
@@ -1222,14 +1259,14 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
       { label: "Alias", command: "!Tr &lt;lang&gt; &lt;text&gt;" },
     ],
     examples: [
-      { description: "Translate to English", command: "!Translate en سلام" },
+      { description: "Translate to English", command: "!Translate en Ø³Ù„Ø§Ù…" },
       { description: "Translate to Persian", command: "!Tr fa Hello" },
     ],
   },
   {
     id: "id",
     name: "User/Chat ID",
-    icon: "🆔",
+    icon: "ðŸ†”",
     summary: "Get user ID or chat ID information",
     description: "Display the numeric Telegram ID of a user or the current chat. Reply to a user's message to get their ID, or use without reply to get your own ID and the chat ID.",
     commands: [
@@ -1243,7 +1280,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "currency",
     name: "Currency Rates",
-    icon: "💰",
+    icon: "ðŸ’°",
     summary: "Get live currency exchange rates",
     description: "Display current exchange rates for major currencies including USD, EUR, GBP, and more. Rates are fetched from reliable financial sources.",
     commands: [
@@ -1257,7 +1294,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "info",
     name: "User/Chat Info",
-    icon: "ℹ️",
+    icon: "â„¹ï¸",
     summary: "Get detailed information about user or chat",
     description: "Display detailed information about a user including their name, username, ID, and group membership status. Reply to a user's message to get their info.",
     commands: [
@@ -1271,7 +1308,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "joindate",
     name: "Join Date",
-    icon: "📆",
+    icon: "ðŸ“†",
     summary: "View when a user joined the group",
     description: "Shows the date and time when a user first joined the group. Reply to a user's message to see their join date, or use without reply to see your own.",
     commands: [
@@ -1285,7 +1322,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "origin",
     name: "User Origin",
-    icon: "🔍",
+    icon: "ðŸ”",
     summary: "Check how a user joined the group",
     description: "Shows the origin/source of how a user joined the group (via invite link, added by another user, joined directly, etc.).",
     commands: [
@@ -1299,7 +1336,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "tag",
     name: "Tag Users",
-    icon: "🏷️",
+    icon: "ðŸ·ï¸",
     summary: "Tag/mention multiple users at once",
     description: "Mention multiple users or groups of users. Can tag all members, admins only, or specific roles. Useful for important announcements.",
     commands: [
@@ -1314,7 +1351,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "nickname",
     name: "Nickname",
-    icon: "👤",
+    icon: "ðŸ‘¤",
     summary: "Set or view user nicknames",
     description: "Assign a custom nickname to a user that will be displayed by the bot. Reply to a user to set their nickname or view existing nicknames.",
     commands: [
@@ -1330,7 +1367,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "profile",
     name: "User Profile",
-    icon: "👥",
+    icon: "ðŸ‘¥",
     summary: "View detailed user profile card",
     description: "Display a comprehensive profile card for a user including their photo, name, bio, activity statistics, join date, and group rank.",
     commands: [
@@ -1344,7 +1381,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "meaning",
     name: "Word Meaning",
-    icon: "📖",
+    icon: "ðŸ“–",
     summary: "Get the definition/meaning of a word",
     description: "Look up the dictionary definition of any word. Supports multiple languages and provides detailed explanations with examples.",
     commands: [
@@ -1358,7 +1395,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "rules",
     name: "Group Rules",
-    icon: "📋",
+    icon: "ðŸ“‹",
     summary: "Display or set group rules",
     description: "View the current group rules, or admins can set/update the rules. The rules message will be pinned or sent as needed.",
     commands: [
@@ -1372,7 +1409,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "pin",
     name: "Pin Message",
-    icon: "📌",
+    icon: "ðŸ“Œ",
     summary: "Pin a message to the group",
     description: "Pin a message so it stays at the top of the chat. Reply to any message and use this command to pin it. Only admins can use this command.",
     commands: [
@@ -1386,7 +1423,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "getlink",
     name: "Get Invite Link",
-    icon: "🔗",
+    icon: "ðŸ”—",
     summary: "Get the group's invite link",
     description: "Generate or retrieve the group's invite link that can be shared with others to join the group. Only admins can generate new links.",
     commands: [
@@ -1400,7 +1437,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "weather",
     name: "Weather",
-    icon: "🌤️",
+    icon: "ðŸŒ¤ï¸",
     summary: "Get weather information for a city",
     description: "Display current weather conditions and forecast for any city. Shows temperature, humidity, wind speed, and weather description.",
     commands: [
@@ -1415,7 +1452,7 @@ const ENTERTAINMENT_HELP_DATA: EntertainmentHelpData[] = [
   {
     id: "setphoto",
     name: "Photo Settings",
-    icon: "🖼️",
+    icon: "ðŸ–¼ï¸",
     summary: "Adjust or set photo/image settings",
     description: "Configure photo-related settings for the group or set a profile photo. Reply to an image to set it as the group photo (admin only).",
     commands: [
@@ -1432,7 +1469,7 @@ const MANDATORY_ADD_HELP_DATA: HelpItemConfig[] = [
   {
     id: "config",
     name: "Configuration",
-    icon: "⚙️",
+    icon: "âš™ï¸",
     summary: "Enable and configure Mandatory Add",
     description: "Commands to enable/disable the feature and set the number of invites required.",
     commands: [
@@ -1449,7 +1486,7 @@ const MANDATORY_ADD_HELP_DATA: HelpItemConfig[] = [
   {
     id: "message",
     name: "Message Customization",
-    icon: "📝",
+    icon: "ðŸ“",
     summary: "Customize the warning message",
     description: "Set a custom message to be displayed when a user tries to speak without meeting invite requirements.",
     commands: [
@@ -1463,7 +1500,7 @@ const MANDATORY_ADD_HELP_DATA: HelpItemConfig[] = [
   {
     id: "management",
     name: "Management & Info",
-    icon: "📊",
+    icon: "ðŸ“Š",
     summary: "Manage records and check status",
     description: "View status, check user invites, and clean up Old/All add records.",
     commands: [
@@ -1479,7 +1516,7 @@ const MANDATORY_MEMBERSHIP_HELP_DATA: HelpItemConfig[] = [
   {
     id: "config",
     name: "Configuration",
-    icon: "⚙️",
+    icon: "âš™ï¸",
     summary: "Enable and configure Force Join",
     description: "Commands to enable/disable mandatory channel membership.",
     commands: [
@@ -1492,7 +1529,7 @@ const MANDATORY_MEMBERSHIP_HELP_DATA: HelpItemConfig[] = [
   {
     id: "message",
     name: "Message Customization",
-    icon: "📝",
+    icon: "ðŸ“",
     summary: "Customize the warning message",
     description: "Set the message shown to users who haven't joined the channel.",
     commands: [
@@ -1508,46 +1545,46 @@ const MANDATORY_MEMBERSHIP_HELP_DATA: HelpItemConfig[] = [
 const INLINE_LIST_CONFIGS: InlineListConfig[] = [
   {
     id: "owners",
-    title: "👑 Owners",
+    title: "ðŸ‘‘ Owners",
     supportsAdd: false,
     description: "Group owners/creators. This shows all users with 'creator' status in this group."
   },
   {
     id: "admins",
-    title: "👥 Admins",
+    title: "ðŸ‘¥ Admins",
     supportsAdd: false,
     description: "Group administrators. Users with admin permissions who can manage the group."
   },
   {
     id: "vip",
-    title: "⭐ VIP Members",
+    title: "â­ VIP Members",
     supportsAdd: true,
     commandUsage: "!vip <username> or !vip <user_id>",
     commandExample: "!vip @john or !vip 123456789",
-    addPrompt: "Send user ID or @username to add as VIP.\n\n💡 VIP members bypass all content restrictions.",
+    addPrompt: "Send user ID or @username to add as VIP.\n\nðŸ’¡ VIP members bypass all content restrictions.",
     description: "VIP users who bypass ALL content filtering rules. Their messages are never deleted or restricted."
   },
   {
     id: "muted",
-    title: "🔇 Muted",
+    title: "ðŸ”‡ Muted",
     supportsAdd: true,
     commandUsage: "!mute <hours> (reply to user)",
     commandExample: "!mute 24",
-    addPrompt: "Send User ID to mute (permanently).\n\n⚠️ Note: Only User IDs are supported currently.",
+    addPrompt: "Send User ID to mute (permanently).\n\nâš ï¸ Note: Only User IDs are supported currently.",
     description: "Users who have been muted via !mute command. They cannot send messages until the mute expires."
   },
   {
     id: "banned",
-    title: "🚫 Banned",
+    title: "ðŸš« Banned",
     supportsAdd: true,
     commandUsage: "!ban <hours> (reply to user)",
     commandExample: "!ban 1",
-    addPrompt: "Send User ID to ban.\n\n⚠️ Note: Only User IDs are supported currently.",
+    addPrompt: "Send User ID to ban.\n\nâš ï¸ Note: Only User IDs are supported currently.",
     description: "Users who have been banned via !ban command. They are removed from the group and cannot rejoin."
   },
   {
     id: "warnings",
-    title: "⚠️ Warnings",
+    title: "âš ï¸ Warnings",
     supportsAdd: false,
     commandUsage: "!reset (reply to user)",
     commandExample: "!reset",
@@ -1555,25 +1592,25 @@ const INLINE_LIST_CONFIGS: InlineListConfig[] = [
   },
   {
     id: "exempt",
-    title: "✅ Exempt",
+    title: "âœ… Exempt",
     supportsAdd: true,
     commandUsage: "!exempt <username> or !exempt <user_id>",
     commandExample: "!exempt @john",
-    addPrompt: "Send user ID or @username to exempt from rules.\n\n💡 Exempt users are not affected by content restrictions.",
+    addPrompt: "Send user ID or @username to exempt from rules.\n\nðŸ’¡ Exempt users are not affected by content restrictions.",
     description: "Users exempt from content filtering. Unlike VIP, they still receive warnings but messages aren't deleted."
   },
   {
     id: "filters",
-    title: "🚷 Filtered Keywords",
+    title: "ðŸš· Filtered Keywords",
     supportsAdd: true,
     commandUsage: "!filter <word>",
     commandExample: "!filter spam",
-    addPrompt: "Send word(s) to filter.\n\n📝 Format:\n• Single: spam\n• Multiple: spam,scam,fake",
+    addPrompt: "Send word(s) to filter.\n\nðŸ“ Format:\nâ€¢ Single: spam\nâ€¢ Multiple: spam,scam,fake",
     description: "Blacklisted words that will be detected and messages containing them will be deleted."
   },
   {
     id: "whitelist",
-    title: "✔️ Allowed Keywords",
+    title: "âœ”ï¸ Allowed Keywords",
     supportsAdd: true,
     commandUsage: "!whitelist (reply to message)",
     commandExample: "Reply to a message and send !whitelist",
@@ -1582,7 +1619,7 @@ const INLINE_LIST_CONFIGS: InlineListConfig[] = [
   },
   {
     id: "forward_whitelist",
-    title: "↪️ Allowed Forwards",
+    title: "â†ªï¸ Allowed Forwards",
     supportsAdd: true,
     commandUsage: "!allowforward <channel>",
     commandExample: "!allowforward @mychannel",
@@ -1591,20 +1628,20 @@ const INLINE_LIST_CONFIGS: InlineListConfig[] = [
   },
   {
     id: "auto_replies",
-    title: "🤖 Auto Replies",
+    title: "ðŸ¤– Auto Replies",
     supportsAdd: true,
     commandUsage: "Inline Panel",
-    commandExample: "Use ➕ Add button below",
-    addPrompt: "📝 **Step 1/2: Enter Trigger Keyword**\n\nSend the keyword/phrase that will trigger this auto-reply.\n\nExample: `hello` or `price`",
+    commandExample: "Use âž• Add button below",
+    addPrompt: "ðŸ“ **Step 1/2: Enter Trigger Keyword**\n\nSend the keyword/phrase that will trigger this auto-reply.\n\nExample: `hello` or `price`",
     description: "Automatic responses to specific keywords or phrases."
   },
   {
     id: "scheduled_posts",
-    title: "⏰ Scheduled Posts",
+    title: "â° Scheduled Posts",
     supportsAdd: true,
     commandUsage: "Inline Panel",
-    commandExample: "Use ➕ Add button below",
-    addPrompt: "📝 **Step 1/2: Enter Message**\n\nSend the message content you want to schedule.\n\nYou can include text, emojis, etc.",
+    commandExample: "Use âž• Add button below",
+    addPrompt: "ðŸ“ **Step 1/2: Enter Message**\n\nSend the message content you want to schedule.\n\nYou can include text, emojis, etc.",
     description: "Posts scheduled to be sent automatically at specific times."
   },
 ];
@@ -1875,7 +1912,7 @@ function buildStartKeyboard(): InlineKeyboard {
         : Markup.button.callback(label("start_channel", content.buttons.channel), actionId("channel"))
     ],
     [
-      Markup.button.callback("❓ Help", "fw_inline_help:global"),
+      Markup.button.callback("â“ Help", "fw_inline_help:global"),
       Markup.button.callback(label("start_info", content.buttons.info), actionId("info"))
     ]
   ]);
@@ -1937,29 +1974,29 @@ function ownerNavigationRow() {
 
 function buildOwnerPanelKeyboard(): InlineKeyboard {
   return Markup.inlineKeyboard([
-    [Markup.button.callback("👥 Panel Administrators", actionId("ownerManageAdmins"))],
-    [Markup.button.callback("🏢 Group Management", actionId("ownerManageGroup"))],
-    [Markup.button.callback("💳 Credit Adjustment", actionId("ownerAdjustCredit"))],
-    [Markup.button.callback("🎁 Generate Credit Codes", actionId("ownerCreditCodes"))],
-    [Markup.button.callback("⭐ Reconcile Stars", actionId("ownerReconcileStars"))],
-    [Markup.button.callback("📢 Broadcast Messages", actionId("ownerBroadcast"))],
-    [Markup.button.callback("📣 Send Ad Banner (Free Groups)", actionId("ownerAdBanner"))],
-    [Markup.button.callback("📊 Global Statistics", actionId("ownerStatistics"))],
-    [Markup.button.callback("⚙️ Global Configuration", actionId("ownerSettings"))],
-    [Markup.button.callback("🛡️ Firewall Rules", actionId("ownerFirewallMenu"))],
-    [Markup.button.callback("📋 Daily Task Channel", actionId("ownerDailyTask"))],
-    [Markup.button.callback("🎨 Promo Slider", actionId("ownerSliderMenu"))],
-    [Markup.button.callback("🚫 User Ban Management", actionId("ownerBanMenu"))],
-    [Markup.button.callback("🔴 Reset Bot Completely", actionId("ownerResetBot"))],
+    [Markup.button.callback("ðŸ‘¥ Panel Administrators", actionId("ownerManageAdmins"))],
+    [Markup.button.callback("ðŸ¢ Group Management", actionId("ownerManageGroup"))],
+    [Markup.button.callback("ðŸ’³ Credit Adjustment", actionId("ownerAdjustCredit"))],
+    [Markup.button.callback("ðŸŽ Generate Credit Codes", actionId("ownerCreditCodes"))],
+    [Markup.button.callback("â­ Reconcile Stars", actionId("ownerReconcileStars"))],
+    [Markup.button.callback("ðŸ“¢ Broadcast Messages", actionId("ownerBroadcast"))],
+    [Markup.button.callback("ðŸ“£ Send Ad Banner (Free Groups)", actionId("ownerAdBanner"))],
+    [Markup.button.callback("ðŸ“Š Global Statistics", actionId("ownerStatistics"))],
+    [Markup.button.callback("âš™ï¸ Global Configuration", actionId("ownerSettings"))],
+    [Markup.button.callback("ðŸ›¡ï¸ Firewall Rules", actionId("ownerFirewallMenu"))],
+    [Markup.button.callback("ðŸ“‹ Daily Task Channel", actionId("ownerDailyTask"))],
+    [Markup.button.callback("ðŸŽ¨ Promo Slider", actionId("ownerSliderMenu"))],
+    [Markup.button.callback("ðŸš« User Ban Management", actionId("ownerBanMenu"))],
+    [Markup.button.callback("ðŸ”´ Reset Bot Completely", actionId("ownerResetBot"))],
     ownerNavigationRow()
   ]);
 }
 
 function buildCreditCodesKeyboard(): InlineKeyboard {
   return Markup.inlineKeyboard([
-    [Markup.button.callback("➕ Create Credit Code", actionId("ownerCreateCreditCode"))],
-    [Markup.button.callback("📋 List Credit Codes", actionId("ownerListCreditCodes"))],
-    [Markup.button.callback("🗑️ Delete Credit Code", actionId("ownerDeleteCreditCode"))],
+    [Markup.button.callback("âž• Create Credit Code", actionId("ownerCreateCreditCode"))],
+    [Markup.button.callback("ðŸ“‹ List Credit Codes", actionId("ownerListCreditCodes"))],
+    [Markup.button.callback("ðŸ—‘ï¸ Delete Credit Code", actionId("ownerDeleteCreditCode"))],
     ownerNavigationRow()
   ]);
 }
@@ -2017,8 +2054,8 @@ function buildOwnerBanKeyboard(): InlineKeyboard {
 function buildAdBannerConfirmKeyboard(): InlineKeyboard {
   return Markup.inlineKeyboard([
     [
-      Markup.button.callback("✅ Yes, Send to All", actionId("ownerAdBannerConfirm")),
-      Markup.button.callback("❌ Cancel", actionId("ownerAdBannerCancel"))
+      Markup.button.callback("âœ… Yes, Send to All", actionId("ownerAdBannerConfirm")),
+      Markup.button.callback("âŒ Cancel", actionId("ownerAdBannerCancel"))
     ],
     ownerNavigationRow()
   ]);
@@ -2026,8 +2063,8 @@ function buildAdBannerConfirmKeyboard(): InlineKeyboard {
 
 function buildOwnerAdminsKeyboard(): InlineKeyboard {
   return Markup.inlineKeyboard([
-    [Markup.button.callback("➕ Add Admin", actionId("ownerAddAdmin"))],
-    [Markup.button.callback("➖ Remove Admin", actionId("ownerRemoveAdmin"))],
+    [Markup.button.callback("âž• Add Admin", actionId("ownerAddAdmin"))],
+    [Markup.button.callback("âž– Remove Admin", actionId("ownerRemoveAdmin"))],
     ownerNavigationRow()
   ]);
 }
@@ -2074,75 +2111,75 @@ async function auditCreditAdjustment(params: {
 
 function buildBanNavigationKeyboard(): InlineKeyboard {
   return Markup.inlineKeyboard([
-    [Markup.button.callback("➕ Ban User", actionId("ownerBanAdd"))],
-    [Markup.button.callback("➖ Unban User", actionId("ownerBanRemove"))],
-    [Markup.button.callback("📋 View Ban List", actionId("ownerBanList"))],
-    [Markup.button.callback("🔙 Back to Panel", actionId("ownerBackToPanel"))],
+    [Markup.button.callback("âž• Ban User", actionId("ownerBanAdd"))],
+    [Markup.button.callback("âž– Unban User", actionId("ownerBanRemove"))],
+    [Markup.button.callback("ðŸ“‹ View Ban List", actionId("ownerBanList"))],
+    [Markup.button.callback("ðŸ”™ Back to Panel", actionId("ownerBackToPanel"))],
   ]);
 }
 
 const ownerMessages = {
   panelIntro:
-    "🎛️ <b>Owner Control Panel</b>\n\nWelcome to your private management center. From here you can control all aspects of your Firewall bot:\n\n• 👥 Manage administrators\n• 🏢 Control groups & billing\n• 🎁 Generate credit codes\n• 📢 Send broadcasts\n• ⚙️ Configure global settings",
+    "ðŸŽ›ï¸ <b>Owner Control Panel</b>\n\nWelcome to your private management center. From here you can control all aspects of your Firewall bot:\n\nâ€¢ ðŸ‘¥ Manage administrators\nâ€¢ ðŸ¢ Control groups & billing\nâ€¢ ðŸŽ Generate credit codes\nâ€¢ ðŸ“¢ Send broadcasts\nâ€¢ âš™ï¸ Configure global settings",
   adminsIntro:
-    "👥 <b>Panel Administrators</b>\n\nManage who has access to your bot's dashboard. Choose an action below:",
-  addAdmin: "➕ <b>Add Panel Administrator</b>\n\nSend the numeric Telegram user ID of the person you want to promote to admin.\n\n<i>Example: 123456789</i>",
-  removeAdmin: "➖ <b>Remove Panel Administrator</b>\n\nSend the numeric Telegram user ID of the admin you want to remove from the panel.\n\n<i>Example: 123456789</i>",
-  manageGroup: "🏢 <b>Group Management</b>\n\nEnter the target chat ID to open the management session for that specific group.\n\n<i>Example: -1001234567890</i>",
+    "ðŸ‘¥ <b>Panel Administrators</b>\n\nManage who has access to your bot's dashboard. Choose an action below:",
+  addAdmin: "âž• <b>Add Panel Administrator</b>\n\nSend the numeric Telegram user ID of the person you want to promote to admin.\n\n<i>Example: 123456789</i>",
+  removeAdmin: "âž– <b>Remove Panel Administrator</b>\n\nSend the numeric Telegram user ID of the admin you want to remove from the panel.\n\n<i>Example: 123456789</i>",
+  manageGroup: "ðŸ¢ <b>Group Management</b>\n\nEnter the target chat ID to open the management session for that specific group.\n\n<i>Example: -1001234567890</i>",
   creditIntro:
-    "💳 <b>Manual Credit Adjustment</b>\n\nChoose whether you want to increase or decrease the credit balance for a specific group:",
-  increaseCredit: "➕ <b>Increase Group Credit</b>\n\nSend the chat ID and the amount to add, separated by a space.\n\n<i>Example: -1001234567890 7</i>\n\n💡 This will add 7 days of credit to the group.",
-  decreaseCredit: "➖ <b>Decrease Group Credit</b>\n\nSend the chat ID and the amount to deduct, separated by a space.\n\n<i>Example: -1001234567890 3</i>\n\n⚠️ This will remove 3 days of credit from the group.",
+    "ðŸ’³ <b>Manual Credit Adjustment</b>\n\nChoose whether you want to increase or decrease the credit balance for a specific group:",
+  increaseCredit: "âž• <b>Increase Group Credit</b>\n\nSend the chat ID and the amount to add, separated by a space.\n\n<i>Example: -1001234567890 7</i>\n\nðŸ’¡ This will add 7 days of credit to the group.",
+  decreaseCredit: "âž– <b>Decrease Group Credit</b>\n\nSend the chat ID and the amount to deduct, separated by a space.\n\n<i>Example: -1001234567890 3</i>\n\nâš ï¸ This will remove 3 days of credit from the group.",
   broadcast:
-    "📢 <b>Broadcast Message</b>\n\nSend the message you want to deliver to all active groups. The bot will ask for confirmation before broadcasting.\n\n💡 <i>Use HTML formatting for better presentation</i>",
-  statistics: "📊 <b>Global Statistics</b>\n\nHere are the latest metrics for your bot's performance and usage:",
-  settingsIntro: "⚙️ <b>Global Configuration</b>\n\nSelect the parameter you want to configure:",
-  settingsFreeDays: "📅 <b>Free Trial Days</b>\n\nSend the new number of free days that groups receive after activation.\n\n<i>Current setting will be replaced with your input.</i>",
-  settingsStars: "⭐ <b>Monthly Stars Quota</b>\n\nSend the monthly Stars allowance that each group should get.\n\n<i>This affects the Stars balance for all groups.</i>",
+    "ðŸ“¢ <b>Broadcast Message</b>\n\nSend the message you want to deliver to all active groups. The bot will ask for confirmation before broadcasting.\n\nðŸ’¡ <i>Use HTML formatting for better presentation</i>",
+  statistics: "ðŸ“Š <b>Global Statistics</b>\n\nHere are the latest metrics for your bot's performance and usage:",
+  settingsIntro: "âš™ï¸ <b>Global Configuration</b>\n\nSelect the parameter you want to configure:",
+  settingsFreeDays: "ðŸ“… <b>Free Trial Days</b>\n\nSend the new number of free days that groups receive after activation.\n\n<i>Current setting will be replaced with your input.</i>",
+  settingsStars: "â­ <b>Monthly Stars Quota</b>\n\nSend the monthly Stars allowance that each group should get.\n\n<i>This affects the Stars balance for all groups.</i>",
   settingsWelcomeMessages:
-    "👋 <b>Welcome Messages</b>\n\nSend up to four welcome texts, one per message. The bot will replace the stored templates in order.\n\n<i>Use HTML formatting for better presentation.</i>",
-  settingsGpidHelp: "🆔 <b>GPID Help Text</b>\n\nProvide the helper text that explains how to find the group GPID.\n\n<i>This message helps users locate their group identifier.</i>",
+    "ðŸ‘‹ <b>Welcome Messages</b>\n\nSend up to four welcome texts, one per message. The bot will replace the stored templates in order.\n\n<i>Use HTML formatting for better presentation.</i>",
+  settingsGpidHelp: "ðŸ†” <b>GPID Help Text</b>\n\nProvide the helper text that explains how to find the group GPID.\n\n<i>This message helps users locate their group identifier.</i>",
   settingsLabels:
-    "🏷️ <b>Button Labels</b>\n\nSend the updated labels for all buttons as a JSON object.\n\n<i>Example: {\"start_add_to_group\":\"➕ Add Bot\",\"owner_nav_back\":\"🔙 Back\"}</i>",
+    "ðŸ·ï¸ <b>Button Labels</b>\n\nSend the updated labels for all buttons as a JSON object.\n\n<i>Example: {\"start_add_to_group\":\"âž• Add Bot\",\"owner_nav_back\":\"ðŸ”™ Back\"}</i>",
   settingsChannelText:
-    "📢 <b>Channel Announcement Text</b>\n\nSend the announcement template that should appear when the channel button is used.\n\n<i>Use placeholders like {user} and {group} for personalization.</i>",
+    "ðŸ“¢ <b>Channel Announcement Text</b>\n\nSend the announcement template that should appear when the channel button is used.\n\n<i>Use placeholders like {user} and {group} for personalization.</i>",
   settingsInfoCommands:
-    "ℹ️ <b>Info and Commands Text</b>\n\nShare the combined Info and Commands message that should be shown to users.\n\n<i>This appears when users tap the Info button.</i>",
-  creditCodesIntro: "🎁 <b>Credit Code Management</b>\n\nGenerate and manage credit codes for your users. These codes can be used to add days to group subscriptions:",
-  createCreditCode: "➕ <b>Create New Credit Code</b>\n\nSend the details in this format:\n<code>DAYS MAX_USES [EXPIRES_IN_DAYS]</code>\n\n<b>Examples:</b>\n• <code>7 100</code> - 7 days, 100 uses, no expiry\n• <code>30 50 90</code> - 30 days, 50 uses, expires in 90 days\n• <code>14 1</code> - 14 days, single use, no expiry",
-  creditCodesList: "📋 <b>Active Credit Codes</b>\n\nHere are your current credit codes:",
-  creditCodesEmpty: "📋 No credit codes have been created yet.",
-  creditCodeCreated: "✅ <b>Credit Code Created Successfully!</b>",
-  creditCodeDeleted: "🗑️ Credit code deleted successfully.",
-  creditCodeNotFound: "❌ Credit code not found.",
-  sliderIntro: `🎨 <b>Promo Slider Control</b>\n\nManage the slides displayed in the dashboard carousel.\n\n<i>Recommended image size: ${REQUIRED_SLIDE_WIDTH}x${REQUIRED_SLIDE_HEIGHT}px</i>`,
-  sliderViewEmpty: "📭 <b>No promo slides configured yet</b>\n\nUse \"Add Slide\" to upload the first banner and start engaging your users.",
-  sliderViewHeader: "🎨 <b>Current Promo Slides:</b>",
-  sliderAddPromptPhoto: `📸 <b>Upload Promo Image</b>\n\nSend a high-quality photo (recommended ${REQUIRED_SLIDE_WIDTH}x${REQUIRED_SLIDE_HEIGHT}px).\n\n<i>The bot will crop and compress it automatically.</i>`,
-  sliderAwaitLink: "🔗 <b>Add Slide Link</b>\n\nGreat! Now send the HTTPS link that should open when users tap the slide.\n\n<i>Make sure the link is accessible and relevant.</i>",
+    "â„¹ï¸ <b>Info and Commands Text</b>\n\nShare the combined Info and Commands message that should be shown to users.\n\n<i>This appears when users tap the Info button.</i>",
+  creditCodesIntro: "ðŸŽ <b>Credit Code Management</b>\n\nGenerate and manage credit codes for your users. These codes can be used to add days to group subscriptions:",
+  createCreditCode: "âž• <b>Create New Credit Code</b>\n\nSend the details in this format:\n<code>DAYS MAX_USES [EXPIRES_IN_DAYS]</code>\n\n<b>Examples:</b>\nâ€¢ <code>7 100</code> - 7 days, 100 uses, no expiry\nâ€¢ <code>30 50 90</code> - 30 days, 50 uses, expires in 90 days\nâ€¢ <code>14 1</code> - 14 days, single use, no expiry",
+  creditCodesList: "ðŸ“‹ <b>Active Credit Codes</b>\n\nHere are your current credit codes:",
+  creditCodesEmpty: "ðŸ“‹ No credit codes have been created yet.",
+  creditCodeCreated: "âœ… <b>Credit Code Created Successfully!</b>",
+  creditCodeDeleted: "ðŸ—‘ï¸ Credit code deleted successfully.",
+  creditCodeNotFound: "âŒ Credit code not found.",
+  sliderIntro: `ðŸŽ¨ <b>Promo Slider Control</b>\n\nManage the slides displayed in the dashboard carousel.\n\n<i>Recommended image size: ${REQUIRED_SLIDE_WIDTH}x${REQUIRED_SLIDE_HEIGHT}px</i>`,
+  sliderViewEmpty: "ðŸ“­ <b>No promo slides configured yet</b>\n\nUse \"Add Slide\" to upload the first banner and start engaging your users.",
+  sliderViewHeader: "ðŸŽ¨ <b>Current Promo Slides:</b>",
+  sliderAddPromptPhoto: `ðŸ“¸ <b>Upload Promo Image</b>\n\nSend a high-quality photo (recommended ${REQUIRED_SLIDE_WIDTH}x${REQUIRED_SLIDE_HEIGHT}px).\n\n<i>The bot will crop and compress it automatically.</i>`,
+  sliderAwaitLink: "ðŸ”— <b>Add Slide Link</b>\n\nGreat! Now send the HTTPS link that should open when users tap the slide.\n\n<i>Make sure the link is accessible and relevant.</i>",
   sliderDimensionsMismatch:
-    `⚠️ <b>Image Size Notice</b>\n\nFor best results, upload at least ${REQUIRED_SLIDE_WIDTH}x${REQUIRED_SLIDE_HEIGHT}px.\n\n<i>Smaller images will be upscaled automatically but may lose quality.</i>`,
-  sliderLinkInvalid: "❌ <b>Invalid Link</b>\n\nPlease send a valid HTTPS link pointing to an approved domain.",
-  sliderMissingPhoto: "⚠️ <b>No Image Pending</b>\n\nNo image is pending. Please start again by sending the promo photo first.",
-  sliderRemovePrompt: "🗑️ <b>Remove Slide</b>\n\nSend the slide ID you want to remove.\n\n<i>Example: promo-001</i>",
-  sliderRemoveMissing: "❌ <b>Slide Not Found</b>\n\nNo slide matches that ID. Check the list and try again.",
+    `âš ï¸ <b>Image Size Notice</b>\n\nFor best results, upload at least ${REQUIRED_SLIDE_WIDTH}x${REQUIRED_SLIDE_HEIGHT}px.\n\n<i>Smaller images will be upscaled automatically but may lose quality.</i>`,
+  sliderLinkInvalid: "âŒ <b>Invalid Link</b>\n\nPlease send a valid HTTPS link pointing to an approved domain.",
+  sliderMissingPhoto: "âš ï¸ <b>No Image Pending</b>\n\nNo image is pending. Please start again by sending the promo photo first.",
+  sliderRemovePrompt: "ðŸ—‘ï¸ <b>Remove Slide</b>\n\nSend the slide ID you want to remove.\n\n<i>Example: promo-001</i>",
+  sliderRemoveMissing: "âŒ <b>Slide Not Found</b>\n\nNo slide matches that ID. Check the list and try again.",
   dailyTaskIntro:
-    "📋 <b>Daily Task Channel</b>\n\nShare a channel mission in the daily checklist.\n\n⚠️ <i>Make sure the bot is already an admin before you send the invite link.</i>",
-  dailyTaskPromptLink: "🔗 <b>Channel Invite Link</b>\n\nSend the public invite link of the channel.\n\n<i>Example: https://t.me/firewall_channel</i>\n\n⚠️ The bot must already be an administrator.",
-  dailyTaskLinkInvalid: "❌ <b>Invalid Link</b>\n\nThe link must start with https://t.me/ or t.me/.\n\n<i>Please double-check that the bot is an admin and send a valid public link.</i>",
-  dailyTaskPromptButton: '🏷️ <b>Button Label</b>\n\nGreat! Now send the button label you want users to see.\n\n<i>Example: "Join Security Briefings"</i>',
-  dailyTaskButtonInvalid: "❌ <b>Invalid Button Label</b>\n\nThe button label cannot be empty. Please send a short call-to-action.",
-  dailyTaskPromptDescription: '📝 <b>Mission Description</b>\n\nSend the description text that will appear under the mission.\n\n<i>Example: "Watch the daily hardening tips in Command Center"</i>',
-  dailyTaskDescriptionInvalid: "❌ <b>Invalid Description</b>\n\nPlease send a short description for the mission.",
-  dailyTaskPromptXp: "⭐ <b>XP Reward</b>\n\nFinally, send the XP reward (positive integer).\n\n<i>Recommended: 20-50 XP for daily tasks</i>",
-  dailyTaskXpInvalid: "❌ <b>Invalid XP Value</b>\n\nPlease send a positive integer value for XP reward.",
-  dailyTaskSaved: "✅ <b>Daily Task Saved</b>\n\nDaily task channel saved successfully!\n\n<i>Reload the missions dashboard to see the new button.</i>",
-  banIntro: "🚫 <b>Ban List Management</b>\n\nBlock or unblock users from accessing the panel.\n\n<i>Banned users cannot access any panel features.</i>",
-  banAddPrompt: "➕ <b>Ban User</b>\n\nSend the numeric Telegram user ID that should be banned.\n\n<i>Example: 123456789</i>",
-  banRemovePrompt: "➖ <b>Unban User</b>\n\nSend the numeric Telegram user ID that should be removed from the ban list.\n\n<i>Example: 123456789</i>",
-  banListEmpty: "📋 <b>Ban List Empty</b>\n\nThe ban list is currently empty. No users are banned.",
-  banListHeader: "🚫 <b>Banned Users:</b>",
-  banNotFound: "❌ <b>User Not Found</b>\n\nThat user ID is not currently banned. Check the list and try again."
+    "ðŸ“‹ <b>Daily Task Channel</b>\n\nShare a channel mission in the daily checklist.\n\nâš ï¸ <i>Make sure the bot is already an admin before you send the invite link.</i>",
+  dailyTaskPromptLink: "ðŸ”— <b>Channel Invite Link</b>\n\nSend the public invite link of the channel.\n\n<i>Example: https://t.me/firewall_channel</i>\n\nâš ï¸ The bot must already be an administrator.",
+  dailyTaskLinkInvalid: "âŒ <b>Invalid Link</b>\n\nThe link must start with https://t.me/ or t.me/.\n\n<i>Please double-check that the bot is an admin and send a valid public link.</i>",
+  dailyTaskPromptButton: 'ðŸ·ï¸ <b>Button Label</b>\n\nGreat! Now send the button label you want users to see.\n\n<i>Example: "Join Security Briefings"</i>',
+  dailyTaskButtonInvalid: "âŒ <b>Invalid Button Label</b>\n\nThe button label cannot be empty. Please send a short call-to-action.",
+  dailyTaskPromptDescription: 'ðŸ“ <b>Mission Description</b>\n\nSend the description text that will appear under the mission.\n\n<i>Example: "Watch the daily hardening tips in Command Center"</i>',
+  dailyTaskDescriptionInvalid: "âŒ <b>Invalid Description</b>\n\nPlease send a short description for the mission.",
+  dailyTaskPromptXp: "â­ <b>XP Reward</b>\n\nFinally, send the XP reward (positive integer).\n\n<i>Recommended: 20-50 XP for daily tasks</i>",
+  dailyTaskXpInvalid: "âŒ <b>Invalid XP Value</b>\n\nPlease send a positive integer value for XP reward.",
+  dailyTaskSaved: "âœ… <b>Daily Task Saved</b>\n\nDaily task channel saved successfully!\n\n<i>Reload the missions dashboard to see the new button.</i>",
+  banIntro: "ðŸš« <b>Ban List Management</b>\n\nBlock or unblock users from accessing the panel.\n\n<i>Banned users cannot access any panel features.</i>",
+  banAddPrompt: "âž• <b>Ban User</b>\n\nSend the numeric Telegram user ID that should be banned.\n\n<i>Example: 123456789</i>",
+  banRemovePrompt: "âž– <b>Unban User</b>\n\nSend the numeric Telegram user ID that should be removed from the ban list.\n\n<i>Example: 123456789</i>",
+  banListEmpty: "ðŸ“‹ <b>Ban List Empty</b>\n\nThe ban list is currently empty. No users are banned.",
+  banListHeader: "ðŸš« <b>Banned Users:</b>",
+  banNotFound: "âŒ <b>User Not Found</b>\n\nThat user ID is not currently banned. Check the list and try again."
 };
 
 const firewallSampleRule = JSON.stringify(
@@ -2757,7 +2794,7 @@ async function handleIncomingVerificationStart(ctx: Context, chatId: string): Pr
     rows.push(row);
   }
 
-  const message = `👋 Hello <b>${userDisplayName}</b>!\n\n` +
+  const message = `ðŸ‘‹ Hello <b>${userDisplayName}</b>!\n\n` +
     `To verify your membership request, please answer the following question:\n\n` +
     `<b>${captcha.question}</b>`;
 
@@ -2788,7 +2825,7 @@ bot.action(VERIFY_CAPTCHA_REGEX, async (ctx) => {
 
   const selectedNum = parseInt(selectedAnswer, 10);
   if (selectedNum !== session.correctAnswer) {
-    await ctx.answerCbQuery("❌ Incorrect answer. Please try again.", { show_alert: true });
+    await ctx.answerCbQuery("âŒ Incorrect answer. Please try again.", { show_alert: true });
 
     // Generate new captcha
     const captcha = generateMathCaptcha();
@@ -2811,7 +2848,7 @@ bot.action(VERIFY_CAPTCHA_REGEX, async (ctx) => {
     }
 
     const userDisplayName = resolveUserDisplayName(ctx.from!);
-    const message = `👋 Hello <b>${userDisplayName}</b>!\n\n` +
+    const message = `ðŸ‘‹ Hello <b>${userDisplayName}</b>!\n\n` +
       `To verify your membership request, please answer the following question:\n\n` +
       `<b>${captcha.question}</b>`;
 
@@ -2827,7 +2864,7 @@ bot.action(VERIFY_CAPTCHA_REGEX, async (ctx) => {
   }
 
   // Correct answer - generate one-time invite link
-  await ctx.answerCbQuery("✅ Correct!", { show_alert: false });
+  await ctx.answerCbQuery("âœ… Correct!", { show_alert: false });
   incomingVerificationSessions.delete(userId);
 
   try {
@@ -2837,10 +2874,10 @@ bot.action(VERIFY_CAPTCHA_REGEX, async (ctx) => {
       expire_date: Math.floor(Date.now() / 1000) + 86400, // 24 hours
     });
 
-    const successMessage = `✅ <b>Your request has been approved!</b>\n\n` +
+    const successMessage = `âœ… <b>Your request has been approved!</b>\n\n` +
       `You can join the group using the temporary link below.\n` +
       `This link can only be used once and will expire after that.\n\n` +
-      `🔗 <b>Temporary Link:</b>\n${inviteLink.invite_link}`;
+      `ðŸ”— <b>Temporary Link:</b>\n${inviteLink.invite_link}`;
 
     await ctx.editMessageText(successMessage, {
       parse_mode: "HTML",
@@ -2853,7 +2890,7 @@ bot.action(VERIFY_CAPTCHA_REGEX, async (ctx) => {
   } catch (error) {
     logger.error("failed to generate invite link for incoming verification", { chatId, userId, error });
     await ctx.editMessageText(
-      "❌ Sorry, there was an error generating the invite link. Please contact the group admin.",
+      "âŒ Sorry, there was an error generating the invite link. Please contact the group admin.",
       { parse_mode: "HTML" }
     );
   }
@@ -2903,10 +2940,10 @@ async function getManageableGroupsForUser(userId: string): Promise<GroupRecord[]
 function buildInlineGroupSelectionKeyboard(groups: GroupRecord[]): InlineKeyboard {
   const rows: any[] = [];
   for (const group of groups) {
-    const label = truncateLabel(`📂 ${group.title}`, 38);
+    const label = truncateLabel(`ðŸ“‚ ${group.title}`, 38);
     rows.push([Markup.button.callback(label, `fw_inline_group:${group.chatId}`)]);
   }
-  rows.push([Markup.button.callback("◀️ Back", actionId("managementBack"))]);
+  rows.push([Markup.button.callback("â—€ï¸ Back", actionId("managementBack"))]);
   return Markup.inlineKeyboard(rows);
 }
 
@@ -2920,13 +2957,13 @@ async function showInlineGroupSelection(ctx: Context): Promise<void> {
   const groups = await getManageableGroupsForUser(id);
   if (groups.length === 0) {
     const message =
-      "⚠️ No manageable groups were found for your account.\n\n" +
+      "âš ï¸ No manageable groups were found for your account.\n\n" +
       "Make sure the bot is an admin in your group and that you are a group owner or admin.";
-    await replyOrEditRoot(ctx, message, Markup.inlineKeyboard([[Markup.button.callback("◀️ Back", actionId("managementBack"))]]));
+    await replyOrEditRoot(ctx, message, Markup.inlineKeyboard([[Markup.button.callback("â—€ï¸ Back", actionId("managementBack"))]]));
     return;
   }
 
-  const message = "📋 Select a group to manage:\n\nChoose a group from the list below to access its inline management panel.";
+  const message = "ðŸ“‹ Select a group to manage:\n\nChoose a group from the list below to access its inline management panel.";
   await replyOrEditRoot(ctx, message, buildInlineGroupSelectionKeyboard(groups));
 }
 
@@ -2938,14 +2975,14 @@ function buildInlineGroupMenuKeyboard(chatId: string): InlineKeyboard {
 
   return Markup.inlineKeyboard([
     [
-      Markup.button.callback("🔒 Locks", locksCallback),
-      Markup.button.callback("📋 Lists", listsCallback),
+      Markup.button.callback("ðŸ”’ Locks", locksCallback),
+      Markup.button.callback("ðŸ“‹ Lists", listsCallback),
     ],
     [
-      Markup.button.callback("⭐ Upgrade to Premium", `group_setup:premium:${chatId}`),
-      Markup.button.callback("⚙️ Advanced", advancedCallback),
+      Markup.button.callback("â­ Upgrade to Premium", `group_setup:premium:${chatId}`),
+      Markup.button.callback("âš™ï¸ Advanced", advancedCallback),
     ],
-    [Markup.button.callback("◀️ Back to Groups", INLINE_BACK_TO_GROUPS)],
+    [Markup.button.callback("â—€ï¸ Back to Groups", INLINE_BACK_TO_GROUPS)],
   ]);
 }
 
@@ -2953,7 +2990,7 @@ async function showInlineGroupMenu(ctx: Context, chatId: string): Promise<void> 
   const groups = listGroups();
   const group = groups.find((g) => g.chatId === chatId) ?? null;
   const title = group?.title ?? chatId;
-  const message = `🛠 Group Management Panel\n\nGroup: ${title}\n\nChoose a section to manage:`;
+  const message = `ðŸ›  Group Management Panel\n\nGroup: ${title}\n\nChoose a section to manage:`;
   await replyOrEditRoot(ctx, message, buildInlineGroupMenuKeyboard(chatId));
 }
 
@@ -2980,8 +3017,8 @@ function buildInlineHelpKeyboard(chatId: string): InlineKeyboard {
 
   rows.push([
     chatId === 'global'
-      ? Markup.button.callback("◀️ Back to Main Menu", actionId("managementBack"))
-      : Markup.button.callback("◀️ Back to Panel", `fw_inline_menu:${chatId}`)
+      ? Markup.button.callback("â—€ï¸ Back to Main Menu", actionId("managementBack"))
+      : Markup.button.callback("â—€ï¸ Back to Panel", `fw_inline_menu:${chatId}`)
   ]);
   return Markup.inlineKeyboard(rows);
 }
@@ -2996,7 +3033,7 @@ async function showInlineHelp(ctx: Context, chatId: string): Promise<void> {
     title = "General Help";
   }
 
-  const message = `❓ <b>Help Center</b>\n\nContext: ${title}\n\nSelect a topic to learn more:`;
+  const message = `â“ <b>Help Center</b>\n\nContext: ${title}\n\nSelect a topic to learn more:`;
   await replyOrEditRoot(ctx, message, buildInlineHelpKeyboard(chatId));
 }
 
@@ -3023,16 +3060,16 @@ function buildHelpLocksKeyboard(chatId: string, page: number): InlineKeyboard {
   // Navigation row
   const navRow: any[] = [];
   if (currentPage > 1) {
-    navRow.push(Markup.button.callback("◀️ Previous", `fw_help_locks:${chatId}:${currentPage - 1}`));
+    navRow.push(Markup.button.callback("â—€ï¸ Previous", `fw_help_locks:${chatId}:${currentPage - 1}`));
   }
   if (currentPage < totalPages) {
-    navRow.push(Markup.button.callback("▶️ Next", `fw_help_locks:${chatId}:${currentPage + 1}`));
+    navRow.push(Markup.button.callback("â–¶ï¸ Next", `fw_help_locks:${chatId}:${currentPage + 1}`));
   }
   if (navRow.length > 0) {
     rows.push(navRow);
   }
 
-  rows.push([Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)]);
   return Markup.inlineKeyboard(rows);
 }
 
@@ -3040,7 +3077,7 @@ async function showHelpLocks(ctx: Context, chatId: string, page: number): Promis
   const totalPages = Math.ceil(LOCK_HELP_DATA.length / HELP_LOCKS_PAGE_SIZE);
   const currentPage = Math.min(Math.max(page, 1), totalPages);
 
-  const message = `🔒 <b>Lock Management Help</b>\n\nPage ${currentPage}/${totalPages}\n\nSelect a lock to learn more about it:`;
+  const message = `ðŸ”’ <b>Lock Management Help</b>\n\nPage ${currentPage}/${totalPages}\n\nSelect a lock to learn more about it:`;
   await replyOrEditRoot(ctx, message, buildHelpLocksKeyboard(chatId, currentPage));
 }
 
@@ -3054,31 +3091,31 @@ async function showHelpLockDetail(ctx: Context, chatId: string, lockId: string):
   const lines: string[] = [];
   lines.push(`${lock.icon} <b>${lock.name}</b>`);
   lines.push("");
-  lines.push(`<b>📝 What does it do?</b>`);
+  lines.push(`<b>ðŸ“ What does it do?</b>`);
   lines.push(lock.whatItDoes);
   lines.push("");
-  lines.push(`<b>📌 Example:</b>`);
+  lines.push(`<b>ðŸ“Œ Example:</b>`);
   lines.push(`<code>${lock.example}</code>`);
   lines.push("");
-  lines.push(`<b>✅ How to Enable:</b>`);
-  lines.push(`• Inline: Settings → Locks → ${lock.name}`);
-  lines.push(`• Command: <code>!lock ${lock.commandAlias}</code>`);
+  lines.push(`<b>âœ… How to Enable:</b>`);
+  lines.push(`â€¢ Inline: Settings â†’ Locks â†’ ${lock.name}`);
+  lines.push(`â€¢ Command: <code>!lock ${lock.commandAlias}</code>`);
   lines.push("");
-  lines.push(`<b>❌ How to Disable:</b>`);
-  lines.push(`• Command: <code>!unlock ${lock.commandAlias}</code>`);
+  lines.push(`<b>âŒ How to Disable:</b>`);
+  lines.push(`â€¢ Command: <code>!unlock ${lock.commandAlias}</code>`);
   lines.push("");
-  lines.push(`<b>📱 Mini App Path:</b>`);
+  lines.push(`<b>ðŸ“± Mini App Path:</b>`);
   lines.push(lock.miniAppPath);
   lines.push("");
-  lines.push(`<b>💡 When to Use:</b>`);
+  lines.push(`<b>ðŸ’¡ When to Use:</b>`);
   lines.push(lock.whenToUse);
   lines.push("");
-  lines.push(`<b>⚠️ Limitations:</b>`);
+  lines.push(`<b>âš ï¸ Limitations:</b>`);
   lines.push(lock.limitations);
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("◀️ Back to Locks", `fw_help_locks:${chatId}:1`)],
-    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("â—€ï¸ Back to Locks", `fw_help_locks:${chatId}:1`)],
+    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -3102,12 +3139,12 @@ function buildHelpPenaltiesKeyboard(chatId: string): InlineKeyboard {
     rows.push(row);
   }
 
-  rows.push([Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)]);
   return Markup.inlineKeyboard(rows);
 }
 
 async function showHelpPenalties(ctx: Context, chatId: string): Promise<void> {
-  const message = `⚠️ <b>User Penalties Help</b>\n\nLearn about commands for managing users:\n\nSelect a penalty type to see usage details:`;
+  const message = `âš ï¸ <b>User Penalties Help</b>\n\nLearn about commands for managing users:\n\nSelect a penalty type to see usage details:`;
   await replyOrEditRoot(ctx, message, buildHelpPenaltiesKeyboard(chatId));
 }
 
@@ -3121,31 +3158,31 @@ async function showHelpPenaltyDetail(ctx: Context, chatId: string, penaltyId: st
   const lines: string[] = [];
   lines.push(`${penalty.icon} <b>${penalty.name}</b>`);
   lines.push("");
-  lines.push(`<b>📝 What does it do?</b>`);
+  lines.push(`<b>ðŸ“ What does it do?</b>`);
   lines.push(penalty.whatItDoes);
   lines.push("");
-  lines.push(`<b>📌 Example:</b>`);
+  lines.push(`<b>ðŸ“Œ Example:</b>`);
   lines.push(penalty.example);
   lines.push("");
-  lines.push(`<b>✅ Command:</b>`);
+  lines.push(`<b>âœ… Command:</b>`);
   lines.push(`<code>${penalty.commandEnable}</code>`);
   if (penalty.commandDisable) {
     lines.push("");
-    lines.push(`<b>↩️ To Undo:</b>`);
+    lines.push(`<b>â†©ï¸ To Undo:</b>`);
     lines.push(`<code>${penalty.commandDisable}</code>`);
   }
   lines.push("");
-  lines.push(`<b>📋 Requires Reply:</b> ${penalty.requiresReply ? "Yes - reply to user's message" : "No"}`);
+  lines.push(`<b>ðŸ“‹ Requires Reply:</b> ${penalty.requiresReply ? "Yes - reply to user's message" : "No"}`);
   lines.push("");
-  lines.push(`<b>💡 When to Use:</b>`);
+  lines.push(`<b>ðŸ’¡ When to Use:</b>`);
   lines.push(penalty.whenToUse);
   lines.push("");
-  lines.push(`<b>📝 Notes:</b>`);
+  lines.push(`<b>ðŸ“ Notes:</b>`);
   lines.push(penalty.notes);
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("◀️ Back to Penalties", `fw_help_penalties:${chatId}`)],
-    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("â—€ï¸ Back to Penalties", `fw_help_penalties:${chatId}`)],
+    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -3158,39 +3195,39 @@ async function showHelpPenaltyDetail(ctx: Context, chatId: string, penaltyId: st
 async function showHelpTabchi(ctx: Context, chatId: string): Promise<void> {
   const lines: string[] = [];
 
-  lines.push("🚫 <b>Understanding & Combating Tabchi (Spam Bots)</b>");
+  lines.push("ðŸš« <b>Understanding & Combating Tabchi (Spam Bots)</b>");
   lines.push("");
   lines.push("<i>Tabchi refers to fraudulent bot accounts or user accounts that join groups primarily for advertising purposes. This guide helps you identify different types of tabchi and how to combat them.</i>");
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
-  lines.push("<b>📋 Types of Tabchi:</b>");
+  lines.push("<b>ðŸ“‹ Types of Tabchi:</b>");
   lines.push("");
-  lines.push("➊ <b>Advertisers</b>");
+  lines.push("âžŠ <b>Advertisers</b>");
   lines.push("These tabchis send links, files, and promotional messages. If you check your busy group's activity, you'll see many ads being sent and deleted by the bot. 99% of these ads are from tabchi accounts.");
   lines.push("");
-  lines.push("➋ <b>Bot Adders</b>");
+  lines.push("âž‹ <b>Bot Adders</b>");
   lines.push("After joining your group, these tabchis add other bots for advertising and member recruitment purposes.");
   lines.push("");
-  lines.push("➌ <b>Member Recruiters</b>");
+  lines.push("âžŒ <b>Member Recruiters</b>");
   lines.push("These tabchis use fake profiles, especially with female names and photos, to lure users into private chats and then redirect them to promotional groups or channels.");
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
-  lines.push("<b>🛡️ Prevention Methods:</b>");
+  lines.push("<b>ðŸ›¡ï¸ Prevention Methods:</b>");
   lines.push("");
-  lines.push("➊ <b>Enable Tabchi Lock</b>");
+  lines.push("âžŠ <b>Enable Tabchi Lock</b>");
   lines.push("By activating the tabchi lock, entry and activity of tabchis in your group will be severely restricted.");
   lines.push("");
-  lines.push("➋ <b>Restrict Membership (Private Groups)</b>");
+  lines.push("âž‹ <b>Restrict Membership (Private Groups)</b>");
   lines.push("For private groups, limit membership to invite links to prevent bot adders from adding their bots.");
   lines.push("");
-  lines.push("➌ <b>Cross-Group Detection</b>");
+  lines.push("âžŒ <b>Cross-Group Detection</b>");
   lines.push("Our AI system tracks user behavior across all groups. If a user triggers violations in 3+ groups, they are automatically flagged as tabchi.");
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
-  lines.push("<b>📝 Commands:</b>");
+  lines.push("<b>ðŸ“ Commands:</b>");
   lines.push("");
   lines.push("<code>!lock tabchi</code> - Enable tabchi detection");
   lines.push("<code>!lock advertiser</code> - Enable advertiser detection");
@@ -3200,14 +3237,14 @@ async function showHelpTabchi(ctx: Context, chatId: string): Promise<void> {
   lines.push("<code>!unlock advertiser</code> - Disable advertiser detection");
   lines.push("<code>!unlock bio</code> - Disable suspicious bio detection");
   lines.push("");
-  lines.push("<b>🔧 Management Commands:</b>");
+  lines.push("<b>ðŸ”§ Management Commands:</b>");
   lines.push("");
   lines.push("<code>!untabchi</code> - Remove replied user from tabchi list");
   lines.push("<code>!tabchiwhitelist</code> - Add user to permanent whitelist");
   lines.push("<code>!tabchiinfo</code> - Check tabchi info for replied user");
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -3220,38 +3257,38 @@ async function showHelpTabchi(ctx: Context, chatId: string): Promise<void> {
 async function showHelpUserPanel(ctx: Context, chatId: string): Promise<void> {
   const lines: string[] = [];
 
-  lines.push("👤 <b>User Panel</b>");
+  lines.push("ðŸ‘¤ <b>User Panel</b>");
   lines.push("");
   lines.push("<i>With the User Panel command, you can apply all settings and restrictions to a specific user. Including restrictions on sending messages, promotions and demotions, and more...</i>");
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
-  lines.push("<b>📋 What is User Panel?</b>");
+  lines.push("<b>ðŸ“‹ What is User Panel?</b>");
   lines.push("");
   lines.push("User Panel allows you to manage individual users within your group. You can:");
-  lines.push("• View detailed user information");
-  lines.push("• Set user-specific lock overrides");
-  lines.push("• Apply punishments (Ban, Mute)");
-  lines.push("• Promote users to VIP or Bot Admin");
+  lines.push("â€¢ View detailed user information");
+  lines.push("â€¢ Set user-specific lock overrides");
+  lines.push("â€¢ Apply punishments (Ban, Mute)");
+  lines.push("â€¢ Promote users to VIP or Bot Admin");
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
-  lines.push("<b>🔒 User-Specific Locks</b>");
+  lines.push("<b>ðŸ”’ User-Specific Locks</b>");
   lines.push("");
   lines.push("Each lock has 3 states:");
   lines.push("");
-  lines.push("➊ <b>✗ (Default)</b>");
+  lines.push("âžŠ <b>âœ— (Default)</b>");
   lines.push("Uses the group's general settings. No special treatment for this user.");
   lines.push("");
-  lines.push("➋ <b>Open</b>");
+  lines.push("âž‹ <b>Open</b>");
   lines.push("Content is allowed for this user even if locked in group settings.");
   lines.push("");
-  lines.push("➌ <b>🔐 (Locked)</b>");
+  lines.push("âžŒ <b>ðŸ” (Locked)</b>");
   lines.push("Content is blocked for this user even if allowed in group settings.");
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
-  lines.push("<b>📝 Commands</b>");
+  lines.push("<b>ðŸ“ Commands</b>");
   lines.push("");
   lines.push("The following commands work with reply, username, or numeric ID:");
   lines.push("");
@@ -3261,13 +3298,13 @@ async function showHelpUserPanel(ctx: Context, chatId: string): Promise<void> {
   lines.push("");
   lines.push("<b>Aliases:</b> <code>!up</code>, <code>!panel</code>");
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
-  lines.push("<b>📍 Mini App Path:</b>");
-  lines.push("My Groups → Group Manage → Members → Select User");
+  lines.push("<b>ðŸ“ Mini App Path:</b>");
+  lines.push("My Groups â†’ Group Manage â†’ Members â†’ Select User");
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -3291,18 +3328,18 @@ function buildHelpCleanupKeyboard(chatId: string): InlineKeyboard {
     rows.push(row);
   }
 
-  rows.push([Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)]);
   return Markup.inlineKeyboard(rows);
 }
 
 async function showHelpCleanup(ctx: Context, chatId: string): Promise<void> {
   const lines: string[] = [];
 
-  lines.push("🧹 <b>Bot Cleanup Section Guide</b>");
+  lines.push("ðŸ§¹ <b>Bot Cleanup Section Guide</b>");
   lines.push("");
   lines.push("<i>Clean up your group by removing inactive members, clearing lists, and managing bot data. Select a topic below to learn more.</i>");
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
   lines.push("Select a cleanup category below to view detailed information and available commands:");
 
@@ -3323,17 +3360,17 @@ async function showHelpCleanupDetail(ctx: Context, chatId: string, itemId: strin
   lines.push("");
   lines.push(item.description);
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
-  lines.push("<b>📝 Commands:</b>");
+  lines.push("<b>ðŸ“ Commands:</b>");
   lines.push("");
   for (const cmd of item.commands) {
-    lines.push(`› <code>${cmd}</code>`);
+    lines.push(`â€º <code>${cmd}</code>`);
   }
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("◀️ Back to Cleanup", `fw_help_cleanup:${chatId}`)],
-    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("â—€ï¸ Back to Cleanup", `fw_help_cleanup:${chatId}`)],
+    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -3346,29 +3383,29 @@ async function showHelpCleanupDetail(ctx: Context, chatId: string, itemId: strin
 async function showHelpWelcome(ctx: Context, chatId: string): Promise<void> {
   const lines: string[] = [];
 
-  lines.push("👋 <b>Welcome Message</b>");
+  lines.push("ðŸ‘‹ <b>Welcome Message</b>");
   lines.push("");
   lines.push("<i>When this feature is enabled, the bot welcomes users who join the group via link with a customizable message.</i>");
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
-  lines.push("<b>📋 Available Variables:</b>");
+  lines.push("<b>ðŸ“‹ Available Variables:</b>");
   lines.push("");
-  lines.push("⇝ <code>!mention</code> - User mention (clickable)");
-  lines.push("⇝ <code>!firstname</code> - User's first name");
-  lines.push("⇝ <code>!lastname</code> - User's last name");
-  lines.push("⇝ <code>!username</code> - User's @username");
-  lines.push("⇝ <code>!userid</code> - User's numeric ID");
-  lines.push("⇝ <code>!grouplink</code> - Group invite link");
-  lines.push("⇝ <code>!grouprules</code> - Group rules");
-  lines.push("⇝ <code>!groupname</code> - Group name");
-  lines.push("⇝ <code>!date</code> - Current date");
-  lines.push("⇝ <code>!time</code> - Current time");
-  lines.push("⇝ <code>!emoji</code> - Random emoji");
+  lines.push("â‡ <code>!mention</code> - User mention (clickable)");
+  lines.push("â‡ <code>!firstname</code> - User's first name");
+  lines.push("â‡ <code>!lastname</code> - User's last name");
+  lines.push("â‡ <code>!username</code> - User's @username");
+  lines.push("â‡ <code>!userid</code> - User's numeric ID");
+  lines.push("â‡ <code>!grouplink</code> - Group invite link");
+  lines.push("â‡ <code>!grouprules</code> - Group rules");
+  lines.push("â‡ <code>!groupname</code> - Group name");
+  lines.push("â‡ <code>!date</code> - Current date");
+  lines.push("â‡ <code>!time</code> - Current time");
+  lines.push("â‡ <code>!emoji</code> - Random emoji");
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
-  lines.push("<b>💡 Example:</b>");
+  lines.push("<b>ðŸ’¡ Example:</b>");
   lines.push("");
   lines.push("If your welcome message is:");
   lines.push("<i>\"Hello !mention, welcome to !groupname!\"</i>");
@@ -3376,15 +3413,15 @@ async function showHelpWelcome(ctx: Context, chatId: string): Promise<void> {
   lines.push("When user \"John\" joins group \"Chat Room\", the bot sends:");
   lines.push("<i>\"Hello John, welcome to Chat Room!\"</i>");
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
-  lines.push("<b>🖼️ Welcome with Media:</b>");
+  lines.push("<b>ðŸ–¼ï¸ Welcome with Media:</b>");
   lines.push("");
   lines.push("You can set a welcome message with media (photo, video, audio, voice, GIF, sticker, video note). The welcome text will be used as the caption.");
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
-  lines.push("<b>📝 Commands:</b>");
+  lines.push("<b>ðŸ“ Commands:</b>");
   lines.push("");
   lines.push("<code>!welcome on</code> - Enable welcome message");
   lines.push("<code>!welcome off</code> - Disable welcome message");
@@ -3397,7 +3434,7 @@ async function showHelpWelcome(ctx: Context, chatId: string): Promise<void> {
   lines.push("<b>Note:</b> Commands also work with <code>.</code> prefix (e.g., <code>.welcome on</code>)");
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -3416,18 +3453,18 @@ function buildHelpWordFilterKeyboard(chatId: string): InlineKeyboard {
     rows.push([Markup.button.callback(label, `fw_help_wordfilter_item:${chatId}:${item.id}`)]);
   }
 
-  rows.push([Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)]);
   return Markup.inlineKeyboard(rows);
 }
 
 async function showHelpWordFilter(ctx: Context, chatId: string): Promise<void> {
   const lines: string[] = [];
 
-  lines.push("🚷 <b>Word Filter Guide</b>");
+  lines.push("ðŸš· <b>Word Filter Guide</b>");
   lines.push("");
   lines.push("<i>Using this feature, group admins can filter (block) specific words in the group. When a filtered word is sent, the bot will delete the message. Optionally, you can set a punishment for the sender.</i>");
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
   lines.push("Select a filtering method below to view detailed information and available commands:");
 
@@ -3448,33 +3485,33 @@ async function showHelpWordFilterDetail(ctx: Context, chatId: string, itemId: st
   lines.push("");
   lines.push(`<i>${item.summary}</i>`);
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
   lines.push(item.description);
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
-  lines.push("<b>📝 Commands:</b>");
+  lines.push("<b>ðŸ“ Commands:</b>");
   lines.push("");
   for (const cmd of item.commands) {
-    lines.push(`› <code>${cmd.command}</code>`);
+    lines.push(`â€º <code>${cmd.command}</code>`);
   }
 
   if (item.examples && item.examples.length > 0) {
     lines.push("");
-    lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+    lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
     lines.push("");
-    lines.push("<b>💡 Examples:</b>");
+    lines.push("<b>ðŸ’¡ Examples:</b>");
     lines.push("");
     for (const ex of item.examples) {
-      lines.push(`• ${ex.description}`);
-      lines.push(`  ⮨ <code>${ex.command}</code>`);
+      lines.push(`â€¢ ${ex.description}`);
+      lines.push(`  â®¨ <code>${ex.command}</code>`);
     }
   }
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("◀️ Back to Word Filter", `fw_help_wordfilter:${chatId}`)],
-    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("â—€ï¸ Back to Word Filter", `fw_help_wordfilter:${chatId}`)],
+    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -3498,26 +3535,26 @@ function buildHelpStatsKeyboard(chatId: string): InlineKeyboard {
     rows.push(row);
   }
 
-  rows.push([Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)]);
   return Markup.inlineKeyboard(rows);
 }
 
 async function showHelpStats(ctx: Context, chatId: string): Promise<void> {
   const lines: string[] = [];
 
-  lines.push("📊 <b>Activity Statistics Guide</b>");
+  lines.push("ðŸ“Š <b>Activity Statistics Guide</b>");
   lines.push("");
   lines.push("<i>Using this feature, group admins can view and manage chat statistics for all users. Track activity, invites, and set up automatic stats posting.</i>");
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
-  lines.push("<b>✨ Key Features:</b>");
-  lines.push("• View user chat activity and rankings");
-  lines.push("• Track member invitations (adds)");
-  lines.push("• Check weekly or total statistics");
-  lines.push("• Set up automatic scheduled stats");
+  lines.push("<b>âœ¨ Key Features:</b>");
+  lines.push("â€¢ View user chat activity and rankings");
+  lines.push("â€¢ Track member invitations (adds)");
+  lines.push("â€¢ Check weekly or total statistics");
+  lines.push("â€¢ Set up automatic scheduled stats");
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
   lines.push("Select a statistics type below to view commands:");
 
@@ -3538,33 +3575,33 @@ async function showHelpStatsDetail(ctx: Context, chatId: string, itemId: string)
   lines.push("");
   lines.push(`<i>${item.summary}</i>`);
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
   lines.push(item.description);
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
-  lines.push("<b>📝 Commands:</b>");
+  lines.push("<b>ðŸ“ Commands:</b>");
   lines.push("");
   for (const cmd of item.commands) {
-    lines.push(`› <code>${cmd.command}</code>`);
+    lines.push(`â€º <code>${cmd.command}</code>`);
   }
 
   if (item.examples && item.examples.length > 0) {
     lines.push("");
-    lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+    lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
     lines.push("");
-    lines.push("<b>💡 Examples:</b>");
+    lines.push("<b>ðŸ’¡ Examples:</b>");
     lines.push("");
     for (const ex of item.examples) {
-      lines.push(`• ${ex.description}`);
-      lines.push(`  ⮨ <code>${ex.command}</code>`);
+      lines.push(`â€¢ ${ex.description}`);
+      lines.push(`  â®¨ <code>${ex.command}</code>`);
     }
   }
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("◀️ Back to Stats", `fw_help_stats:${chatId}`)],
-    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("â—€ï¸ Back to Stats", `fw_help_stats:${chatId}`)],
+    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -3588,18 +3625,18 @@ function buildHelpSettingsKeyboard(chatId: string): InlineKeyboard {
     rows.push(row);
   }
 
-  rows.push([Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)]);
   return Markup.inlineKeyboard(rows);
 }
 
 async function showHelpSettings(ctx: Context, chatId: string): Promise<void> {
   const lines: string[] = [];
 
-  lines.push("⚙️ <b>Settings Help</b>");
+  lines.push("âš™ï¸ <b>Settings Help</b>");
   lines.push("");
   lines.push("<i>Configure your group's behavior with these essential settings. Each option controls a specific aspect of bot functionality.</i>");
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
   lines.push("Select a category below to learn more:");
 
@@ -3618,17 +3655,17 @@ async function showHelpSettingDetail(ctx: Context, chatId: string, settingId: st
   lines.push("");
   lines.push(`<i>${setting.whatItDoes}</i>`);
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
-  lines.push("<b>📝 Commands:</b>");
+  lines.push("<b>ðŸ“ Commands:</b>");
   lines.push("");
   for (const cmd of setting.commands) {
-    lines.push(`› <code>${cmd}</code>`);
+    lines.push(`â€º <code>${cmd}</code>`);
   }
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("◀️ Back to Settings", `fw_help_settings:${chatId}`)],
-    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("â—€ï¸ Back to Settings", `fw_help_settings:${chatId}`)],
+    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -3646,24 +3683,24 @@ function buildHelpPromoteKeyboard(chatId: string): InlineKeyboard {
     const row: any[] = [];
     for (let j = 0; j < 2 && i + j < RANK_HELP_DATA.length; j++) {
       const rank = RANK_HELP_DATA[i + j];
-      const label = `• ${rank.name} ${rank.icon}`;
+      const label = `â€¢ ${rank.name} ${rank.icon}`;
       row.push(Markup.button.callback(label, `fw_help_rank:${chatId}:${rank.id}`));
     }
     rows.push(row);
   }
 
-  rows.push([Markup.button.callback("◀️ Back", `fw_inline_help:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_help:${chatId}`)]);
   return Markup.inlineKeyboard(rows);
 }
 
 async function showHelpPromote(ctx: Context, chatId: string): Promise<void> {
   const lines: string[] = [];
 
-  lines.push("👑 <b>Promote & Demote Help</b>");
+  lines.push("ðŸ‘‘ <b>Promote & Demote Help</b>");
   lines.push("");
   lines.push("<i>Manage user ranks and permissions in your group. Promote trusted members or demote when needed.</i>");
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
   lines.push("Select a rank to view details:");
 
@@ -3682,21 +3719,21 @@ async function showHelpRankDetail(ctx: Context, chatId: string, rankId: string):
   lines.push("");
   lines.push(`<i>${rank.description}</i>`);
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
-  lines.push("<b>📝 Commands:</b>");
+  lines.push("<b>ðŸ“ Commands:</b>");
   lines.push("");
   for (const cmd of rank.commands) {
-    lines.push(`› <code>${cmd.command}</code> — ${cmd.label}`);
+    lines.push(`â€º <code>${cmd.command}</code> â€” ${cmd.label}`);
   }
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
-  lines.push(`💡 <b>Note:</b> ${rank.notes}`);
+  lines.push(`ðŸ’¡ <b>Note:</b> ${rank.notes}`);
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("◀️ Back to Ranks", `fw_help_promote:${chatId}`)],
-    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("â—€ï¸ Back to Ranks", `fw_help_promote:${chatId}`)],
+    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -3718,7 +3755,7 @@ function buildInlineLocksKeyboard(chatId: string, page: number, settings: GroupB
     for (let j = 0; j < 2 && i + j < pageItems.length; j++) {
       const item = pageItems[i + j];
       const isOn = item.keys.some((key) => settings.rules[key]?.enabled);
-      const statusIcon = isOn ? "✅" : "❌";
+      const statusIcon = isOn ? "âœ…" : "âŒ";
       const label = `${statusIcon} ${item.label}`;
       row.push(Markup.button.callback(label, `fw_inline_lock:${chatId}:${currentPage}:${item.id}`));
     }
@@ -3729,10 +3766,10 @@ function buildInlineLocksKeyboard(chatId: string, page: number, settings: GroupB
   // Navigation row
   const navRow: any[] = [];
   if (currentPage > 1) {
-    navRow.push(Markup.button.callback("◀️ Previous", `fw_inline_locks:${chatId}:${currentPage - 1}`));
+    navRow.push(Markup.button.callback("â—€ï¸ Previous", `fw_inline_locks:${chatId}:${currentPage - 1}`));
   }
   if (currentPage < totalPages) {
-    navRow.push(Markup.button.callback("▶️ Next Page", `fw_inline_locks:${chatId}:${currentPage + 1}`));
+    navRow.push(Markup.button.callback("â–¶ï¸ Next Page", `fw_inline_locks:${chatId}:${currentPage + 1}`));
   }
 
   if (navRow.length > 0) {
@@ -3740,7 +3777,7 @@ function buildInlineLocksKeyboard(chatId: string, page: number, settings: GroupB
   }
 
   // Back button
-  rows.push([Markup.button.callback("◀️ Back to Panel", `fw_inline_menu:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back to Panel", `fw_inline_menu:${chatId}`)]);
 
   return Markup.inlineKeyboard(rows);
 }
@@ -3753,7 +3790,7 @@ async function showInlineLocksPage(ctx: Context, chatId: string, page: number): 
     await replyOrEditRoot(
       ctx,
       "Unable to load lock settings for this group right now.",
-      Markup.inlineKeyboard([[Markup.button.callback("◀️ Back to Panel", `fw_inline_menu:${chatId}`)]]),
+      Markup.inlineKeyboard([[Markup.button.callback("â—€ï¸ Back to Panel", `fw_inline_menu:${chatId}`)]]),
     );
     return;
   }
@@ -3772,7 +3809,7 @@ async function showInlineLocksPage(ctx: Context, chatId: string, page: number): 
   ];
   const pageTitle = pageTitles[currentPage - 1] || "Locks";
 
-  const message = `🔐 Locks — Group: ${title}\nPage ${currentPage}/${totalPages} — ${pageTitle}\n\nTap a lock to toggle it on or off.`;
+  const message = `ðŸ” Locks â€” Group: ${title}\nPage ${currentPage}/${totalPages} â€” ${pageTitle}\n\nTap a lock to toggle it on or off.`;
   await replyOrEditRoot(ctx, message, buildInlineLocksKeyboard(chatId, currentPage, settings));
 }
 
@@ -3795,7 +3832,7 @@ function buildInlineListsKeyboard(chatId: string): InlineKeyboard {
     rows.push(row);
   }
 
-  rows.push([Markup.button.callback("◀️ Back to Panel", `fw_inline_menu:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back to Panel", `fw_inline_menu:${chatId}`)]);
   return Markup.inlineKeyboard(rows);
 }
 
@@ -3847,21 +3884,21 @@ async function showInlineListsOverview(ctx: Context, chatId: string): Promise<vo
   const title = group?.title ?? chatId;
 
   const lines: string[] = [];
-  lines.push(`📂 Lists Section — Group: ${title}`);
+  lines.push(`ðŸ“‚ Lists Section â€” Group: ${title}`);
   lines.push("");
-  lines.push("📊 Current Statistics:");
-  lines.push(`├─ 👑 Owners: ${ownersCount}`);
-  lines.push(`├─ 👥 Admins: ${adminsCount}`);
-  lines.push(`├─ ⭐ VIP Members: ${vipCount}`);
-  lines.push(`├─ 🔇 Muted: ${stats.mutedCount}`);
-  lines.push(`├─ 🚫 Banned: ${stats.bannedCount}`);
-  lines.push(`├─ ⚠️ Warnings: ${stats.warningsCount}`);
-  lines.push(`├─ ✅ Exempt: ${exemptCount}`);
-  lines.push(`├─ 🚷 Filtered Keywords: ${filterCount}`);
-  lines.push(`├─ ✔️ Allowed Keywords: ${allowCount}`);
-  lines.push(`├─ ↪️ Allowed Forwards: ${forwardWhitelistCount}`);
-  lines.push(`├─ 🤖 Auto Replies: ${autoRepliesCount}`);
-  lines.push(`└─ ⏰ Scheduled Posts: ${scheduledPostsCount}`);
+  lines.push("ðŸ“Š Current Statistics:");
+  lines.push(`â”œâ”€ ðŸ‘‘ Owners: ${ownersCount}`);
+  lines.push(`â”œâ”€ ðŸ‘¥ Admins: ${adminsCount}`);
+  lines.push(`â”œâ”€ â­ VIP Members: ${vipCount}`);
+  lines.push(`â”œâ”€ ðŸ”‡ Muted: ${stats.mutedCount}`);
+  lines.push(`â”œâ”€ ðŸš« Banned: ${stats.bannedCount}`);
+  lines.push(`â”œâ”€ âš ï¸ Warnings: ${stats.warningsCount}`);
+  lines.push(`â”œâ”€ âœ… Exempt: ${exemptCount}`);
+  lines.push(`â”œâ”€ ðŸš· Filtered Keywords: ${filterCount}`);
+  lines.push(`â”œâ”€ âœ”ï¸ Allowed Keywords: ${allowCount}`);
+  lines.push(`â”œâ”€ â†ªï¸ Allowed Forwards: ${forwardWhitelistCount}`);
+  lines.push(`â”œâ”€ ðŸ¤– Auto Replies: ${autoRepliesCount}`);
+  lines.push(`â””â”€ â° Scheduled Posts: ${scheduledPostsCount}`);
   lines.push("");
   lines.push("Tap a list to view details.");
 
@@ -3892,24 +3929,24 @@ async function showInlineListDetail(ctx: Context, chatId: string, listId: string
   const title = group?.title ?? chatId;
 
   const lines: string[] = [];
-  lines.push(`${cfg.title} — Group: ${title}`);
+  lines.push(`${cfg.title} â€” Group: ${title}`);
   lines.push("");
 
   if (cfg.id === "filters" || cfg.id === "whitelist") {
     const items = cfg.id === "filters" ? banSettings?.blacklist ?? [] : banSettings?.whitelist ?? [];
     if (!items.length) {
-      lines.push("⚠️ This list is empty.");
+      lines.push("âš ï¸ This list is empty.");
     } else {
-      lines.push(`📊 Total items: ${items.length}`);
+      lines.push(`ðŸ“Š Total items: ${items.length}`);
       lines.push("");
       for (const entry of items) {
-        lines.push(`• ${entry}`);
+        lines.push(`â€¢ ${entry}`);
       }
     }
 
     if (cfg.commandUsage && cfg.commandExample) {
       lines.push("");
-      lines.push("💡 You can also use commands in the group:");
+      lines.push("ðŸ’¡ You can also use commands in the group:");
       lines.push(`   ${cfg.commandUsage}`);
       lines.push(`   Example: ${cfg.commandExample}`);
     }
@@ -3919,29 +3956,29 @@ async function showInlineListDetail(ctx: Context, chatId: string, listId: string
     const vipMembers = Array.isArray(rawSettings?.vipMembers) ? rawSettings.vipMembers as string[] : [];
 
     if (!vipMembers.length) {
-      lines.push("⚠️ No VIP members yet.");
+      lines.push("âš ï¸ No VIP members yet.");
       lines.push("");
-      lines.push("💡 VIP members bypass all content restrictions.");
+      lines.push("ðŸ’¡ VIP members bypass all content restrictions.");
     } else {
-      lines.push(`📊 Total VIP members: ${vipMembers.length}`);
+      lines.push(`ðŸ“Š Total VIP members: ${vipMembers.length}`);
       lines.push("");
       for (const member of vipMembers) {
-        lines.push(`• ${member}`);
+        lines.push(`â€¢ ${member}`);
       }
       lines.push("");
-      lines.push("💡 VIP members bypass all content restrictions.");
+      lines.push("ðŸ’¡ VIP members bypass all content restrictions.");
     }
 
     if (cfg.commandUsage && cfg.commandExample) {
       lines.push("");
-      lines.push("💡 You can also use commands in the group:");
+      lines.push("ðŸ’¡ You can also use commands in the group:");
       lines.push(`   ${cfg.commandUsage}`);
       lines.push(`   Example: ${cfg.commandExample}`);
     }
   } else if (cfg.id === "owners" || cfg.id === "admins") {
     // Fetch real admins from Telegram API
     if (cfg.description) {
-      lines.push(`ℹ️ ${cfg.description}`);
+      lines.push(`â„¹ï¸ ${cfg.description}`);
       lines.push("");
     }
 
@@ -3952,50 +3989,50 @@ async function showInlineListDetail(ctx: Context, chatId: string, listId: string
 
         if (cfg.id === "owners") {
           const owners = admins.filter(a => a.status === "creator");
-          lines.push(`📊 Total owners: ${owners.length}`);
+          lines.push(`ðŸ“Š Total owners: ${owners.length}`);
           lines.push("");
           for (const owner of owners) {
             const name = owner.user.first_name + (owner.user.last_name ? ` ${owner.user.last_name}` : "");
             const username = owner.user.username ? ` (@${owner.user.username})` : "";
-            lines.push(`• ${name}${username}`);
+            lines.push(`â€¢ ${name}${username}`);
             lines.push(`  ID: ${owner.user.id}`);
           }
         } else {
           const adminsList = admins.filter(a => a.status === "administrator");
-          lines.push(`📊 Total admins: ${adminsList.length}`);
+          lines.push(`ðŸ“Š Total admins: ${adminsList.length}`);
           lines.push("");
           for (const admin of adminsList) {
             const name = admin.user.first_name + (admin.user.last_name ? ` ${admin.user.last_name}` : "");
             const username = admin.user.username ? ` (@${admin.user.username})` : "";
             const customTitle = 'custom_title' in admin && admin.custom_title ? ` [${admin.custom_title}]` : "";
-            lines.push(`• ${name}${username}${customTitle}`);
+            lines.push(`â€¢ ${name}${username}${customTitle}`);
           }
         }
       } else {
-        lines.push("⚠️ Unable to fetch administrators for this chat.");
+        lines.push("âš ï¸ Unable to fetch administrators for this chat.");
       }
     } catch (error) {
       logger.debug("Failed to fetch chat administrators", { chatId, error: (error as Error).message });
-      lines.push("⚠️ Unable to fetch administrators. Bot may not have permission.");
+      lines.push("âš ï¸ Unable to fetch administrators. Bot may not have permission.");
     }
     lines.push("");
-    lines.push("ℹ️ Owner and admin management is handled through Telegram's group settings.");
+    lines.push("â„¹ï¸ Owner and admin management is handled through Telegram's group settings.");
   } else if (cfg.id === "warnings") {
     const stats = await loadGroupListStats(chatId);
-    lines.push(`📊 Active warnings: ${stats.warningsCount}`);
+    lines.push(`ðŸ“Š Active warnings: ${stats.warningsCount}`);
     lines.push("");
-    lines.push("ℹ️ Warnings are issued automatically when users violate rules.");
+    lines.push("â„¹ï¸ Warnings are issued automatically when users violate rules.");
     lines.push("Use <code>!reset</code> (reply) to clear a user's warnings.");
   } else if (cfg.id === "muted" || cfg.id === "banned") {
     const stats = await loadGroupListStats(chatId);
     const count = cfg.id === "muted" ? stats.mutedCount : stats.bannedCount;
     const label = cfg.id === "muted" ? "muted" : "banned";
-    lines.push(`📊 Recently ${label}: ${count} (last 30 days)`);
+    lines.push(`ðŸ“Š Recently ${label}: ${count} (last 30 days)`);
     lines.push("");
-    lines.push(`ℹ️ Use <code>!${cfg.id === "muted" ? "mute" : "ban"} [hours]</code> (reply) to ${label} users.`);
+    lines.push(`â„¹ï¸ Use <code>!${cfg.id === "muted" ? "mute" : "ban"} [hours]</code> (reply) to ${label} users.`);
     lines.push(`Use <code>!unmute</code> (reply) to remove restrictions.`);
     lines.push("");
-    lines.push("💡 <b>How to add:</b>");
+    lines.push("ðŸ’¡ <b>How to add:</b>");
     lines.push(`   In your group, reply to a user's message and send:`);
     lines.push(`   <code>${cfg.commandUsage}</code>`);
     lines.push(`   Example: <code>${cfg.commandExample}</code>`);
@@ -4005,22 +4042,22 @@ async function showInlineListDetail(ctx: Context, chatId: string, listId: string
     const exemptUsers = Array.isArray(rawSettings?.exemptUsers) ? rawSettings.exemptUsers as string[] : [];
 
     if (!exemptUsers.length) {
-      lines.push("⚠️ No exempt users yet.");
+      lines.push("âš ï¸ No exempt users yet.");
       lines.push("");
-      lines.push("💡 Exempt users bypass content restrictions.");
+      lines.push("ðŸ’¡ Exempt users bypass content restrictions.");
     } else {
-      lines.push(`📊 Total exempt users: ${exemptUsers.length}`);
+      lines.push(`ðŸ“Š Total exempt users: ${exemptUsers.length}`);
       lines.push("");
       for (const user of exemptUsers) {
-        lines.push(`• ${user}`);
+        lines.push(`â€¢ ${user}`);
       }
       lines.push("");
-      lines.push("💡 Exempt users bypass content restrictions.");
+      lines.push("ðŸ’¡ Exempt users bypass content restrictions.");
     }
 
     if (cfg.commandUsage && cfg.commandExample) {
       lines.push("");
-      lines.push("💡 <b>How to add:</b>");
+      lines.push("ðŸ’¡ <b>How to add:</b>");
       lines.push(`   In your group, use: <code>${cfg.commandUsage}</code>`);
       lines.push(`   Example: <code>${cfg.commandExample}</code>`);
     }
@@ -4030,22 +4067,22 @@ async function showInlineListDetail(ctx: Context, chatId: string, listId: string
     const forwardWhitelist = Array.isArray(rawSettings?.forwardWhitelist) ? rawSettings.forwardWhitelist as string[] : [];
 
     if (!forwardWhitelist.length) {
-      lines.push("⚠️ No allowed forward channels yet.");
+      lines.push("âš ï¸ No allowed forward channels yet.");
       lines.push("");
-      lines.push("💡 Add channels to allow forwarding messages from them.");
+      lines.push("ðŸ’¡ Add channels to allow forwarding messages from them.");
     } else {
-      lines.push(`📊 Total allowed channels: ${forwardWhitelist.length}`);
+      lines.push(`ðŸ“Š Total allowed channels: ${forwardWhitelist.length}`);
       lines.push("");
       for (const channel of forwardWhitelist) {
-        lines.push(`• ${channel}`);
+        lines.push(`â€¢ ${channel}`);
       }
       lines.push("");
-      lines.push("💡 Messages forwarded from these channels won't be blocked.");
+      lines.push("ðŸ’¡ Messages forwarded from these channels won't be blocked.");
     }
 
     if (cfg.commandUsage && cfg.commandExample) {
       lines.push("");
-      lines.push("💡 <b>How to add:</b>");
+      lines.push("ðŸ’¡ <b>How to add:</b>");
       lines.push(`   In your group, use: <code>${cfg.commandUsage}</code>`);
       lines.push(`   Example: <code>${cfg.commandExample}</code>`);
     }
@@ -4055,17 +4092,17 @@ async function showInlineListDetail(ctx: Context, chatId: string, listId: string
     const autoReplies = Array.isArray(rawSettings?.autoReplies) ? rawSettings.autoReplies as Array<{ trigger?: string; response?: string }> : [];
 
     if (!autoReplies.length) {
-      lines.push("⚠️ No auto replies configured yet.");
+      lines.push("âš ï¸ No auto replies configured yet.");
       lines.push("");
-      lines.push("💡 Auto replies automatically respond to specific triggers.");
+      lines.push("ðŸ’¡ Auto replies automatically respond to specific triggers.");
     } else {
-      lines.push(`📊 Total auto replies: ${autoReplies.length}`);
+      lines.push(`ðŸ“Š Total auto replies: ${autoReplies.length}`);
       lines.push("");
       for (const reply of autoReplies.slice(0, 10)) {
         const trigger = reply.trigger ?? "(unknown)";
         const response = reply.response ?? "(no response)";
         const truncatedResponse = response.length > 30 ? response.substring(0, 27) + "..." : response;
-        lines.push(`• <b>${trigger}</b> → ${truncatedResponse}`);
+        lines.push(`â€¢ <b>${trigger}</b> â†’ ${truncatedResponse}`);
       }
       if (autoReplies.length > 10) {
         lines.push(`... and ${autoReplies.length - 10} more`);
@@ -4073,8 +4110,8 @@ async function showInlineListDetail(ctx: Context, chatId: string, listId: string
     }
 
     lines.push("");
-    lines.push("💡 <b>How to add:</b>");
-    lines.push(`   Use the ➕ Add button below.`);
+    lines.push("ðŸ’¡ <b>How to add:</b>");
+    lines.push(`   Use the âž• Add button below.`);
     lines.push(`   Step 1: Enter trigger keyword`);
     lines.push(`   Step 2: Enter response message`);
   } else if (cfg.id === "scheduled_posts") {
@@ -4090,11 +4127,11 @@ async function showInlineListDetail(ctx: Context, chatId: string, listId: string
     }> : [];
 
     if (!scheduledPosts.length) {
-      lines.push("⚠️ No scheduled posts yet.");
+      lines.push("âš ï¸ No scheduled posts yet.");
       lines.push("");
-      lines.push("💡 Schedule posts to be sent at specific times.");
+      lines.push("ðŸ’¡ Schedule posts to be sent at specific times.");
     } else {
-      lines.push(`📊 Total scheduled posts: ${scheduledPosts.length}`);
+      lines.push(`ðŸ“Š Total scheduled posts: ${scheduledPosts.length}`);
       lines.push("");
       const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
       for (const post of scheduledPosts.slice(0, 5)) {
@@ -4110,7 +4147,7 @@ async function showInlineListDetail(ctx: Context, chatId: string, listId: string
           scheduleDisplay = `Daily ${post.scheduleTime}`;
         }
 
-        const statusIcon = post.enabled !== false ? "✅" : "⏸️";
+        const statusIcon = post.enabled !== false ? "âœ…" : "â¸ï¸";
         lines.push(`${statusIcon} ${scheduleDisplay}: ${truncatedMessage}`);
       }
       if (scheduledPosts.length > 5) {
@@ -4119,22 +4156,22 @@ async function showInlineListDetail(ctx: Context, chatId: string, listId: string
     }
 
     lines.push("");
-    lines.push("💡 <b>How to add:</b>");
-    lines.push(`   Use the ➕ Add button below.`);
+    lines.push("ðŸ’¡ <b>How to add:</b>");
+    lines.push(`   Use the âž• Add button below.`);
     lines.push(`   Step 1: Enter message content`);
     lines.push(`   Step 2: Set schedule time`);
   } else {
-    lines.push("ℹ️ This list is not available in the inline panel yet.");
+    lines.push("â„¹ï¸ This list is not available in the inline panel yet.");
     lines.push("");
-    lines.push("💡 Use the Mini App for full access to all features.");
+    lines.push("ðŸ’¡ Use the Mini App for full access to all features.");
   }
 
   const rows: any[] = [];
   if (cfg.supportsAdd) {
-    rows.push([Markup.button.callback("➕ Add to List", `fw_inline_add:${chatId}:${cfg.id}`)]);
+    rows.push([Markup.button.callback("âž• Add to List", `fw_inline_add:${chatId}:${cfg.id}`)]);
   }
-  rows.push([Markup.button.callback("◀️ Back to Lists", `fw_inline_lists:${chatId}`)]);
-  rows.push([Markup.button.callback("◀️ Back to Panel", `fw_inline_menu:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back to Lists", `fw_inline_lists:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back to Panel", `fw_inline_menu:${chatId}`)]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), Markup.inlineKeyboard(rows));
 }
@@ -4641,28 +4678,28 @@ type AdvancedFeature = {
 
 const ADVANCED_FEATURES: AdvancedFeature[] = [
   // Row 1
-  { id: "temp_media", title: "Temp Media", icon: "⏰", hasSubMenu: true },
-  { id: "verification", title: "Verification", icon: "✅", hasSubMenu: true },
-  { id: "anti_betrayal", title: "Anti-Betrayal", icon: "🛡️", banSettingsRootKey: "antiBetrayal", hasSubMenu: true },
+  { id: "temp_media", title: "Temp Media", icon: "â°", hasSubMenu: true },
+  { id: "verification", title: "Verification", icon: "âœ…", hasSubMenu: true },
+  { id: "anti_betrayal", title: "Anti-Betrayal", icon: "ðŸ›¡ï¸", banSettingsRootKey: "antiBetrayal", hasSubMenu: true },
   // Row 2
-  { id: "mandatory_join", title: "Mandatory Join", icon: "📋", hasSubMenu: true },
-  { id: "mandatory_add", title: "Mandatory Add", icon: "➕", banSettingsRootKey: "mandatoryAdd", hasSubMenu: true },
-  { id: "welcome", title: "Welcome", icon: "👋", settingsKey: "welcomeEnabled", hasSubMenu: true },
+  { id: "mandatory_join", title: "Mandatory Join", icon: "ðŸ“‹", hasSubMenu: true },
+  { id: "mandatory_add", title: "Mandatory Add", icon: "âž•", banSettingsRootKey: "mandatoryAdd", hasSubMenu: true },
+  { id: "welcome", title: "Welcome", icon: "ðŸ‘‹", settingsKey: "welcomeEnabled", hasSubMenu: true },
   // Row 3
-  { id: "warning", title: "Warnings", icon: "⚠️", settingsKey: "warningEnabled", hasSubMenu: true },
-  { id: "anti_ad", title: "Anti-Ad", icon: "🚫", banSettingsKey: "blockLinks" },
-  { id: "strict_mode", title: "Strict Lock", icon: "🔒", hasSubMenu: true },
+  { id: "warning", title: "Warnings", icon: "âš ï¸", settingsKey: "warningEnabled", hasSubMenu: true },
+  { id: "anti_tabchi", title: "Anti-Tabchi", icon: "ðŸš«", hasSubMenu: true },
+  { id: "strict_mode", title: "Strict Lock", icon: "ðŸ”’", hasSubMenu: true },
   // Row 4
-  { id: "auto_lock", title: "Auto Lock", icon: "🔐", hasSubMenu: true },
-  { id: "flood", title: "Flood Protection", icon: "💬", hasSubMenu: true },
-  { id: "lock_limit", title: "Lock Limit", icon: "📊", hasSubMenu: true },
+  { id: "auto_lock", title: "Auto Lock", icon: "ðŸ”", hasSubMenu: true },
+  { id: "flood", title: "Flood Protection", icon: "ðŸ’¬", hasSubMenu: true },
+  { id: "lock_limit", title: "Lock Limit", icon: "ðŸ“Š", hasSubMenu: true },
   // Row 5
-  { id: "permissions", title: "Permissions", icon: "⚙️", hasSubMenu: true },
-  { id: "cleanup", title: "Cleanup", icon: "🧹", hasSubMenu: true },
-  { id: "lock_features", title: "Lock Features", icon: "🔒", banSettingsRootKey: "lockFeatures" },
+  { id: "permissions", title: "Permissions", icon: "âš™ï¸", hasSubMenu: true },
+  { id: "cleanup", title: "Cleanup", icon: "ðŸ§¹", hasSubMenu: true },
+  { id: "lock_features", title: "Lock Features", icon: "ðŸ”’", banSettingsRootKey: "lockFeatures" },
   // Row 6
-  { id: "timezone", title: "Time Zone", icon: "🕐", hasSubMenu: true },
-  { id: "reports", title: "Reports", icon: "📈", hasSubMenu: true },
+  { id: "timezone", title: "Time Zone", icon: "ðŸ•", hasSubMenu: true },
+  { id: "reports", title: "Reports", icon: "ðŸ“ˆ", hasSubMenu: true },
 ];
 
 async function showInlineAdvanced(ctx: Context, chatId: string): Promise<void> {
@@ -4706,12 +4743,12 @@ async function showInlineAdvanced(ctx: Context, chatId: string): Promise<void> {
     return false;
   }).length;
 
-  const message = `⚙️ <b>Advanced Settings</b>
+  const message = `âš™ï¸ <b>Advanced Settings</b>
 
 Configure advanced protection features for your group.
 
-📊 <b>Status:</b> ${enabledCount} features enabled
-${!isPremium ? `\n⭐ Features marked with ⭐ require Premium` : ""}
+ðŸ“Š <b>Status:</b> ${enabledCount} features enabled
+${!isPremium ? `\nâ­ Features marked with â­ require Premium` : ""}
 
 <i>Tap a feature to configure it.</i>`;
 
@@ -4726,7 +4763,7 @@ ${!isPremium ? `\n⭐ Features marked with ⭐ require Premium` : ""}
 
     // Add premium lock badge for premium-only features
     const isPremiumOnly1 = premiumOnlyFeatureIds.includes(f1.id);
-    const premiumBadge1 = isPremiumOnly1 && !isPremium ? " ⭐" : "";
+    const premiumBadge1 = isPremiumOnly1 && !isPremium ? " â­" : "";
 
     // All features now go to submenu (hasSubMenu = true for all)
     const callback1 = `fw_adv_${f1.id}:${chatId}`;
@@ -4735,7 +4772,7 @@ ${!isPremium ? `\n⭐ Features marked with ⭐ require Premium` : ""}
     // Feature 2 (if exists)
     if (f2) {
       const isPremiumOnly2 = premiumOnlyFeatureIds.includes(f2.id);
-      const premiumBadge2 = isPremiumOnly2 && !isPremium ? " ⭐" : "";
+      const premiumBadge2 = isPremiumOnly2 && !isPremium ? " â­" : "";
 
       const callback2 = `fw_adv_${f2.id}:${chatId}`;
       row.push(Markup.button.callback(`${f2.icon} ${f2.title}${premiumBadge2}`, callback2));
@@ -4745,7 +4782,7 @@ ${!isPremium ? `\n⭐ Features marked with ⭐ require Premium` : ""}
   }
 
   // Back button
-  rows.push([Markup.button.callback("◀️ Back to Panel", `fw_inline_menu:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back to Panel", `fw_inline_menu:${chatId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
@@ -4788,9 +4825,9 @@ bot.action(/^fw_adv_tm_master:(-?\d+):(on|off)$/, async (ctx) => {
     await saveBanSettingsByChatId(chatId, settings);
 
     if (action === "on") {
-      await ctx.answerCbQuery("✅ Temp Media enabled!", { show_alert: false });
+      await ctx.answerCbQuery("âœ… Temp Media enabled!", { show_alert: false });
     } else {
-      await ctx.answerCbQuery("❌ Temp Media disabled!", { show_alert: false });
+      await ctx.answerCbQuery("âŒ Temp Media disabled!", { show_alert: false });
     }
   } catch (error) {
     logger.error("Failed to toggle temp media", { chatId, error });
@@ -4884,23 +4921,35 @@ bot.action(/^fw_adv_([a-z_]+):(-?\d+)$/, async (ctx) => {
       case "anti_betrayal":
         await showAntiBetrayalSettings(ctx, chatId);
         break;
+      case "anti_tabchi":
+        await showAntiTabchiSettings(ctx, chatId);
+        break;
       case "mandatory_add":
         await showMandatoryAddSettings(ctx, chatId);
         break;
       case "strict_mode":
         await showStrictLockSettings(ctx, chatId);
         break;
-      case "lock_limit":
+      case "strict_mode":
+        await showStrictLockSettings(ctx, chatId);
+        break;
       case "auto_lock":
+        await showAutoLockSettings(ctx, chatId);
+        break;
+      case "lock_limit":
+        await showLockLimitSettings(ctx, chatId);
+        break;
       case "permissions":
+        await showPermissionsSettings(ctx, chatId);
+        break;
       case "cleanup":
       case "timezone":
       case "reports":
         // These have placeholder implementations - will show their existing handlers
-        await ctx.reply(`⚙️ <b>${feature.title}</b>\n\nThis feature configuration is available. Check the existing handlers.`, { parse_mode: "HTML" });
+        await ctx.reply(`âš™ï¸ <b>${feature.title}</b>\n\nThis feature configuration is available. Check the existing handlers.`, { parse_mode: "HTML" });
         break;
       default:
-        await ctx.reply(`⚙️ <b>${feature.title}</b>\n\nThis feature configuration is coming soon!`, { parse_mode: "HTML" });
+        await ctx.reply(`âš™ï¸ <b>${feature.title}</b>\n\nThis feature configuration is coming soon!`, { parse_mode: "HTML" });
     }
     return;
   } else {
@@ -4909,7 +4958,7 @@ bot.action(/^fw_adv_([a-z_]+):(-?\d+)$/, async (ctx) => {
     const premiumOnlyFeatures = ["mandatory_join", "mandatory_add"];
     if (premiumOnlyFeatures.includes(featureId) && !isGroupPremium(chatId)) {
       await ctx.answerCbQuery(
-        "⭐ This is a Premium feature. Upgrade to enable it!",
+        "â­ This is a Premium feature. Upgrade to enable it!",
         { show_alert: true }
       );
       return;
@@ -4985,19 +5034,19 @@ async function showTempMediaSettings(ctx: Context, chatId: string): Promise<void
 
   if (!tempMediaEnabled) {
     // Show enable prompt with nice description
-    const message = `⏰ <b>Temporary Media</b>
+    const message = `â° <b>Temporary Media</b>
 
-• By enabling this feature
-• Media will be auto-deleted after a set time
-• This helps prevent group filtering issues
+â€¢ By enabling this feature
+â€¢ Media will be auto-deleted after a set time
+â€¢ This helps prevent group filtering issues
 
-<b>Status:</b> ❌ Disabled
+<b>Status:</b> âŒ Disabled
 
 <i>Enable this feature to configure media types and delete time.</i>`;
 
     const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback("Temp Media ❌", `fw_adv_tm_master:${chatId}:on`)],
-      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+      [Markup.button.callback("Temp Media âŒ", `fw_adv_tm_master:${chatId}:on`)],
+      [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
     ]);
 
     await replyOrEditRoot(ctx, message, keyboard);
@@ -5006,45 +5055,45 @@ async function showTempMediaSettings(ctx: Context, chatId: string): Promise<void
 
   // Show full settings when enabled
   const userTypeLabel = userType === "all" ? "All Members" : "Non-Admins";
-  const message = `⏰ <b>Temporary Media</b>
+  const message = `â° <b>Temporary Media</b>
 
-• By enabling this feature
-• Media will be auto-deleted after a set time
-• This helps prevent group filtering issues`;
+â€¢ By enabling this feature
+â€¢ Media will be auto-deleted after a set time
+â€¢ This helps prevent group filtering issues`;
 
   const rows: any[] = [];
 
   // Master toggle
-  rows.push([Markup.button.callback(`Temp Media ✅`, `fw_adv_tm_master:${chatId}:off`)]);
+  rows.push([Markup.button.callback(`Temp Media âœ…`, `fw_adv_tm_master:${chatId}:off`)]);
 
   // Media type toggles (2 per row)
   rows.push([
-    Markup.button.callback(`GIF ${mediaTypes.gif ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:gif`),
-    Markup.button.callback(`Sticker ${mediaTypes.sticker ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:sticker`),
+    Markup.button.callback(`GIF ${mediaTypes.gif ? "âœ…" : "âŒ"}`, `fw_adv_tm_type:${chatId}:gif`),
+    Markup.button.callback(`Sticker ${mediaTypes.sticker ? "âœ…" : "âŒ"}`, `fw_adv_tm_type:${chatId}:sticker`),
   ]);
   rows.push([
-    Markup.button.callback(`Video ${mediaTypes.video ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:video`),
-    Markup.button.callback(`Photo ${mediaTypes.photo ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:photo`),
+    Markup.button.callback(`Video ${mediaTypes.video ? "âœ…" : "âŒ"}`, `fw_adv_tm_type:${chatId}:video`),
+    Markup.button.callback(`Photo ${mediaTypes.photo ? "âœ…" : "âŒ"}`, `fw_adv_tm_type:${chatId}:photo`),
   ]);
   rows.push([
-    Markup.button.callback(`File ${mediaTypes.file ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:file`),
-    Markup.button.callback(`Audio ${mediaTypes.audio ? "✅" : "❌"}`, `fw_adv_tm_type:${chatId}:audio`),
+    Markup.button.callback(`File ${mediaTypes.file ? "âœ…" : "âŒ"}`, `fw_adv_tm_type:${chatId}:file`),
+    Markup.button.callback(`Audio ${mediaTypes.audio ? "âœ…" : "âŒ"}`, `fw_adv_tm_type:${chatId}:audio`),
   ]);
 
   // Time selector
   rows.push([Markup.button.callback(`Delete Time: ${deleteMinutes} min`, `fw_adv_tm_time_show:${chatId}`)]);
   rows.push([
-    Markup.button.callback("《", `fw_adv_tm_time:${chatId}:downfast`),
-    Markup.button.callback("〈", `fw_adv_tm_time:${chatId}:down`),
-    Markup.button.callback("〉", `fw_adv_tm_time:${chatId}:up`),
-    Markup.button.callback("》", `fw_adv_tm_time:${chatId}:upfast`),
+    Markup.button.callback("ã€Š", `fw_adv_tm_time:${chatId}:downfast`),
+    Markup.button.callback("ã€ˆ", `fw_adv_tm_time:${chatId}:down`),
+    Markup.button.callback("ã€‰", `fw_adv_tm_time:${chatId}:up`),
+    Markup.button.callback("ã€‹", `fw_adv_tm_time:${chatId}:upfast`),
   ]);
 
   // User type toggle
   rows.push([Markup.button.callback(`User Type: ${userTypeLabel}`, `fw_adv_tm_usertype:${chatId}`)]);
 
   // Back button
-  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
@@ -5148,27 +5197,27 @@ async function showVerificationSettings(ctx: Context, chatId: string): Promise<v
   const isAllUsers = verificationMode === "all";
   const isIncoming = verificationMode === "incoming";
 
-  const message = `✅ <b>User Verification</b>
+  const message = `âœ… <b>User Verification</b>
 
 With this feature you can:
-• Verify all users currently in the group
-• Verify new users before they can join
+â€¢ Verify all users currently in the group
+â€¢ Verify new users before they can join
 
 <b>Verification type (captcha)</b> is a simple question.
 Bots usually cannot answer it accurately.
 
-<b>Status:</b> ${verificationMode === "disabled" ? "❌ Disabled" : verificationMode === "all" ? "✅ All Users" : "✅ Incoming Users"}`;
+<b>Status:</b> ${verificationMode === "disabled" ? "âŒ Disabled" : verificationMode === "all" ? "âœ… All Users" : "âœ… Incoming Users"}`;
 
   const keyboard = Markup.inlineKeyboard([
     [Markup.button.callback(
-      `${isAllUsers ? "✅ " : ""}Verify All Group Members`,
+      `${isAllUsers ? "âœ… " : ""}Verify All Group Members`,
       `fw_adv_verification_mode:${chatId}:all`
     )],
     [Markup.button.callback(
-      `${isIncoming ? "✅ " : ""}Verify Incoming Users`,
+      `${isIncoming ? "âœ… " : ""}Verify Incoming Users`,
       `fw_adv_verification_mode:${chatId}:incoming`
     )],
-    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+    [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
   ]);
 
   await replyOrEditRoot(ctx, message, keyboard);
@@ -5206,11 +5255,11 @@ bot.action(/^fw_adv_verification_mode:(-?\d+):(all|incoming|disabled)$/, async (
       await ctx.answerCbQuery("Incoming users verification enabled!", { show_alert: true });
 
       // Show the gateway link info
-      const infoMessage = `✅ <b>Incoming Users Verification Enabled</b>
+      const infoMessage = `âœ… <b>Incoming Users Verification Enabled</b>
 
-• From now on, you can use the gateway link instead of your group's regular invite link.
-• Place this gateway link in your public channels and groups.
-• Using the gateway link instead of regular invite helps prevent bot accounts from joining.
+â€¢ From now on, you can use the gateway link instead of your group's regular invite link.
+â€¢ Place this gateway link in your public channels and groups.
+â€¢ Using the gateway link instead of regular invite helps prevent bot accounts from joining.
 
 <b>Gateway Link:</b>
 <code>${gatewayLink}</code>
@@ -5220,7 +5269,7 @@ bot.action(/^fw_adv_verification_mode:(-?\d+):(all|incoming|disabled)$/, async (
       await ctx.editMessageText(infoMessage, {
         parse_mode: "HTML",
         reply_markup: Markup.inlineKeyboard([
-          [Markup.button.callback("◀️ Back to Verification", `fw_adv_verification:${chatId}`)]
+          [Markup.button.callback("â—€ï¸ Back to Verification", `fw_adv_verification:${chatId}`)]
         ]).reply_markup
       });
       return;
@@ -5263,20 +5312,20 @@ async function showAntiBetrayalSettings(ctx: Context, chatId: string): Promise<v
 
   if (!antiBetrayalEnabled) {
     // Show enable prompt with description
-    const message = `🛡️ <b>Anti-Betrayal Lock</b>
+    const message = `ðŸ›¡ï¸ <b>Anti-Betrayal Lock</b>
 
-• In this section, the owner can:
-• Set the limit for banning members
-★ Admins who ban more than the allowed number
+â€¢ In this section, the owner can:
+â€¢ Set the limit for banning members
+â˜… Admins who ban more than the allowed number
 ~ will be <b>demoted</b> by the bot!
 
-<b>Status:</b> ❌ Disabled
+<b>Status:</b> âŒ Disabled
 
 <i>Enable this feature to configure anti-betrayal settings.</i>`;
 
     const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback("Anti-Betrayal Lock ❌", `fw_adv_ab_master:${chatId}:on`)],
-      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+      [Markup.button.callback("Anti-Betrayal Lock âŒ", `fw_adv_ab_master:${chatId}:on`)],
+      [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
     ]);
 
     await replyOrEditRoot(ctx, message, keyboard);
@@ -5287,19 +5336,19 @@ async function showAntiBetrayalSettings(ctx: Context, chatId: string): Promise<v
   const detectionModeLabel = detectionMode === "simple" ? "Simple" : "Advanced";
   const betrayalTypeLabel = betrayalType === "ban" ? "Ban" : betrayalType === "mute" ? "Mute" : "Silence";
 
-  const message = `🛡️ <b>Anti-Betrayal Lock</b>
+  const message = `ðŸ›¡ï¸ <b>Anti-Betrayal Lock</b>
 
-• In this section, the owner can:
-• Set the limit for banning members
-★ Admins who ban more than the allowed number
+â€¢ In this section, the owner can:
+â€¢ Set the limit for banning members
+â˜… Admins who ban more than the allowed number
 ~ will be <b>demoted</b> by the bot!
 
-<b>Status:</b> ✅ Enabled`;
+<b>Status:</b> âœ… Enabled`;
 
   const rows: any[] = [];
 
   // Master toggle
-  rows.push([Markup.button.callback(`Anti-Betrayal Lock ✅`, `fw_adv_ab_master:${chatId}:off`)]);
+  rows.push([Markup.button.callback(`Anti-Betrayal Lock âœ…`, `fw_adv_ab_master:${chatId}:off`)]);
 
   // Detection Mode
   rows.push([Markup.button.callback(`Detection Mode: ${detectionModeLabel}`, `fw_adv_ab_detection:${chatId}`)]);
@@ -5310,23 +5359,23 @@ async function showAntiBetrayalSettings(ctx: Context, chatId: string): Promise<v
   // Time Base
   rows.push([Markup.button.callback(`Time Base: ${timeBase} min`, `fw_adv_ab_time_show:${chatId}`)]);
   rows.push([
-    Markup.button.callback("《", `fw_adv_ab_time:${chatId}:downfast`),
-    Markup.button.callback("〈", `fw_adv_ab_time:${chatId}:down`),
-    Markup.button.callback("〉", `fw_adv_ab_time:${chatId}:up`),
-    Markup.button.callback("》", `fw_adv_ab_time:${chatId}:upfast`),
+    Markup.button.callback("ã€Š", `fw_adv_ab_time:${chatId}:downfast`),
+    Markup.button.callback("ã€ˆ", `fw_adv_ab_time:${chatId}:down`),
+    Markup.button.callback("ã€‰", `fw_adv_ab_time:${chatId}:up`),
+    Markup.button.callback("ã€‹", `fw_adv_ab_time:${chatId}:upfast`),
   ]);
 
   // Allowed Count
   rows.push([Markup.button.callback(`Allowed Count: ${allowedCount}`, `fw_adv_ab_count_show:${chatId}`)]);
   rows.push([
-    Markup.button.callback("《", `fw_adv_ab_count:${chatId}:downfast`),
-    Markup.button.callback("〈", `fw_adv_ab_count:${chatId}:down`),
-    Markup.button.callback("〉", `fw_adv_ab_count:${chatId}:up`),
-    Markup.button.callback("》", `fw_adv_ab_count:${chatId}:upfast`),
+    Markup.button.callback("ã€Š", `fw_adv_ab_count:${chatId}:downfast`),
+    Markup.button.callback("ã€ˆ", `fw_adv_ab_count:${chatId}:down`),
+    Markup.button.callback("ã€‰", `fw_adv_ab_count:${chatId}:up`),
+    Markup.button.callback("ã€‹", `fw_adv_ab_count:${chatId}:upfast`),
   ]);
 
   // Back button
-  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
@@ -5362,9 +5411,9 @@ bot.action(/^fw_adv_ab_master:(-?\d+):(on|off)$/, async (ctx) => {
     await saveBanSettingsByChatId(chatId, settings);
 
     if (action === "on") {
-      await ctx.answerCbQuery("✅ Anti-Betrayal Lock enabled!", { show_alert: false });
+      await ctx.answerCbQuery("âœ… Anti-Betrayal Lock enabled!", { show_alert: false });
     } else {
-      await ctx.answerCbQuery("❌ Anti-Betrayal Lock disabled!", { show_alert: false });
+      await ctx.answerCbQuery("âŒ Anti-Betrayal Lock disabled!", { show_alert: false });
     }
   } catch (error) {
     logger.error("Failed to toggle anti-betrayal", { chatId, error });
@@ -5531,7 +5580,7 @@ bot.action(/^fw_adv_ab_count:(-?\d+):(up|down|upfast|downfast)$/, async (ctx) =>
     if (change !== 0) {
       const changeText = change > 0 ? `increased by ${change}` : `decreased by ${Math.abs(change)}`;
       await ctx.answerCbQuery(
-        `📊 Allowed ban count ${changeText}!\n\n📌 Group admins can ban up to ${currentCount} users within the ${(abSettings.timeBase as number) ?? 10} minute time window`,
+        `ðŸ“Š Allowed ban count ${changeText}!\n\nðŸ“Œ Group admins can ban up to ${currentCount} users within the ${(abSettings.timeBase as number) ?? 10} minute time window`,
         { show_alert: true }
       );
     } else {
@@ -5559,19 +5608,19 @@ bot.action(/^fw_adv_mandatory_add:(-?\d+)$/, async (ctx) => {
 async function showMandatoryAddSettings(ctx: Context, chatId: string): Promise<void> {
   // Check premium status first
   if (!isGroupPremium(chatId)) {
-    const message = `➕ <b>Mandatory Add Lock</b>
+    const message = `âž• <b>Mandatory Add Lock</b>
 
-• By enabling this feature
-★ The bot forces group users to add members
-★ To have permission to chat in the group
+â€¢ By enabling this feature
+â˜… The bot forces group users to add members
+â˜… To have permission to chat in the group
 
-⭐ <b>This is a Premium feature</b>
+â­ <b>This is a Premium feature</b>
 
 <i>Upgrade to Premium to enable this feature.</i>`;
 
     const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback("⭐ Upgrade to Premium", `fw_inline_menu:${chatId}`)],
-      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+      [Markup.button.callback("â­ Upgrade to Premium", `fw_inline_menu:${chatId}`)],
+      [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
     ]);
 
     await replyOrEditRoot(ctx, message, keyboard);
@@ -5597,19 +5646,19 @@ async function showMandatoryAddSettings(ctx: Context, chatId: string): Promise<v
 
   if (!mandatoryAddEnabled) {
     // Show enable prompt with description
-    const message = `➕ <b>Mandatory Add Lock</b>
+    const message = `âž• <b>Mandatory Add Lock</b>
 
-• By enabling this feature
-★ The bot forces group users to add members
-★ To have permission to chat in the group
+â€¢ By enabling this feature
+â˜… The bot forces group users to add members
+â˜… To have permission to chat in the group
 
-<b>Status:</b> ❌ Disabled
+<b>Status:</b> âŒ Disabled
 
 <i>Enable this feature to configure mandatory add settings.</i>`;
 
     const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback("Mandatory Add Lock ❌", `fw_adv_ma_master:${chatId}:on`)],
-      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+      [Markup.button.callback("Mandatory Add Lock âŒ", `fw_adv_ma_master:${chatId}:on`)],
+      [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
     ]);
 
     await replyOrEditRoot(ctx, message, keyboard);
@@ -5620,23 +5669,23 @@ async function showMandatoryAddSettings(ctx: Context, chatId: string): Promise<v
   const addModeLabel = addMode === "all" ? "All Messages" : addMode === "media" ? "Media Only" : "Text Only";
   const messageTextLabel = messageText === "default" ? "Default" : "Custom";
 
-  const message = `➕ <b>Mandatory Add Lock</b>
+  const message = `âž• <b>Mandatory Add Lock</b>
 
-• By enabling this feature
-★ The bot forces group users to add members
-★ To have permission to chat in the group
+â€¢ By enabling this feature
+â˜… The bot forces group users to add members
+â˜… To have permission to chat in the group
 
-<b>Status:</b> ✅ Enabled`;
+<b>Status:</b> âœ… Enabled`;
 
   const rows: any[] = [];
 
   // Master toggle
-  rows.push([Markup.button.callback(`Mandatory Add Lock ✅`, `fw_adv_ma_master:${chatId}:off`)]);
+  rows.push([Markup.button.callback(`Mandatory Add Lock âœ…`, `fw_adv_ma_master:${chatId}:off`)]);
 
   // Required Count section
   rows.push([Markup.button.callback(`Required Count`, `fw_adv_ma_count_show:${chatId}`)]);
   rows.push([
-    Markup.button.callback("−", `fw_adv_ma_count:${chatId}:down`),
+    Markup.button.callback("âˆ’", `fw_adv_ma_count:${chatId}:down`),
     Markup.button.callback(`Count: ${requiredCount}`, `fw_adv_ma_count_show:${chatId}`),
     Markup.button.callback("+", `fw_adv_ma_count:${chatId}:up`),
   ]);
@@ -5644,7 +5693,7 @@ async function showMandatoryAddSettings(ctx: Context, chatId: string): Promise<v
   // Bot Message Delete Time section
   rows.push([Markup.button.callback(`Bot Message Delete Time`, `fw_adv_ma_time_show:${chatId}`)]);
   rows.push([
-    Markup.button.callback("−", `fw_adv_ma_time:${chatId}:down`),
+    Markup.button.callback("âˆ’", `fw_adv_ma_time:${chatId}:down`),
     Markup.button.callback(`${deleteTime} min`, `fw_adv_ma_time_show:${chatId}`),
     Markup.button.callback("+", `fw_adv_ma_time:${chatId}:up`),
   ]);
@@ -5653,10 +5702,10 @@ async function showMandatoryAddSettings(ctx: Context, chatId: string): Promise<v
   rows.push([Markup.button.callback(`Mandatory Add Mode: ${addModeLabel}`, `fw_adv_ma_mode:${chatId}`)]);
 
   // Message Text
-  rows.push([Markup.button.callback(`• Mandatory Add Message: ${messageTextLabel}`, `fw_adv_ma_text:${chatId}`)]);
+  rows.push([Markup.button.callback(`â€¢ Mandatory Add Message: ${messageTextLabel}`, `fw_adv_ma_text:${chatId}`)]);
 
   // Back button
-  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
@@ -5692,9 +5741,9 @@ bot.action(/^fw_adv_ma_master:(-?\d+):(on|off)$/, async (ctx) => {
     await saveBanSettingsByChatId(chatId, settings);
 
     if (action === "on") {
-      await ctx.answerCbQuery("✅ Mandatory Add Lock enabled!", { show_alert: false });
+      await ctx.answerCbQuery("âœ… Mandatory Add Lock enabled!", { show_alert: false });
     } else {
-      await ctx.answerCbQuery("❌ Mandatory Add Lock disabled!", { show_alert: false });
+      await ctx.answerCbQuery("âŒ Mandatory Add Lock disabled!", { show_alert: false });
     }
   } catch (error) {
     logger.error("Failed to toggle mandatory add", { chatId, error });
@@ -5882,21 +5931,21 @@ async function showStrictLockSettings(ctx: Context, chatId: string): Promise<voi
 
   if (!strictLockEnabled) {
     // Show enable prompt with description
-    const message = `🔒 <b>Strict Lock (Repeated Messages)</b>
+    const message = `ðŸ”’ <b>Strict Lock (Repeated Messages)</b>
 
-• By enabling this feature
-★ You can set the repeated message limit
-★ Users who send more than the allowed limit
-★ Will be punished as configured
-★ Time unit for repeated messages is 3 seconds
+â€¢ By enabling this feature
+â˜… You can set the repeated message limit
+â˜… Users who send more than the allowed limit
+â˜… Will be punished as configured
+â˜… Time unit for repeated messages is 3 seconds
 
-<b>Status:</b> ❌ Disabled
+<b>Status:</b> âŒ Disabled
 
 <i>Enable this feature to configure settings.</i>`;
 
     const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback("Repeated Message Lock ❌", `fw_adv_sl_master:${chatId}:on`)],
-      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+      [Markup.button.callback("Repeated Message Lock âŒ", `fw_adv_sl_master:${chatId}:on`)],
+      [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
     ]);
 
     await replyOrEditRoot(ctx, message, keyboard);
@@ -5904,20 +5953,20 @@ async function showStrictLockSettings(ctx: Context, chatId: string): Promise<voi
   }
 
   // Show full settings when enabled
-  const message = `🔒 <b>Strict Lock (Repeated Messages)</b>
+  const message = `ðŸ”’ <b>Strict Lock (Repeated Messages)</b>
 
-• By enabling this feature
-★ You can set the repeated message limit
-★ Users who send more than the allowed limit
-★ Will be punished as configured
-★ Time unit for repeated messages is 3 seconds
+â€¢ By enabling this feature
+â˜… You can set the repeated message limit
+â˜… Users who send more than the allowed limit
+â˜… Will be punished as configured
+â˜… Time unit for repeated messages is 3 seconds
 
-<b>Status:</b> ✅ Enabled`;
+<b>Status:</b> âœ… Enabled`;
 
   const rows: any[] = [];
 
   // Master toggle
-  rows.push([Markup.button.callback(`Repeated Message Lock ✅`, `fw_adv_sl_master:${chatId}:off`)]);
+  rows.push([Markup.button.callback(`Repeated Message Lock âœ…`, `fw_adv_sl_master:${chatId}:off`)]);
 
   // Punishment mode options (radio buttons style)
   const modes = [
@@ -5929,19 +5978,19 @@ async function showStrictLockSettings(ctx: Context, chatId: string): Promise<voi
 
   for (const mode of modes) {
     const isSelected = punishmentMode === mode.id;
-    const icon = isSelected ? "✅" : "❌";
-    rows.push([Markup.button.callback(`• Repeated Message Mode: ${mode.label} ${icon}`, `fw_adv_sl_mode:${chatId}:${mode.id}`)]);
+    const icon = isSelected ? "âœ…" : "âŒ";
+    rows.push([Markup.button.callback(`â€¢ Repeated Message Mode: ${mode.label} ${icon}`, `fw_adv_sl_mode:${chatId}:${mode.id}`)]);
   }
 
   // Message count
-  rows.push([Markup.button.callback(`• Repeated Message Count: ${messageCount}`, `fw_adv_sl_count_show:${chatId}`)]);
+  rows.push([Markup.button.callback(`â€¢ Repeated Message Count: ${messageCount}`, `fw_adv_sl_count_show:${chatId}`)]);
   rows.push([
-    Markup.button.callback("−", `fw_adv_sl_count:${chatId}:down`),
+    Markup.button.callback("âˆ’", `fw_adv_sl_count:${chatId}:down`),
     Markup.button.callback("+", `fw_adv_sl_count:${chatId}:up`),
   ]);
 
   // Back button
-  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
@@ -5975,9 +6024,9 @@ bot.action(/^fw_adv_sl_master:(-?\d+):(on|off)$/, async (ctx) => {
     await saveBanSettingsByChatId(chatId, settings);
 
     if (action === "on") {
-      await ctx.answerCbQuery("✅ Repeated Message Lock enabled!", { show_alert: false });
+      await ctx.answerCbQuery("âœ… Repeated Message Lock enabled!", { show_alert: false });
     } else {
-      await ctx.answerCbQuery("❌ Repeated Message Lock disabled!", { show_alert: false });
+      await ctx.answerCbQuery("âŒ Repeated Message Lock disabled!", { show_alert: false });
     }
   } catch (error) {
     logger.error("Failed to toggle strict lock", { chatId, error });
@@ -6075,22 +6124,22 @@ async function showMandatoryJoinSettings(ctx: Context, chatId: string): Promise<
 
   if (!isPremium) {
     // Show premium upsell message
-    const message = `📋 <b>Mandatory Membership</b>
+    const message = `ðŸ“‹ <b>Mandatory Membership</b>
 
-• With this feature enabled:
-• You can register a group or channel in the bot
-• The bot forces users to join it
-• Before they can chat in the group
+â€¢ With this feature enabled:
+â€¢ You can register a group or channel in the bot
+â€¢ The bot forces users to join it
+â€¢ Before they can chat in the group
 
-⭐ <b>Premium Feature</b>
+â­ <b>Premium Feature</b>
 This is one of the premium features.
 To use it, you need to get Premium for this group.
 
 <i>Upgrade to Premium to unlock this feature.</i>`;
 
     const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback("⭐ Get Premium", `fw_premium:${chatId}`)],
-      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+      [Markup.button.callback("â­ Get Premium", `fw_premium:${chatId}`)],
+      [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
     ]);
 
     await replyOrEditRoot(ctx, message, keyboard);
@@ -6116,20 +6165,20 @@ To use it, you need to get Premium for this group.
 
   if (!mandatoryJoinEnabled) {
     // Show enable prompt with description
-    const message = `📋 <b>Mandatory Membership</b>
+    const message = `ðŸ“‹ <b>Mandatory Membership</b>
 
-• With this feature enabled:
-• You can register a group or channel in the bot
-• The bot forces users to join it
-• Before they can chat in the group
+â€¢ With this feature enabled:
+â€¢ You can register a group or channel in the bot
+â€¢ The bot forces users to join it
+â€¢ Before they can chat in the group
 
-<b>Status:</b> ❌ Disabled
+<b>Status:</b> âŒ Disabled
 
 <i>Enable this feature to configure mandatory membership settings.</i>`;
 
     const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback("Mandatory Membership ❌", `fw_adv_mj_master:${chatId}:on`)],
-      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+      [Markup.button.callback("Mandatory Membership âŒ", `fw_adv_mj_master:${chatId}:on`)],
+      [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
     ]);
 
     await replyOrEditRoot(ctx, message, keyboard);
@@ -6140,45 +6189,45 @@ To use it, you need to get Premium for this group.
   const targetLabel = targetChannel ? targetChannel : "Not set";
   const messageLabel = customMessage ? "Custom" : "Default";
 
-  const message = `📋 <b>Mandatory Membership</b>
+  const message = `ðŸ“‹ <b>Mandatory Membership</b>
 
-• With this feature enabled:
-• You can register a group or channel in the bot
-• The bot forces users to join it
-• Before they can chat in the group
+â€¢ With this feature enabled:
+â€¢ You can register a group or channel in the bot
+â€¢ The bot forces users to join it
+â€¢ Before they can chat in the group
 
-<b>Status:</b> ✅ Enabled`;
+<b>Status:</b> âœ… Enabled`;
 
   const rows: any[] = [];
 
   // Master toggle
-  rows.push([Markup.button.callback(`Mandatory Membership ✅`, `fw_adv_mj_master:${chatId}:off`)]);
+  rows.push([Markup.button.callback(`Mandatory Membership âœ…`, `fw_adv_mj_master:${chatId}:off`)]);
 
   // Target channel
-  rows.push([Markup.button.callback(`• Target: ${targetLabel}`, `fw_adv_mj_target_show:${chatId}`)]);
+  rows.push([Markup.button.callback(`â€¢ Target: ${targetLabel}`, `fw_adv_mj_target_show:${chatId}`)]);
 
   // Navigation for target
   rows.push([
-    Markup.button.callback("《", `fw_adv_mj_target:${chatId}:first`),
-    Markup.button.callback("〈", `fw_adv_mj_target:${chatId}:prev`),
-    Markup.button.callback("〉", `fw_adv_mj_target:${chatId}:next`),
-    Markup.button.callback("》", `fw_adv_mj_target:${chatId}:last`),
+    Markup.button.callback("ã€Š", `fw_adv_mj_target:${chatId}:first`),
+    Markup.button.callback("ã€ˆ", `fw_adv_mj_target:${chatId}:prev`),
+    Markup.button.callback("ã€‰", `fw_adv_mj_target:${chatId}:next`),
+    Markup.button.callback("ã€‹", `fw_adv_mj_target:${chatId}:last`),
   ]);
 
   // Delete time
-  rows.push([Markup.button.callback(`• Bot Message Delete Time: ${deleteTime} sec`, `fw_adv_mj_time_show:${chatId}`)]);
+  rows.push([Markup.button.callback(`â€¢ Bot Message Delete Time: ${deleteTime} sec`, `fw_adv_mj_time_show:${chatId}`)]);
   rows.push([
-    Markup.button.callback("《", `fw_adv_mj_time:${chatId}:downfast`),
-    Markup.button.callback("〈", `fw_adv_mj_time:${chatId}:down`),
-    Markup.button.callback("〉", `fw_adv_mj_time:${chatId}:up`),
-    Markup.button.callback("》", `fw_adv_mj_time:${chatId}:upfast`),
+    Markup.button.callback("ã€Š", `fw_adv_mj_time:${chatId}:downfast`),
+    Markup.button.callback("ã€ˆ", `fw_adv_mj_time:${chatId}:down`),
+    Markup.button.callback("ã€‰", `fw_adv_mj_time:${chatId}:up`),
+    Markup.button.callback("ã€‹", `fw_adv_mj_time:${chatId}:upfast`),
   ]);
 
   // Custom message
-  rows.push([Markup.button.callback(`• Membership Message Text: ${messageLabel}`, `fw_adv_mj_message:${chatId}`)]);
+  rows.push([Markup.button.callback(`â€¢ Membership Message Text: ${messageLabel}`, `fw_adv_mj_message:${chatId}`)]);
 
   // Back button
-  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
@@ -6198,7 +6247,7 @@ bot.action(/^fw_adv_mj_master:(-?\d+):(on|off)$/, async (ctx) => {
 
   // Check premium
   if (!isGroupPremium(chatId)) {
-    await ctx.answerCbQuery("⭐ This is a Premium feature. Upgrade to enable it!", { show_alert: true });
+    await ctx.answerCbQuery("â­ This is a Premium feature. Upgrade to enable it!", { show_alert: true });
     return;
   }
 
@@ -6219,9 +6268,9 @@ bot.action(/^fw_adv_mj_master:(-?\d+):(on|off)$/, async (ctx) => {
     await saveBanSettingsByChatId(chatId, settings);
 
     if (action === "on") {
-      await ctx.answerCbQuery("✅ Mandatory Membership enabled!", { show_alert: false });
+      await ctx.answerCbQuery("âœ… Mandatory Membership enabled!", { show_alert: false });
     } else {
-      await ctx.answerCbQuery("❌ Mandatory Membership disabled!", { show_alert: false });
+      await ctx.answerCbQuery("âŒ Mandatory Membership disabled!", { show_alert: false });
     }
   } catch (error) {
     logger.error("Failed to toggle mandatory join", { chatId, error });
@@ -6281,7 +6330,7 @@ bot.action(/^fw_adv_mj_target:(-?\d+):(first|prev|next|last)$/, async (ctx) => {
 
   // For now, show an alert explaining how to set the target channel
   await ctx.answerCbQuery(
-    "ℹ️ To set the target channel:\n1. Add the bot to your channel as admin\n2. Forward a message from that channel here\n\nThe bot will automatically detect the channel.",
+    "â„¹ï¸ To set the target channel:\n1. Add the bot to your channel as admin\n2. Forward a message from that channel here\n\nThe bot will automatically detect the channel.",
     { show_alert: true }
   );
 });
@@ -6294,12 +6343,12 @@ bot.action(/^fw_adv_mj_message:(-?\d+)$/, async (ctx) => {
   const chatId = match?.[1];
   if (!chatId) return;
 
-  const message = `📝 <b>Configure Membership Message</b>
+  const message = `ðŸ“ <b>Configure Membership Message</b>
 
 You can use the following placeholders:
-• <code>{user}</code> - User's name
-• <code>{group}</code> - Group name
-• <code>{channel}</code> - Target channel name
+â€¢ <code>{user}</code> - User's name
+â€¢ <code>{group}</code> - Group name
+â€¢ <code>{channel}</code> - Target channel name
 
 <b>Example:</b>
 <code>Hello {user}!
@@ -6318,7 +6367,7 @@ Or send <code>default</code> to reset to the default message.`;
   await ctx.reply(message, {
     parse_mode: "HTML",
     reply_markup: Markup.inlineKeyboard([
-      [Markup.button.callback("❌ Cancel", `fw_adv_mandatory_join:${chatId}`)]
+      [Markup.button.callback("âŒ Cancel", `fw_adv_mandatory_join:${chatId}`)]
     ]).reply_markup
   });
 });
@@ -6363,16 +6412,16 @@ async function showWelcomeSettings(ctx: Context, chatId: string): Promise<void> 
 
   if (!welcomeEnabled) {
     // Disabled state
-    const message = `👋 <b>Welcome Message</b>
+    const message = `ðŸ‘‹ <b>Welcome Message</b>
 
-• In this section you can customize
-• welcome messages to your liking!
+â€¢ In this section you can customize
+â€¢ welcome messages to your liking!
 
-<b>Status:</b> ❌ Disabled`;
+<b>Status:</b> âŒ Disabled`;
 
     const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback("• Welcome: ❌", `fw_adv_welcome_toggle:${chatId}:on`)],
-      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+      [Markup.button.callback("â€¢ Welcome: âŒ", `fw_adv_welcome_toggle:${chatId}:on`)],
+      [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
     ]);
 
     await replyOrEditRoot(ctx, message, keyboard);
@@ -6398,7 +6447,7 @@ async function showWelcomeSettings(ctx: Context, chatId: string): Promise<void> 
 
   // Default welcome message template
   const defaultMessage = `Hello {user}
-Welcome to {group} 🌿
+Welcome to {group} ðŸŒ¿
 Time: ${timeStr} (${dateStr})`;
 
   const previewMessage = customMessage || defaultMessage;
@@ -6408,26 +6457,26 @@ Time: ${timeStr} (${dateStr})`;
 
   const autoDeleteLabel = autoDeleteEnabled ? "Enabled" : "Disabled";
 
-  const message = `<b>Current Welcome Message Text ↓</b>
+  const message = `<b>Current Welcome Message Text â†“</b>
 
 ${displayedPreview}`;
 
   const rows: any[] = [];
 
   // Master toggle
-  rows.push([Markup.button.callback("• Welcome: ✅", `fw_adv_welcome_toggle:${chatId}:off`)]);
+  rows.push([Markup.button.callback("â€¢ Welcome: âœ…", `fw_adv_welcome_toggle:${chatId}:off`)]);
 
   // Configure message
-  rows.push([Markup.button.callback("• Configure Welcome Message", `fw_adv_welcome_config:${chatId}`)]);
+  rows.push([Markup.button.callback("â€¢ Configure Welcome Message", `fw_adv_welcome_config:${chatId}`)]);
 
   // View/Preview message
   rows.push([Markup.button.callback("View Welcome Message", `fw_adv_welcome_preview:${chatId}`)]);
 
   // Auto-delete toggle
-  rows.push([Markup.button.callback(`• Auto-Delete Welcome Message: ${autoDeleteLabel}`, `fw_adv_welcome_autodelete:${chatId}`)]);
+  rows.push([Markup.button.callback(`â€¢ Auto-Delete Welcome Message: ${autoDeleteLabel}`, `fw_adv_welcome_autodelete:${chatId}`)]);
 
   // Back button
-  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
@@ -6458,9 +6507,9 @@ bot.action(/^fw_adv_welcome_toggle:(-?\d+):(on|off)$/, async (ctx) => {
     await saveGeneralSettingsByChatId(chatId, settings);
 
     if (action === "on") {
-      await ctx.answerCbQuery("✅ Welcome Message enabled!", { show_alert: false });
+      await ctx.answerCbQuery("âœ… Welcome Message enabled!", { show_alert: false });
     } else {
-      await ctx.answerCbQuery("❌ Welcome Message disabled!", { show_alert: false });
+      await ctx.answerCbQuery("âŒ Welcome Message disabled!", { show_alert: false });
     }
   } catch (error) {
     logger.error("Failed to toggle welcome", { chatId, error });
@@ -6491,9 +6540,9 @@ bot.action(/^fw_adv_welcome_autodelete:(-?\d+)$/, async (ctx) => {
     await saveGeneralSettingsByChatId(chatId, settings);
 
     if (!currentValue) {
-      await ctx.answerCbQuery("✅ Auto-Delete enabled! Welcome messages will be deleted after 60 seconds.", { show_alert: true });
+      await ctx.answerCbQuery("âœ… Auto-Delete enabled! Welcome messages will be deleted after 60 seconds.", { show_alert: true });
     } else {
-      await ctx.answerCbQuery("❌ Auto-Delete disabled!", { show_alert: false });
+      await ctx.answerCbQuery("âŒ Auto-Delete disabled!", { show_alert: false });
     }
   } catch (error) {
     logger.error("Failed to toggle welcome auto-delete", { chatId, error });
@@ -6539,7 +6588,7 @@ bot.action(/^fw_adv_welcome_preview:(-?\d+)$/, async (ctx) => {
     const dateStr = currentDate.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
 
     const defaultMessage = `Hello {user}
-Welcome to {group} 🌿
+Welcome to {group} ðŸŒ¿
 Time: ${timeStr} (${dateStr})`;
 
     const previewMessage = customMessage || defaultMessage;
@@ -6563,15 +6612,15 @@ bot.action(/^fw_adv_welcome_config:(-?\d+)$/, async (ctx) => {
   const chatId = match?.[1];
   if (!chatId) return;
 
-  const message = `📝 <b>Configure Welcome Message</b>
+  const message = `ðŸ“ <b>Configure Welcome Message</b>
 
 You can use the following placeholders in your message:
-• <code>{user}</code> - User's name
-• <code>{group}</code> - Group name
+â€¢ <code>{user}</code> - User's name
+â€¢ <code>{group}</code> - Group name
 
 <b>Example:</b>
 <code>Hello {user}!
-Welcome to {group} 🎉
+Welcome to {group} ðŸŽ‰
 We're happy to have you here!</code>
 
 Reply to this message with your custom welcome text.
@@ -6586,7 +6635,7 @@ Or send <code>default</code> to reset to the default message.`;
   await ctx.reply(message, {
     parse_mode: "HTML",
     reply_markup: Markup.inlineKeyboard([
-      [Markup.button.callback("❌ Cancel", `fw_adv_welcome:${chatId}`)]
+      [Markup.button.callback("âŒ Cancel", `fw_adv_welcome:${chatId}`)]
     ]).reply_markup
   });
 });
@@ -6630,42 +6679,42 @@ async function showWarningSettings(ctx: Context, chatId: string): Promise<void> 
   const penalty = (autoWarning?.penalty as string) ?? "mute";
 
   if (!warningEnabled) {
-    const message = `⚠️ <b>Warning System</b>
+    const message = `âš ï¸ <b>Warning System</b>
 
-• Track user violations with warnings
-• Auto-punish after reaching threshold
+â€¢ Track user violations with warnings
+â€¢ Auto-punish after reaching threshold
 
-<b>Status:</b> ❌ Disabled
+<b>Status:</b> âŒ Disabled
 
 <i>Enable this feature to configure warning settings.</i>`;
 
     const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback("✅ Enable Warnings", `fw_adv_warning_toggle:${chatId}:on`)],
-      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+      [Markup.button.callback("âœ… Enable Warnings", `fw_adv_warning_toggle:${chatId}:on`)],
+      [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
     ]);
 
     await replyOrEditRoot(ctx, message, keyboard);
     return;
   }
 
-  const message = `⚠️ <b>Warning System</b>
+  const message = `âš ï¸ <b>Warning System</b>
 
-• Threshold: <b>${threshold} warnings</b>
-• Penalty: <b>${penalty}</b>
+â€¢ Threshold: <b>${threshold} warnings</b>
+â€¢ Penalty: <b>${penalty}</b>
 
-<b>Status:</b> ✅ Enabled`;
+<b>Status:</b> âœ… Enabled`;
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("⚠️ Warnings ✅", `fw_adv_warning_toggle:${chatId}:off`)],
+    [Markup.button.callback("âš ï¸ Warnings âœ…", `fw_adv_warning_toggle:${chatId}:off`)],
     [
-      Markup.button.callback("◁", `fw_adv_warning_thresh:${chatId}:down`),
+      Markup.button.callback("â—", `fw_adv_warning_thresh:${chatId}:down`),
       Markup.button.callback(`Threshold: ${threshold}`, `fw_adv_warning_thresh:${chatId}:show`),
-      Markup.button.callback("▷", `fw_adv_warning_thresh:${chatId}:up`),
+      Markup.button.callback("â–·", `fw_adv_warning_thresh:${chatId}:up`),
     ],
     [
       Markup.button.callback(`Penalty: ${penalty}`, `fw_adv_warning_penalty:${chatId}`),
     ],
-    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+    [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
   ]);
 
   await replyOrEditRoot(ctx, message, keyboard);
@@ -6777,34 +6826,34 @@ async function showFloodSettings(ctx: Context, chatId: string): Promise<void> {
   const floodEnabled = rules?.blockFlood === true;
 
   if (!floodEnabled) {
-    const message = `💬 <b>Flood Protection</b>
+    const message = `ðŸ’¬ <b>Flood Protection</b>
 
-• Prevent users from sending too many messages rapidly
-• Auto-mute flood offenders
+â€¢ Prevent users from sending too many messages rapidly
+â€¢ Auto-mute flood offenders
 
-<b>Status:</b> ❌ Disabled
+<b>Status:</b> âŒ Disabled
 
 <i>Enable this feature to protect against message flooding.</i>`;
 
     const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback("✅ Enable Flood Protection", `fw_adv_flood_toggle:${chatId}:on`)],
-      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+      [Markup.button.callback("âœ… Enable Flood Protection", `fw_adv_flood_toggle:${chatId}:on`)],
+      [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
     ]);
 
     await replyOrEditRoot(ctx, message, keyboard);
     return;
   }
 
-  const message = `💬 <b>Flood Protection</b>
+  const message = `ðŸ’¬ <b>Flood Protection</b>
 
-• Users sending too many messages will be muted
-• Protects against spam attacks
+â€¢ Users sending too many messages will be muted
+â€¢ Protects against spam attacks
 
-<b>Status:</b> ✅ Enabled`;
+<b>Status:</b> âœ… Enabled`;
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("💬 Flood Protection ✅", `fw_adv_flood_toggle:${chatId}:off`)],
-    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+    [Markup.button.callback("ðŸ’¬ Flood Protection âœ…", `fw_adv_flood_toggle:${chatId}:off`)],
+    [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
   ]);
 
   await replyOrEditRoot(ctx, message, keyboard);
@@ -6842,15 +6891,15 @@ bot.action(/^fw_adv_reports:(-?\d+)$/, async (ctx) => {
   const chatId = match?.[1];
   if (!chatId) return;
 
-  const message = `📈 <b>Reports</b>
+  const message = `ðŸ“ˆ <b>Reports</b>
 
 View moderation statistics and activity logs for your group.
 
 <i>Reports are available in the Mini App for detailed analysis.</i>`;
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.webApp("📊 View Full Reports", miniAppUrl)],
-    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+    [Markup.button.webApp("ðŸ“Š View Full Reports", miniAppUrl)],
+    [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
   ]);
 
   await replyOrEditRoot(ctx, message, keyboard);
@@ -6864,19 +6913,19 @@ bot.action(/^fw_adv_lock_limit:(-?\d+)$/, async (ctx) => {
   const chatId = match?.[1];
   if (!chatId) return;
 
-  const message = `📊 <b>Lock Limit</b>
+  const message = `ðŸ“Š <b>Lock Limit</b>
 
 Configure message limits and word count restrictions.
 
-• <b>Min/Max Words:</b> Set word count limits per message
-• <b>Messages per Window:</b> Limit messages in time window
-• <b>Duplicate Detection:</b> Block repeated messages
+â€¢ <b>Min/Max Words:</b> Set word count limits per message
+â€¢ <b>Messages per Window:</b> Limit messages in time window
+â€¢ <b>Duplicate Detection:</b> Block repeated messages
 
 <i>Use the Mini App for detailed limit configuration.</i>`;
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.webApp("⚙️ Configure Limits", miniAppUrl)],
-    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+    [Markup.button.webApp("âš™ï¸ Configure Limits", miniAppUrl)],
+    [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
   ]);
 
   await replyOrEditRoot(ctx, message, keyboard);
@@ -6890,20 +6939,20 @@ bot.action(/^fw_adv_permissions:(-?\d+)$/, async (ctx) => {
   const chatId = match?.[1];
   if (!chatId) return;
 
-  const message = `⚙️ <b>Group Permissions</b>
+  const message = `âš™ï¸ <b>Group Permissions</b>
 
 Configure what members can do in your group.
 
-• <b>Send Messages:</b> Allow/block text messages
-• <b>Send Media:</b> Allow/block photos, videos, stickers
-• <b>Add Members:</b> Allow/block adding new members
-• <b>Pin Messages:</b> Allow/block pinning messages
+â€¢ <b>Send Messages:</b> Allow/block text messages
+â€¢ <b>Send Media:</b> Allow/block photos, videos, stickers
+â€¢ <b>Add Members:</b> Allow/block adding new members
+â€¢ <b>Pin Messages:</b> Allow/block pinning messages
 
 <i>These settings affect all non-admin members.</i>`;
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.webApp("⚙️ Configure Permissions", miniAppUrl)],
-    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+    [Markup.button.webApp("âš™ï¸ Configure Permissions", miniAppUrl)],
+    [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
   ]);
 
   await replyOrEditRoot(ctx, message, keyboard);
@@ -6917,19 +6966,19 @@ bot.action(/^fw_adv_cleanup:(-?\d+)$/, async (ctx) => {
   const chatId = match?.[1];
   if (!chatId) return;
 
-  const message = `🧹 <b>Group Cleanup</b>
+  const message = `ðŸ§¹ <b>Group Cleanup</b>
 
 Clean up your group by removing inactive or unwanted members.
 
-• <b>Remove Inactive:</b> Remove members who haven't messaged
-• <b>Remove Deleted:</b> Remove deleted accounts
-• <b>Remove Bots:</b> Remove bot accounts
+â€¢ <b>Remove Inactive:</b> Remove members who haven't messaged
+â€¢ <b>Remove Deleted:</b> Remove deleted accounts
+â€¢ <b>Remove Bots:</b> Remove bot accounts
 
-⚠️ <b>Warning:</b> This action cannot be undone!`;
+âš ï¸ <b>Warning:</b> This action cannot be undone!`;
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("🧹 Remove Deleted Accounts", `fw_adv_cleanup_action:${chatId}:deleted`)],
-    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
+    [Markup.button.callback("ðŸ§¹ Remove Deleted Accounts", `fw_adv_cleanup_action:${chatId}:deleted`)],
+    [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
   ]);
 
   await replyOrEditRoot(ctx, message, keyboard);
@@ -6945,7 +6994,7 @@ bot.action(/^fw_adv_cleanup_action:(-?\d+):([a-z]+)$/, async (ctx) => {
   if (!chatId || !action) return;
 
   // Note: Actual cleanup would require iterating members - this is a placeholder
-  await ctx.reply(`🧹 Cleanup action "${action}" has been queued. This may take a while for large groups.`);
+  await ctx.reply(`ðŸ§¹ Cleanup action "${action}" has been queued. This may take a while for large groups.`);
 });
 
 // ========== TIMEZONE SUB-MENU ==========
@@ -6965,34 +7014,34 @@ bot.action(/^fw_adv_timezone:(-?\d+)$/, async (ctx) => {
 
   const currentTz = (generalSettings as any)?.timezone ?? "UTC";
 
-  const message = `🕐 <b>Time Zone</b>
+  const message = `ðŸ• <b>Time Zone</b>
 
 Current timezone: <b>${currentTz}</b>
 
 The timezone affects:
-• Silence window schedules
-• Scheduled posts timing
-• Activity reports
+â€¢ Silence window schedules
+â€¢ Scheduled posts timing
+â€¢ Activity reports
 
 Select a timezone below:`;
 
   const timezones = [
-    { name: "UTC", label: "🌍 UTC" },
-    { name: "Asia/Tehran", label: "🇮🇷 Iran (Tehran)" },
-    { name: "Asia/Dubai", label: "🇦🇪 Dubai" },
-    { name: "Europe/London", label: "🇬🇧 London" },
-    { name: "America/New_York", label: "🇺🇸 New York" },
+    { name: "UTC", label: "ðŸŒ UTC" },
+    { name: "Asia/Tehran", label: "ðŸ‡®ðŸ‡· Iran (Tehran)" },
+    { name: "Asia/Dubai", label: "ðŸ‡¦ðŸ‡ª Dubai" },
+    { name: "Europe/London", label: "ðŸ‡¬ðŸ‡§ London" },
+    { name: "America/New_York", label: "ðŸ‡ºðŸ‡¸ New York" },
   ];
 
   const rows: any[] = [];
   for (const tz of timezones) {
     const isSelected = currentTz === tz.name;
     rows.push([Markup.button.callback(
-      `${tz.label} ${isSelected ? "✅" : ""}`,
+      `${tz.label} ${isSelected ? "âœ…" : ""}`,
       `fw_adv_tz_set:${chatId}:${tz.name}`
     )]);
   }
-  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
@@ -7021,34 +7070,34 @@ bot.action(/^fw_adv_tz_set:(-?\d+):(.+)$/, async (ctx) => {
   const generalSettings = await loadGeneralSettingsByChatId(chatId);
   const currentTz = (generalSettings as any)?.timezone ?? "UTC";
 
-  const message = `🕐 <b>Time Zone</b>
+  const message = `ðŸ• <b>Time Zone</b>
 
 Current timezone: <b>${currentTz}</b>
 
 The timezone affects:
-• Silence window schedules
-• Scheduled posts timing
-• Activity reports
+â€¢ Silence window schedules
+â€¢ Scheduled posts timing
+â€¢ Activity reports
 
 Select a timezone below:`;
 
   const timezones = [
-    { name: "UTC", label: "🌍 UTC" },
-    { name: "Asia/Tehran", label: "🇮🇷 Iran (Tehran)" },
-    { name: "Asia/Dubai", label: "🇦🇪 Dubai" },
-    { name: "Europe/London", label: "🇬🇧 London" },
-    { name: "America/New_York", label: "🇺🇸 New York" },
+    { name: "UTC", label: "ðŸŒ UTC" },
+    { name: "Asia/Tehran", label: "ðŸ‡®ðŸ‡· Iran (Tehran)" },
+    { name: "Asia/Dubai", label: "ðŸ‡¦ðŸ‡ª Dubai" },
+    { name: "Europe/London", label: "ðŸ‡¬ðŸ‡§ London" },
+    { name: "America/New_York", label: "ðŸ‡ºðŸ‡¸ New York" },
   ];
 
   const rows: any[] = [];
   for (const tz of timezones) {
     const isSelected = currentTz === tz.name;
     rows.push([Markup.button.callback(
-      `${tz.label} ${isSelected ? "✅" : ""}`,
+      `${tz.label} ${isSelected ? "âœ…" : ""}`,
       `fw_adv_tz_set:${chatId}:${tz.name}`
     )]);
   }
-  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
@@ -7060,32 +7109,32 @@ Select a timezone below:`;
 
 // Generic handler for all display-only (_show) buttons in advanced settings
 bot.action(/^fw_adv_[a-z_]+_show:(-?\d+)$/, async (ctx) => {
-  await ctx.answerCbQuery("ℹ️ This is a display button. Use the +/- buttons to adjust the value.", { show_alert: true });
+  await ctx.answerCbQuery("â„¹ï¸ This is a display button. Use the +/- buttons to adjust the value.", { show_alert: true });
 });
 
 // Specific handlers for count/time display buttons
 bot.action(/^fw_adv_sl_count_show:(-?\d+)$/, async (ctx) => {
-  await ctx.answerCbQuery("ℹ️ Use the − and + buttons below to adjust the count.", { show_alert: true });
+  await ctx.answerCbQuery("â„¹ï¸ Use the âˆ’ and + buttons below to adjust the count.", { show_alert: true });
 });
 
 bot.action(/^fw_adv_mj_target_show:(-?\d+)$/, async (ctx) => {
-  await ctx.answerCbQuery("ℹ️ Use the navigation buttons below to select a target channel.", { show_alert: true });
+  await ctx.answerCbQuery("â„¹ï¸ Use the navigation buttons below to select a target channel.", { show_alert: true });
 });
 
 bot.action(/^fw_adv_mj_time_show:(-?\d+)$/, async (ctx) => {
-  await ctx.answerCbQuery("ℹ️ Use the arrow buttons below to adjust the delete time.", { show_alert: true });
+  await ctx.answerCbQuery("â„¹ï¸ Use the arrow buttons below to adjust the delete time.", { show_alert: true });
 });
 
 bot.action(/^fw_adv_ma_count_show:(-?\d+)$/, async (ctx) => {
-  await ctx.answerCbQuery("ℹ️ Use the − and + buttons to adjust the required count.", { show_alert: true });
+  await ctx.answerCbQuery("â„¹ï¸ Use the âˆ’ and + buttons to adjust the required count.", { show_alert: true });
 });
 
 bot.action(/^fw_adv_ma_time_show:(-?\d+)$/, async (ctx) => {
-  await ctx.answerCbQuery("ℹ️ Use the − and + buttons to adjust the delete time.", { show_alert: true });
+  await ctx.answerCbQuery("â„¹ï¸ Use the âˆ’ and + buttons to adjust the delete time.", { show_alert: true });
 });
 
 bot.action(/^fw_adv_sl_deltime_show:(-?\d+)$/, async (ctx) => {
-  await ctx.answerCbQuery("ℹ️ Use the arrow buttons below to adjust the bot message delete time.", { show_alert: true });
+  await ctx.answerCbQuery("â„¹ï¸ Use the arrow buttons below to adjust the bot message delete time.", { show_alert: true });
 });
 
 // Catch-all for any fw_adv patterns that don't match specific handlers
@@ -7104,10 +7153,10 @@ bot.action(/^fw_adv_[a-z_]+:(-?\d+)$/, async (ctx) => {
   const feature = ADVANCED_FEATURES.find(f => f.id === featureId);
   if (feature) {
     // If feature exists but handler wasn't found, show coming soon
-    await ctx.answerCbQuery(`⚙️ ${feature.title} is coming soon!`, { show_alert: false });
+    await ctx.answerCbQuery(`âš™ï¸ ${feature.title} is coming soon!`, { show_alert: false });
   } else {
     // Unknown feature ID
-    await ctx.answerCbQuery("ℹ️ This button is for display purposes only.", { show_alert: false });
+    await ctx.answerCbQuery("â„¹ï¸ This button is for display purposes only.", { show_alert: false });
   }
 });
 
@@ -7145,7 +7194,7 @@ bot.action(INLINE_LIST_ADD_REGEX, async (ctx) => {
   }
 
   const prompt = cfg.addPrompt ?? "Please send the content you want to add:";
-  const message = `➕ <b>Add to ${cfg.title}</b>
+  const message = `âž• <b>Add to ${cfg.title}</b>
 
 ${prompt}
 
@@ -7153,7 +7202,7 @@ ${prompt}
 <i>Type /cancel to cancel this operation.</i>`;
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("◀️ Cancel", `fw_inline_list:${chatId}:${listId}`)]
+    [Markup.button.callback("â—€ï¸ Cancel", `fw_inline_list:${chatId}:${listId}`)]
   ]);
 
   await replyOrEditRoot(ctx, message, keyboard);
@@ -7364,9 +7413,9 @@ bot.action(/^fw_help_section:(-?\d+):([a-z_]+)$/, async (ctx) => {
 
   // For unimplemented sections, show "coming soon" message
   if (!section.implemented) {
-    const message = `${section.icon} <b>${section.title}</b>\n\n🚧 This help section is coming soon!\n\nWe're working on documenting this feature.`;
+    const message = `${section.icon} <b>${section.title}</b>\n\nðŸš§ This help section is coming soon!\n\nWe're working on documenting this feature.`;
     const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+      [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
     ]);
     await replyOrEditRoot(ctx, message, keyboard);
     return;
@@ -7554,27 +7603,27 @@ function buildHelpEntertainmentKeyboard(chatId: string): InlineKeyboard {
     rows.push(row);
   }
 
-  rows.push([Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)]);
   return Markup.inlineKeyboard(rows);
 }
 
 async function showHelpEntertainment(ctx: Context, chatId: string): Promise<void> {
   const lines: string[] = [];
 
-  lines.push("🎮 <b>Entertainment & Utilities Guide</b>");
+  lines.push("ðŸŽ® <b>Entertainment & Utilities Guide</b>");
   lines.push("");
   lines.push("<i>Using these commands, you can access various entertainment and utility features. All commands start with ! or . prefix.</i>");
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
-  lines.push("<b>✨ Key Features:</b>");
-  lines.push("• Convert text to stylish fonts");
-  lines.push("• Get current time based on timezone");
-  lines.push("• Translation & dictionary lookup");
-  lines.push("• Weather, news & currency info");
-  lines.push("• User profiles & management");
+  lines.push("<b>âœ¨ Key Features:</b>");
+  lines.push("â€¢ Convert text to stylish fonts");
+  lines.push("â€¢ Get current time based on timezone");
+  lines.push("â€¢ Translation & dictionary lookup");
+  lines.push("â€¢ Weather, news & currency info");
+  lines.push("â€¢ User profiles & management");
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
   lines.push("Select a feature below to view commands:");
 
@@ -7595,33 +7644,33 @@ async function showHelpEntertainmentDetail(ctx: Context, chatId: string, itemId:
   lines.push("");
   lines.push(`<i>${item.summary}</i>`);
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
   lines.push(item.description);
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
-  lines.push("<b>❯❯ English Commands:</b>");
+  lines.push("<b>â¯â¯ English Commands:</b>");
   lines.push("");
   for (const cmd of item.commands) {
-    lines.push(`❯ <code>${cmd.command}</code>`);
+    lines.push(`â¯ <code>${cmd.command}</code>`);
   }
 
   if (item.examples && item.examples.length > 0) {
     lines.push("");
-    lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+    lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
     lines.push("");
-    lines.push("<b>💡 Examples:</b>");
+    lines.push("<b>ðŸ’¡ Examples:</b>");
     lines.push("");
     for (const ex of item.examples) {
-      lines.push(`• ${ex.description}`);
-      lines.push(`  ⮨ <code>${ex.command}</code>`);
+      lines.push(`â€¢ ${ex.description}`);
+      lines.push(`  â®¨ <code>${ex.command}</code>`);
     }
   }
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("◀️ Back to Entertainment", `fw_help_entertainment:${chatId}`)],
-    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("â—€ï¸ Back to Entertainment", `fw_help_entertainment:${chatId}`)],
+    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -7660,17 +7709,17 @@ function buildHelpMandatoryAddKeyboard(chatId: string): InlineKeyboard {
     const label = `${item.icon} ${item.name}`;
     rows.push([Markup.button.callback(label, `fw_help_mandatory_add_item:${chatId}:${item.id}`)]);
   }
-  rows.push([Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)]);
   return Markup.inlineKeyboard(rows);
 }
 
 async function showHelpMandatoryAdd(ctx: Context, chatId: string): Promise<void> {
   const lines: string[] = [];
-  lines.push("➕ <b>Mandatory Add Guide</b>");
+  lines.push("âž• <b>Mandatory Add Guide</b>");
   lines.push("");
   lines.push("<i>Require members to add new users to the group before they can send messages.</i>");
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
   lines.push("Select a category below to see commands:");
 
@@ -7689,33 +7738,33 @@ async function showHelpMandatoryAddDetail(ctx: Context, chatId: string, itemId: 
   lines.push("");
   lines.push(`<i>${item.summary}</i>`);
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
   lines.push(item.description);
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
-  lines.push("<b>📝 Commands:</b>");
+  lines.push("<b>ðŸ“ Commands:</b>");
   lines.push("");
   for (const cmd of item.commands) {
-    lines.push(`› <code>${cmd.command}</code>`);
+    lines.push(`â€º <code>${cmd.command}</code>`);
   }
 
   if (item.examples && item.examples.length > 0) {
     lines.push("");
-    lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+    lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
     lines.push("");
-    lines.push("<b>💡 Examples:</b>");
+    lines.push("<b>ðŸ’¡ Examples:</b>");
     lines.push("");
     for (const ex of item.examples) {
-      lines.push(`• ${ex.description}`);
-      lines.push(`  ⮨ <code>${ex.command}</code>`);
+      lines.push(`â€¢ ${ex.description}`);
+      lines.push(`  â®¨ <code>${ex.command}</code>`);
     }
   }
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("◀️ Back to Mandatory Add", `fw_help_mandatory_add:${chatId}`)],
-    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("â—€ï¸ Back to Mandatory Add", `fw_help_mandatory_add:${chatId}`)],
+    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -7731,17 +7780,17 @@ function buildHelpMandatoryMembershipKeyboard(chatId: string): InlineKeyboard {
     const label = `${item.icon} ${item.name}`;
     rows.push([Markup.button.callback(label, `fw_help_mandatory_membership_item:${chatId}:${item.id}`)]);
   }
-  rows.push([Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)]);
   return Markup.inlineKeyboard(rows);
 }
 
 async function showHelpMandatoryMembership(ctx: Context, chatId: string): Promise<void> {
   const lines: string[] = [];
-  lines.push("📌 <b>Mandatory Membership Guide</b>");
+  lines.push("ðŸ“Œ <b>Mandatory Membership Guide</b>");
   lines.push("");
   lines.push("<i>Force users to join your target channel before they can chat in your group. This is great for cross-promoting channels.</i>");
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
   lines.push("Select a category below to see commands:");
 
@@ -7760,33 +7809,33 @@ async function showHelpMandatoryMembershipDetail(ctx: Context, chatId: string, i
   lines.push("");
   lines.push(`<i>${item.summary}</i>`);
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
   lines.push(item.description);
   lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
   lines.push("");
-  lines.push("<b>📝 Commands:</b>");
+  lines.push("<b>ðŸ“ Commands:</b>");
   lines.push("");
   for (const cmd of item.commands) {
-    lines.push(`› <code>${cmd.command}</code>`);
+    lines.push(`â€º <code>${cmd.command}</code>`);
   }
 
   if (item.examples && item.examples.length > 0) {
     lines.push("");
-    lines.push("━━━━━━━━━━━━━━━━━━━━━━");
+    lines.push("â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”");
     lines.push("");
-    lines.push("<b>💡 Examples:</b>");
+    lines.push("<b>ðŸ’¡ Examples:</b>");
     lines.push("");
     for (const ex of item.examples) {
-      lines.push(`• ${ex.description}`);
-      lines.push(`  ⮨ <code>${ex.command}</code>`);
+      lines.push(`â€¢ ${ex.description}`);
+      lines.push(`  â®¨ <code>${ex.command}</code>`);
     }
   }
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("◀️ Back to Mandatory Membership", `fw_help_mandatory_membership:${chatId}`)],
-    [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("â—€ï¸ Back to Mandatory Membership", `fw_help_mandatory_membership:${chatId}`)],
+    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -7859,7 +7908,7 @@ bot.action(/^fw_help_section:(.+):([a-z_]+)$/, async (ctx) => {
       break;
     case "user_panel":
       await ctx.reply("To access the User Panel, use the command `!UserPanel` or click the button below.", Markup.inlineKeyboard([
-        [Markup.button.callback("◀️ Back to Help", `fw_inline_help:${chatId}`)]
+        [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)]
       ]));
       break;
     case "user_penalties":
@@ -7969,34 +8018,34 @@ async function showUserPanelMain(ctx: Context, chatId: string, targetUserId: str
     }
   }
 
-  const message = `◄ <b>User Status:</b>
+  const message = `â—„ <b>User Status:</b>
 
-⊹ In Group: ${userStatus}
-⊹ In Bot: ${botRole}
+âŠ¹ In Group: ${userStatus}
+âŠ¹ In Bot: ${botRole}
 
-⊹ User Name: ${userName}
-⊹ Numeric ID: ${targetUserId}
-⊹ Username: ${userUsername || "None"}
-⊹ Nickname: ${nickname}
-⊹ Global Rank: None
+âŠ¹ User Name: ${userName}
+âŠ¹ Numeric ID: ${targetUserId}
+âŠ¹ Username: ${userUsername || "None"}
+âŠ¹ Nickname: ${nickname}
+âŠ¹ Global Rank: None
 
-⊹ Add Count: 0
-⊹ Today's Messages: 0
-⊹ Message Rank: None
+âŠ¹ Add Count: 0
+âŠ¹ Today's Messages: 0
+âŠ¹ Message Rank: None
 
-⊹ Banned: ${isBanned ? "Yes" : "No"}
-⊹ Muted: ${isMuted ? "Yes" : "No"}
-⊹ Tabchi: No
-⊹ Warning Count: ${warningCount}
+âŠ¹ Banned: ${isBanned ? "Yes" : "No"}
+âŠ¹ Muted: ${isMuted ? "Yes" : "No"}
+âŠ¹ Tabchi: No
+âŠ¹ Warning Count: ${warningCount}
 
 <i>This panel is specific to the selected user
 and does not affect group or other user settings.</i>`;
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("• Locks & Restrictions", `fw_up_locks:${chatId}:${targetUserId}`)],
-    [Markup.button.callback("• Punishments & Release", `fw_up_punish:${chatId}:${targetUserId}`)],
-    [Markup.button.callback("• Promote & Demote", `fw_up_promote:${chatId}:${targetUserId}`)],
-    [Markup.button.callback("• Confirm & Close", `fw_up_close:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("â€¢ Locks & Restrictions", `fw_up_locks:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("â€¢ Punishments & Release", `fw_up_punish:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("â€¢ Promote & Demote", `fw_up_promote:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("â€¢ Confirm & Close", `fw_up_close:${chatId}:${targetUserId}`)],
   ]);
 
   await replyOrEditRoot(ctx, message, keyboard);
@@ -8019,13 +8068,13 @@ async function showUserPanelLocks(ctx: Context, chatId: string, targetUserId: st
   const settings = await getUserPanelSettings(chatId, targetUserId);
   const overrides = settings.lockOverrides;
 
-  const message = `⊹ Username: ${userUsername}
-«Locks & Restrictions Section»`;
+  const message = `âŠ¹ Username: ${userUsername}
+Â«Locks & Restrictions SectionÂ»`;
 
   const rows: any[] = [];
 
   // Guide button at top
-  rows.push([Markup.button.callback("• Guide for Locks in this Section", `fw_up_lock_guide:${chatId}:${targetUserId}`)]);
+  rows.push([Markup.button.callback("â€¢ Guide for Locks in this Section", `fw_up_lock_guide:${chatId}:${targetUserId}`)]);
 
   // Build lock toggle buttons (2 per row)
   for (let i = 0; i < USER_PANEL_LOCK_ITEMS.length; i += 2) {
@@ -8043,7 +8092,7 @@ async function showUserPanelLocks(ctx: Context, chatId: string, targetUserId: st
   }
 
   // Back button
-  rows.push([Markup.button.callback("◀️ Back", `fw_userpanel:${chatId}:${targetUserId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_userpanel:${chatId}:${targetUserId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
@@ -8051,30 +8100,30 @@ async function showUserPanelLocks(ctx: Context, chatId: string, targetUserId: st
 
 // Show Lock Guide
 async function showUserPanelLockGuide(ctx: Context, chatId: string, targetUserId: string): Promise<void> {
-  const message = `◄ <b>Lock Guide for this Section</b>
+  const message = `â—„ <b>Lock Guide for this Section</b>
 
-The locks you saw on the previous page are specific to the selected user, and enabling or disabling them has <b>no effect</b> on «Group Settings or Other Users».
+The locks you saw on the previous page are specific to the selected user, and enabling or disabling them has <b>no effect</b> on Â«Group Settings or Other UsersÂ».
 
-For example, if you set the Sticker lock to 🔐 on the previous page, the user is <b>not allowed to send stickers under any circumstances!</b>
+For example, if you set the Sticker lock to ðŸ” on the previous page, the user is <b>not allowed to send stickers under any circumstances!</b>
 
 Pay attention to the following examples:
 
-<b>➊ Sticker ✗</b>
+<b>âžŠ Sticker âœ—</b>
 This means default sticker settings for this user.
 No special settings are applied to this user.
 After sending a sticker by this user, if stickers are locked in the general settings, this user's sticker will also be deleted. Otherwise, the sticker won't be deleted.
 
-<b>➋ Sticker: Open</b>
+<b>âž‹ Sticker: Open</b>
 This means stickers are exclusively open for this user.
 In this case, stickers are open for this user even if stickers are locked in the general settings.
 
-<b>➌ Sticker 🔐</b>
+<b>âžŒ Sticker ðŸ”</b>
 This means stickers are exclusively locked for this user.
 In this case, stickers are locked for this user even if stickers are open in the general settings.
 In special cases, with this feature, the group owner can restrict sending various content types even for high-ranking users and admins!!!`;
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("◀️ Back", `fw_up_locks:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("â—€ï¸ Back", `fw_up_locks:${chatId}:${targetUserId}`)],
   ]);
 
   await replyOrEditRoot(ctx, message, keyboard);
@@ -8093,13 +8142,13 @@ async function showUserPanelPunishments(ctx: Context, chatId: string, targetUser
     userUsername = targetUserId;
   }
 
-  const message = `⊹ Username: ${userUsername}
-«Punishments & Release Section»`;
+  const message = `âŠ¹ Username: ${userUsername}
+Â«Punishments & Release SectionÂ»`;
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("• Ban", `fw_up_ban:${chatId}:${targetUserId}`)],
-    [Markup.button.callback("• Mute", `fw_up_mute:${chatId}:${targetUserId}`)],
-    [Markup.button.callback("◀️ Back", `fw_userpanel:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("â€¢ Ban", `fw_up_ban:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("â€¢ Mute", `fw_up_mute:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("â—€ï¸ Back", `fw_userpanel:${chatId}:${targetUserId}`)],
   ]);
 
   await replyOrEditRoot(ctx, message, keyboard);
@@ -8118,13 +8167,13 @@ async function showUserPanelPromote(ctx: Context, chatId: string, targetUserId: 
     userUsername = targetUserId;
   }
 
-  const message = `⊹ Username: ${userUsername}
-«Promote & Demote Section»`;
+  const message = `âŠ¹ Username: ${userUsername}
+Â«Promote & Demote SectionÂ»`;
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("• Promote to VIP Member", `fw_up_vip:${chatId}:${targetUserId}`)],
-    [Markup.button.callback("• Promote to Bot Admin", `fw_up_admin:${chatId}:${targetUserId}`)],
-    [Markup.button.callback("◀️ Back", `fw_userpanel:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("â€¢ Promote to VIP Member", `fw_up_vip:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("â€¢ Promote to Bot Admin", `fw_up_admin:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("â—€ï¸ Back", `fw_userpanel:${chatId}:${targetUserId}`)],
   ]);
 
   await replyOrEditRoot(ctx, message, keyboard);
@@ -8231,10 +8280,10 @@ bot.action(USER_PANEL_BAN_REGEX, async (ctx) => {
     const numericChatId = parseInt(chatId, 10);
     const numericUserId = parseInt(targetUserId, 10);
     await ctx.telegram.banChatMember(numericChatId, numericUserId);
-    await ctx.answerCbQuery("✅ User has been banned", { show_alert: true });
+    await ctx.answerCbQuery("âœ… User has been banned", { show_alert: true });
   } catch (error) {
     logger.error("Failed to ban user from UserPanel", { chatId, targetUserId, error });
-    await ctx.answerCbQuery("❌ Failed to ban user", { show_alert: true });
+    await ctx.answerCbQuery("âŒ Failed to ban user", { show_alert: true });
   }
 
   // Refresh the punishments view
@@ -8270,10 +8319,10 @@ bot.action(USER_PANEL_MUTE_REGEX, async (ctx) => {
         can_manage_topics: false,
       },
     });
-    await ctx.answerCbQuery("✅ User has been muted", { show_alert: true });
+    await ctx.answerCbQuery("âœ… User has been muted", { show_alert: true });
   } catch (error) {
     logger.error("Failed to mute user from UserPanel", { chatId, targetUserId, error });
-    await ctx.answerCbQuery("❌ Failed to mute user", { show_alert: true });
+    await ctx.answerCbQuery("âŒ Failed to mute user", { show_alert: true });
   }
 
   // Refresh the punishments view
@@ -8299,15 +8348,15 @@ bot.action(USER_PANEL_VIP_REGEX, async (ctx) => {
     const vipMembers = rawSettings.vipMembers as string[];
 
     if (vipMembers.includes(targetUserId)) {
-      await ctx.answerCbQuery("⚠️ User is already a VIP member", { show_alert: true });
+      await ctx.answerCbQuery("âš ï¸ User is already a VIP member", { show_alert: true });
     } else {
       vipMembers.push(targetUserId);
       await saveBanSettingsByChatId(chatId, settings);
-      await ctx.answerCbQuery("✅ User promoted to VIP Member", { show_alert: true });
+      await ctx.answerCbQuery("âœ… User promoted to VIP Member", { show_alert: true });
     }
   } catch (error) {
     logger.error("Failed to promote user to VIP", { chatId, targetUserId, error });
-    await ctx.answerCbQuery("❌ Failed to promote user", { show_alert: true });
+    await ctx.answerCbQuery("âŒ Failed to promote user", { show_alert: true });
   }
 
   // Refresh the promote view
@@ -8333,15 +8382,15 @@ bot.action(USER_PANEL_ADMIN_REGEX, async (ctx) => {
     const botAdmins = rawSettings.botAdmins as string[];
 
     if (botAdmins.includes(targetUserId)) {
-      await ctx.answerCbQuery("⚠️ User is already a Bot Admin", { show_alert: true });
+      await ctx.answerCbQuery("âš ï¸ User is already a Bot Admin", { show_alert: true });
     } else {
       botAdmins.push(targetUserId);
       await saveBanSettingsByChatId(chatId, settings);
-      await ctx.answerCbQuery("✅ User promoted to Bot Admin", { show_alert: true });
+      await ctx.answerCbQuery("âœ… User promoted to Bot Admin", { show_alert: true });
     }
   } catch (error) {
     logger.error("Failed to promote user to Bot Admin", { chatId, targetUserId, error });
-    await ctx.answerCbQuery("❌ Failed to promote user", { show_alert: true });
+    await ctx.answerCbQuery("âŒ Failed to promote user", { show_alert: true });
   }
 
   // Refresh the promote view
@@ -8350,7 +8399,7 @@ bot.action(USER_PANEL_ADMIN_REGEX, async (ctx) => {
 
 // UserPanel Close Handler
 bot.action(/^fw_up_close:(-?\d+):(\d+)$/, async (ctx) => {
-  await ctx.answerCbQuery("✅ User panel closed");
+  await ctx.answerCbQuery("âœ… User panel closed");
   try {
     await ctx.deleteMessage();
   } catch {
@@ -8798,7 +8847,7 @@ bot.action(VERIFY_MEMBER_REGEX, async (ctx) => {
 
   try {
     const message =
-      "✅ You have been verified. You can now send messages in this group.";
+      "âœ… You have been verified. You can now send messages in this group.";
     if ("editMessageText" in ctx) {
       await (ctx as any).editMessageText(message);
     } else if (ctx.chat?.id) {
@@ -8993,7 +9042,7 @@ bot.action(actionId("ownerResetBot"), async (ctx) => {
   setOwnerSession({ state: "awaitingResetPassword" });
   await respondWithOwnerView(
     ctx,
-    "🔴 <b>Reset Bot Completely</b>\n\n⚠️ This will:\n• Leave all groups\n• Delete all group data\n• Reset bot to fresh state\n\nEnter password to continue:",
+    "ðŸ”´ <b>Reset Bot Completely</b>\n\nâš ï¸ This will:\nâ€¢ Leave all groups\nâ€¢ Delete all group data\nâ€¢ Reset bot to fresh state\n\nEnter password to continue:",
     buildOwnerNavigationKeyboard()
   );
 });
@@ -9046,7 +9095,7 @@ bot.action(actionId("ownerDeleteCreditCode"), async (ctx) => {
   }
 
   setOwnerSession({ state: "awaitingDeleteCreditCode" });
-  await respondWithOwnerView(ctx, "🗑️ <b>Delete Credit Code</b>\n\nSend the credit code you want to delete:", buildOwnerNavigationKeyboard());
+  await respondWithOwnerView(ctx, "ðŸ—‘ï¸ <b>Delete Credit Code</b>\n\nSend the credit code you want to delete:", buildOwnerNavigationKeyboard());
 });
 
 bot.action(actionId("ownerMainMenu"), async (ctx) => {
@@ -9079,13 +9128,13 @@ bot.action(actionId("ownerAdBanner"), async (ctx) => {
   setOwnerSession({ state: "awaitingAdBanner" });
   await respondWithOwnerView(
     ctx,
-    `📣 <b>Send Ad Banner to Free Groups</b>\n\n` +
-    `📊 <b>Target:</b> ${groupCount} free group${groupCount === 1 ? "" : "s"}\n\n` +
+    `ðŸ“£ <b>Send Ad Banner to Free Groups</b>\n\n` +
+    `ðŸ“Š <b>Target:</b> ${groupCount} free group${groupCount === 1 ? "" : "s"}\n\n` +
     `Please send your promotional content:\n` +
-    `• 📝 <b>Text only</b> - Just send a text message\n` +
-    `• 🖼️ <b>Photo + Caption</b> - Send a photo with text\n` +
-    `• 🎬 <b>Video + Caption</b> - Send a video with text\n\n` +
-    `💡 This will be sent to all groups using the FREE plan.`,
+    `â€¢ ðŸ“ <b>Text only</b> - Just send a text message\n` +
+    `â€¢ ðŸ–¼ï¸ <b>Photo + Caption</b> - Send a photo with text\n` +
+    `â€¢ ðŸŽ¬ <b>Video + Caption</b> - Send a video with text\n\n` +
+    `ðŸ’¡ This will be sent to all groups using the FREE plan.`,
     buildOwnerNavigationKeyboard()
   );
 });
@@ -9112,7 +9161,7 @@ bot.action(actionId("ownerAdBannerConfirm"), async (ctx) => {
   }
 
   await ctx.answerCbQuery("Sending ad banner...");
-  await ctx.editMessageText("📤 <b>Sending ad banner...</b>\n\nPlease wait...", { parse_mode: "HTML" });
+  await ctx.editMessageText("ðŸ“¤ <b>Sending ad banner...</b>\n\nPlease wait...", { parse_mode: "HTML" });
 
   let successCount = 0;
   let failCount = 0;
@@ -9146,11 +9195,11 @@ bot.action(actionId("ownerAdBannerConfirm"), async (ctx) => {
   resetOwnerSession();
 
   await ctx.editMessageText(
-    `✅ <b>Ad Banner Sent!</b>\n\n` +
-    `📊 Results:\n` +
-    `• ✅ Sent successfully: ${successCount}\n` +
-    `• ❌ Failed: ${failCount}\n` +
-    `• 📊 Total: ${groupCount}`,
+    `âœ… <b>Ad Banner Sent!</b>\n\n` +
+    `ðŸ“Š Results:\n` +
+    `â€¢ âœ… Sent successfully: ${successCount}\n` +
+    `â€¢ âŒ Failed: ${failCount}\n` +
+    `â€¢ ðŸ“Š Total: ${groupCount}`,
     { parse_mode: "HTML", reply_markup: buildOwnerPanelKeyboard().reply_markup }
   );
 
@@ -9164,7 +9213,7 @@ bot.action(actionId("ownerAdBannerCancel"), async (ctx) => {
 
   resetOwnerSession();
   await ctx.answerCbQuery("Ad banner cancelled.");
-  await respondWithOwnerView(ctx, "❌ Ad banner broadcast cancelled.", buildOwnerPanelKeyboard());
+  await respondWithOwnerView(ctx, "âŒ Ad banner broadcast cancelled.", buildOwnerPanelKeyboard());
 });
 
 // ============================================
@@ -9213,11 +9262,11 @@ bot.action(/^group_setup:free:(.+)$/, async (ctx) => {
   // Update the message
   const freeCount = getUserFreeGroupCount(userId);
   await ctx.editMessageText(
-    `✅ <b>Setup Complete!</b>\n\n` +
+    `âœ… <b>Setup Complete!</b>\n\n` +
     `<b>${pendingSetup.title}</b> has been added as a <b>FREE</b> group.\n\n` +
-    `📢 <i>Occasional promotional messages will be sent to this group.</i>\n\n` +
+    `ðŸ“¢ <i>Occasional promotional messages will be sent to this group.</i>\n\n` +
     `Your free groups: ${freeCount}/3\n\n` +
-    `💡 You can upgrade to Premium anytime from the Mini App to remove ads.`,
+    `ðŸ’¡ You can upgrade to Premium anytime from the Mini App to remove ads.`,
     { parse_mode: "HTML" }
   );
 
@@ -9225,10 +9274,10 @@ bot.action(/^group_setup:free:(.+)$/, async (ctx) => {
   try {
     await ctx.telegram.sendMessage(
       chatId,
-      `🛡️ <b>Firewall Bot Activated!</b>\n\n` +
+      `ðŸ›¡ï¸ <b>Firewall Bot Activated!</b>\n\n` +
       `This group is now protected with the <b>FREE</b> plan.\n` +
       `All moderation features are active.\n\n` +
-      `💡 <i>The group admin can upgrade to Premium from the Mini App to remove promotional messages.</i>`,
+      `ðŸ’¡ <i>The group admin can upgrade to Premium from the Mini App to remove promotional messages.</i>`,
       { parse_mode: "HTML" }
     );
   } catch (error) {
@@ -9265,7 +9314,7 @@ bot.action(/^group_setup:premium:(.+)$/, async (ctx) => {
 
   // Update the message with payment instructions
   await ctx.editMessageText(
-    `⭐ <b>Upgrade to Premium</b>\n\n` +
+    `â­ <b>Upgrade to Premium</b>\n\n` +
     `Group: <b>${pendingSetup.title}</b>\n\n` +
     `To complete the Premium setup:\n` +
     `1. Open the Mini App below\n` +
@@ -9276,8 +9325,8 @@ bot.action(/^group_setup:premium:(.+)$/, async (ctx) => {
       parse_mode: "HTML",
       reply_markup: {
         inline_keyboard: [
-          [{ text: "🚀 Open Mini App", url: miniAppUrl }],
-          [{ text: "🆓 Use Free Instead", callback_data: `group_setup:free:${chatId}` }],
+          [{ text: "ðŸš€ Open Mini App", url: miniAppUrl }],
+          [{ text: "ðŸ†“ Use Free Instead", callback_data: `group_setup:free:${chatId}` }],
         ],
       },
     }
@@ -9450,7 +9499,7 @@ bot.on("text", async (ctx, next) => {
 
     const days = redemption.valueDays;
     await ctx.reply(
-      `✅ Credit applied!\n${days} day${days === 1 ? "" : "s"} added to this group. Thanks for keeping Firewall active.`,
+      `âœ… Credit applied!\n${days} day${days === 1 ? "" : "s"} added to this group. Thanks for keeping Firewall active.`,
     );
   } catch (error) {
     const status = typeof (error as { statusCode?: number }).statusCode === "number"
@@ -9506,9 +9555,9 @@ bot.on("photo", async (ctx) => {
     });
 
     await ctx.reply(
-      `⚠️ <b>Confirmation Required</b>\n\n` +
+      `âš ï¸ <b>Confirmation Required</b>\n\n` +
       `You are about to send this photo banner to:\n` +
-      `📊 <b>${freeGroupsCount}</b> free group${freeGroupsCount === 1 ? "" : "s"}\n\n` +
+      `ðŸ“Š <b>${freeGroupsCount}</b> free group${freeGroupsCount === 1 ? "" : "s"}\n\n` +
       `Are you sure you want to proceed?`,
       { parse_mode: "HTML", reply_markup: buildAdBannerConfirmKeyboard().reply_markup }
     );
@@ -9568,9 +9617,9 @@ bot.on("video", async (ctx) => {
     });
 
     await ctx.reply(
-      `⚠️ <b>Confirmation Required</b>\n\n` +
+      `âš ï¸ <b>Confirmation Required</b>\n\n` +
       `You are about to send this video banner to:\n` +
-      `📊 <b>${freeGroupsCount}</b> free group${freeGroupsCount === 1 ? "" : "s"}\n\n` +
+      `ðŸ“Š <b>${freeGroupsCount}</b> free group${freeGroupsCount === 1 ? "" : "s"}\n\n` +
       `Are you sure you want to proceed?`,
       { parse_mode: "HTML", reply_markup: buildAdBannerConfirmKeyboard().reply_markup }
     );
@@ -9595,7 +9644,7 @@ bot.on("text", async (ctx, next) => {
   if (text === "/cancel") {
     clearInlineSession(userId);
     await ctx.reply("Operation cancelled.", Markup.inlineKeyboard([
-      [Markup.button.callback("◀️ Back to List", `fw_inline_list:${session.chatId}:${session.listId}`)]
+      [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${session.chatId}:${session.listId}`)]
     ]));
     return;
   }
@@ -9635,12 +9684,12 @@ bot.on("text", async (ctx, next) => {
 
         if (addedCount > 0) {
           await saveBanSettingsByChatId(chatId, settings);
-          await ctx.reply(`✅ Successfully added ${addedCount} item(s) to ${listId}.`, Markup.inlineKeyboard([
-            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+          await ctx.reply(`âœ… Successfully added ${addedCount} item(s) to ${listId}.`, Markup.inlineKeyboard([
+            [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
           ]));
         } else {
-          await ctx.reply("⚠️ All items were already in the list.", Markup.inlineKeyboard([
-            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+          await ctx.reply("âš ï¸ All items were already in the list.", Markup.inlineKeyboard([
+            [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
           ]));
         }
       } else if (listId === "vip") {
@@ -9658,14 +9707,14 @@ bot.on("text", async (ctx, next) => {
 
         // Check if already exists
         if (vipMembers.includes(trimmedInput)) {
-          await ctx.reply("⚠️ This user is already a VIP member.", Markup.inlineKeyboard([
-            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+          await ctx.reply("âš ï¸ This user is already a VIP member.", Markup.inlineKeyboard([
+            [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
           ]));
         } else {
           vipMembers.push(trimmedInput);
           await saveBanSettingsByChatId(chatId, settings);
-          await ctx.reply(`✅ Successfully added VIP member: ${trimmedInput}\n\n💡 VIP members bypass all content restrictions.`, Markup.inlineKeyboard([
-            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+          await ctx.reply(`âœ… Successfully added VIP member: ${trimmedInput}\n\nðŸ’¡ VIP members bypass all content restrictions.`, Markup.inlineKeyboard([
+            [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
           ]));
         }
       } else if (listId === "exempt") {
@@ -9683,14 +9732,14 @@ bot.on("text", async (ctx, next) => {
 
         // Check if already exists
         if (exemptUsers.includes(trimmedInput)) {
-          await ctx.reply("⚠️ This user is already exempt.", Markup.inlineKeyboard([
-            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+          await ctx.reply("âš ï¸ This user is already exempt.", Markup.inlineKeyboard([
+            [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
           ]));
         } else {
           exemptUsers.push(trimmedInput);
           await saveBanSettingsByChatId(chatId, settings);
-          await ctx.reply(`✅ Successfully added exempt user: ${trimmedInput}\n\n💡 Exempt users bypass content restrictions.`, Markup.inlineKeyboard([
-            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+          await ctx.reply(`âœ… Successfully added exempt user: ${trimmedInput}\n\nðŸ’¡ Exempt users bypass content restrictions.`, Markup.inlineKeyboard([
+            [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
           ]));
         }
       } else if (listId === "forward_whitelist") {
@@ -9713,29 +9762,29 @@ bot.on("text", async (ctx, next) => {
 
         // Check if already exists
         if (forwardWhitelist.includes(trimmedInput)) {
-          await ctx.reply("⚠️ This channel is already in the forward whitelist.", Markup.inlineKeyboard([
-            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+          await ctx.reply("âš ï¸ This channel is already in the forward whitelist.", Markup.inlineKeyboard([
+            [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
           ]));
         } else {
           forwardWhitelist.push(trimmedInput);
           await saveBanSettingsByChatId(chatId, settings);
-          await ctx.reply(`✅ Successfully added to forward whitelist: ${trimmedInput}\n\n💡 Messages forwarded from this channel won't be blocked.`, Markup.inlineKeyboard([
-            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+          await ctx.reply(`âœ… Successfully added to forward whitelist: ${trimmedInput}\n\nðŸ’¡ Messages forwarded from this channel won't be blocked.`, Markup.inlineKeyboard([
+            [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
           ]));
         }
       } else if (listId === "banned" || listId === "muted") {
         const targetUserId = parseInt(text.trim(), 10);
         if (isNaN(targetUserId)) {
-          await ctx.reply("⚠️ Invalid User ID. Please send a numeric User ID.", Markup.inlineKeyboard([
-            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+          await ctx.reply("âš ï¸ Invalid User ID. Please send a numeric User ID.", Markup.inlineKeyboard([
+            [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
           ]));
         } else {
           try {
             const numericChatId = parseInt(chatId, 10);
             if (listId === "banned") {
               await ctx.telegram.banChatMember(numericChatId, targetUserId);
-              await ctx.reply(`✅ Successfully banned user ${targetUserId}.`, Markup.inlineKeyboard([
-                [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+              await ctx.reply(`âœ… Successfully banned user ${targetUserId}.`, Markup.inlineKeyboard([
+                [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
               ]));
             } else {
               // Mute (restrict permissions)
@@ -9757,25 +9806,25 @@ bot.on("text", async (ctx, next) => {
                   can_manage_topics: false,
                 }
               });
-              await ctx.reply(`✅ Successfully muted user ${targetUserId}.`, Markup.inlineKeyboard([
-                [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+              await ctx.reply(`âœ… Successfully muted user ${targetUserId}.`, Markup.inlineKeyboard([
+                [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
               ]));
             }
           } catch (error) {
             logger.error(`Failed to ${listId} user via inline panel`, { chatId, targetUserId, error });
-            await ctx.reply(`❌ Failed to ${listId} user. Ensure the bot is an admin and the user ID is valid.\nError: ${(error as Error).message}`, Markup.inlineKeyboard([
-              [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+            await ctx.reply(`âŒ Failed to ${listId} user. Ensure the bot is an admin and the user ID is valid.\nError: ${(error as Error).message}`, Markup.inlineKeyboard([
+              [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
             ]));
           }
         }
       } else {
         await ctx.reply("This list does not support adding items yet.", Markup.inlineKeyboard([
-          [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+          [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
         ]));
       }
     } catch (error) {
       logger.error("Failed to add item to list", { chatId, listId, error });
-      await ctx.reply("❌ An error occurred while saving. Please try again.");
+      await ctx.reply("âŒ An error occurred while saving. Please try again.");
     }
 
     clearInlineSession(userId);
@@ -9788,7 +9837,7 @@ bot.on("text", async (ctx, next) => {
     const trigger = text.trim();
 
     if (!trigger) {
-      await ctx.reply("⚠️ Please enter a valid trigger keyword.");
+      await ctx.reply("âš ï¸ Please enter a valid trigger keyword.");
       return;
     }
 
@@ -9800,12 +9849,12 @@ bot.on("text", async (ctx, next) => {
     });
 
     await ctx.reply(
-      `📝 **Step 2/2: Enter Response**\n\n` +
+      `ðŸ“ **Step 2/2: Enter Response**\n\n` +
       `Trigger: \`${trigger}\`\n\n` +
       `Now send the response message that will be sent when someone types "${trigger}".`,
       {
         parse_mode: "Markdown", reply_markup: Markup.inlineKeyboard([
-          [Markup.button.callback("◀️ Cancel", `fw_inline_list:${chatId}:auto_replies`)]
+          [Markup.button.callback("â—€ï¸ Cancel", `fw_inline_list:${chatId}:auto_replies`)]
         ]).reply_markup
       }
     );
@@ -9820,14 +9869,14 @@ bot.on("text", async (ctx, next) => {
 
     if (!trigger) {
       clearInlineSession(userId);
-      await ctx.reply("⚠️ Session expired. Please try again.", Markup.inlineKeyboard([
-        [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:auto_replies`)]
+      await ctx.reply("âš ï¸ Session expired. Please try again.", Markup.inlineKeyboard([
+        [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:auto_replies`)]
       ]));
       return;
     }
 
     if (!response) {
-      await ctx.reply("⚠️ Please enter a valid response message.");
+      await ctx.reply("âš ï¸ Please enter a valid response message.");
       return;
     }
 
@@ -9854,19 +9903,19 @@ bot.on("text", async (ctx, next) => {
       await saveBanSettingsByChatId(chatId, settings);
 
       await ctx.reply(
-        `✅ Auto-reply saved!\n\n` +
-        `🔑 Trigger: \`${trigger}\`\n` +
-        `💬 Response: ${response.substring(0, 100)}${response.length > 100 ? '...' : ''}`,
+        `âœ… Auto-reply saved!\n\n` +
+        `ðŸ”‘ Trigger: \`${trigger}\`\n` +
+        `ðŸ’¬ Response: ${response.substring(0, 100)}${response.length > 100 ? '...' : ''}`,
         {
           parse_mode: "Markdown", reply_markup: Markup.inlineKeyboard([
-            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:auto_replies`)]
+            [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:auto_replies`)]
           ]).reply_markup
         }
       );
     } catch (error) {
       logger.error("Failed to save auto-reply", { chatId, trigger, error });
-      await ctx.reply("❌ Failed to save auto-reply. Please try again.", Markup.inlineKeyboard([
-        [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:auto_replies`)]
+      await ctx.reply("âŒ Failed to save auto-reply. Please try again.", Markup.inlineKeyboard([
+        [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:auto_replies`)]
       ]));
     }
 
@@ -9880,7 +9929,7 @@ bot.on("text", async (ctx, next) => {
     const message = text.trim();
 
     if (!message) {
-      await ctx.reply("⚠️ Please enter a valid message.");
+      await ctx.reply("âš ï¸ Please enter a valid message.");
       return;
     }
 
@@ -9892,16 +9941,16 @@ bot.on("text", async (ctx, next) => {
     });
 
     await ctx.reply(
-      `📝 **Step 2/2: Set Schedule**\n\n` +
+      `ðŸ“ **Step 2/2: Set Schedule**\n\n` +
       `Message preview: ${message.substring(0, 50)}${message.length > 50 ? '...' : ''}\n\n` +
       `Now send the schedule time in one of these formats:\n\n` +
-      `• \`HH:MM\` - Daily at this time (24h format)\n` +
-      `• \`Monday 14:00\` - Weekly on specific day\n` +
-      `• \`2024-12-25 10:00\` - One-time on specific date\n\n` +
+      `â€¢ \`HH:MM\` - Daily at this time (24h format)\n` +
+      `â€¢ \`Monday 14:00\` - Weekly on specific day\n` +
+      `â€¢ \`2024-12-25 10:00\` - One-time on specific date\n\n` +
       `Example: \`09:00\` or \`Friday 18:30\``,
       {
         parse_mode: "Markdown", reply_markup: Markup.inlineKeyboard([
-          [Markup.button.callback("◀️ Cancel", `fw_inline_list:${chatId}:scheduled_posts`)]
+          [Markup.button.callback("â—€ï¸ Cancel", `fw_inline_list:${chatId}:scheduled_posts`)]
         ]).reply_markup
       }
     );
@@ -9916,14 +9965,14 @@ bot.on("text", async (ctx, next) => {
 
     if (!scheduledMessage) {
       clearInlineSession(userId);
-      await ctx.reply("⚠️ Session expired. Please try again.", Markup.inlineKeyboard([
-        [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:scheduled_posts`)]
+      await ctx.reply("âš ï¸ Session expired. Please try again.", Markup.inlineKeyboard([
+        [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:scheduled_posts`)]
       ]));
       return;
     }
 
     if (!scheduleInput) {
-      await ctx.reply("⚠️ Please enter a valid schedule time.");
+      await ctx.reply("âš ï¸ Please enter a valid schedule time.");
       return;
     }
 
@@ -9950,7 +9999,7 @@ bot.on("text", async (ctx, next) => {
     }
     // Default to daily format (e.g., "14:00")
     else if (!/^\d{1,2}:\d{2}$/.test(scheduleInput)) {
-      await ctx.reply("⚠️ Invalid format. Please use HH:MM, 'Monday 14:00', or '2024-12-25 10:00'.");
+      await ctx.reply("âš ï¸ Invalid format. Please use HH:MM, 'Monday 14:00', or '2024-12-25 10:00'.");
       return;
     }
 
@@ -9998,19 +10047,19 @@ bot.on("text", async (ctx, next) => {
       }
 
       await ctx.reply(
-        `✅ Scheduled post created!\n\n` +
-        `📅 Schedule: ${scheduleDisplay}\n` +
-        `💬 Message: ${scheduledMessage.substring(0, 100)}${scheduledMessage.length > 100 ? '...' : ''}`,
+        `âœ… Scheduled post created!\n\n` +
+        `ðŸ“… Schedule: ${scheduleDisplay}\n` +
+        `ðŸ’¬ Message: ${scheduledMessage.substring(0, 100)}${scheduledMessage.length > 100 ? '...' : ''}`,
         {
           parse_mode: "Markdown", reply_markup: Markup.inlineKeyboard([
-            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:scheduled_posts`)]
+            [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:scheduled_posts`)]
           ]).reply_markup
         }
       );
     } catch (error) {
       logger.error("Failed to save scheduled post", { chatId, scheduleInput, error });
-      await ctx.reply("❌ Failed to save scheduled post. Please try again.", Markup.inlineKeyboard([
-        [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:scheduled_posts`)]
+      await ctx.reply("âŒ Failed to save scheduled post. Please try again.", Markup.inlineKeyboard([
+        [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:scheduled_posts`)]
       ]));
     }
 
@@ -10046,23 +10095,23 @@ bot.on("text", async (ctx) => {
       if (text.toLowerCase() === "default") {
         welcomeSettings.customMessage = "";
         await saveGeneralSettingsByChatId(session.chatId, settings);
-        await ctx.reply("✅ Welcome message reset to default!", {
+        await ctx.reply("âœ… Welcome message reset to default!", {
           reply_markup: Markup.inlineKeyboard([
-            [Markup.button.callback("◀️ Back to Welcome Settings", `fw_adv_welcome:${session.chatId}`)]
+            [Markup.button.callback("â—€ï¸ Back to Welcome Settings", `fw_adv_welcome:${session.chatId}`)]
           ]).reply_markup
         });
       } else {
         welcomeSettings.customMessage = text;
         await saveGeneralSettingsByChatId(session.chatId, settings);
-        await ctx.reply("✅ Welcome message updated successfully!", {
+        await ctx.reply("âœ… Welcome message updated successfully!", {
           reply_markup: Markup.inlineKeyboard([
-            [Markup.button.callback("◀️ Back to Welcome Settings", `fw_adv_welcome:${session.chatId}`)]
+            [Markup.button.callback("â—€ï¸ Back to Welcome Settings", `fw_adv_welcome:${session.chatId}`)]
           ]).reply_markup
         });
       }
     } catch (error) {
       logger.error("Failed to save welcome message", { chatId: session.chatId, error });
-      await ctx.reply("❌ Failed to save welcome message. Please try again.");
+      await ctx.reply("âŒ Failed to save welcome message. Please try again.");
     }
     return;
   }
@@ -10084,23 +10133,23 @@ bot.on("text", async (ctx) => {
       if (text.toLowerCase() === "default") {
         mjSettings.customMessage = "";
         await saveBanSettingsByChatId(session.chatId, settings);
-        await ctx.reply("✅ Membership message reset to default!", {
+        await ctx.reply("âœ… Membership message reset to default!", {
           reply_markup: Markup.inlineKeyboard([
-            [Markup.button.callback("◀️ Back to Mandatory Join Settings", `fw_adv_mandatory_join:${session.chatId}`)]
+            [Markup.button.callback("â—€ï¸ Back to Mandatory Join Settings", `fw_adv_mandatory_join:${session.chatId}`)]
           ]).reply_markup
         });
       } else {
         mjSettings.customMessage = text;
         await saveBanSettingsByChatId(session.chatId, settings);
-        await ctx.reply("✅ Membership message updated successfully!", {
+        await ctx.reply("âœ… Membership message updated successfully!", {
           reply_markup: Markup.inlineKeyboard([
-            [Markup.button.callback("◀️ Back to Mandatory Join Settings", `fw_adv_mandatory_join:${session.chatId}`)]
+            [Markup.button.callback("â—€ï¸ Back to Mandatory Join Settings", `fw_adv_mandatory_join:${session.chatId}`)]
           ]).reply_markup
         });
       }
     } catch (error) {
       logger.error("Failed to save mandatory join message", { chatId: session.chatId, error });
-      await ctx.reply("❌ Failed to save message. Please try again.");
+      await ctx.reply("âŒ Failed to save message. Please try again.");
     }
     return;
   }
@@ -10242,9 +10291,9 @@ bot.on("text", async (ctx) => {
         pending: { content: text, contentType: "text" }
       });
       await ctx.reply(
-        `⚠️ <b>Confirmation Required</b>\n\n` +
+        `âš ï¸ <b>Confirmation Required</b>\n\n` +
         `You are about to send this ad banner to:\n` +
-        `📊 <b>${freeGroupsCount}</b> free group${freeGroupsCount === 1 ? "" : "s"}\n\n` +
+        `ðŸ“Š <b>${freeGroupsCount}</b> free group${freeGroupsCount === 1 ? "" : "s"}\n\n` +
         `Are you sure you want to proceed?`,
         { parse_mode: "HTML", reply_markup: buildAdBannerConfirmKeyboard().reply_markup }
       );
@@ -10393,7 +10442,7 @@ bot.on("text", async (ctx) => {
     }
     case "awaitingResetPassword": {
       if (text !== "0706203830") {
-        await ctx.reply("❌ Incorrect password. Try again or use /panel to go back.", buildOwnerNavigationKeyboard());
+        await ctx.reply("âŒ Incorrect password. Try again or use /panel to go back.", buildOwnerNavigationKeyboard());
         return;
       }
 
@@ -10407,18 +10456,18 @@ bot.on("text", async (ctx) => {
       });
 
       await ctx.reply(
-        `✅ Password correct.\n\n⚠️ <b>FINAL WARNING</b>\n\nThis will:\n• Leave ${groupCount} groups\n• Delete ALL group data\n• Reset bot completely\n\nType "تایید می‌کنم" to confirm or /panel to cancel:`,
+        `âœ… Password correct.\n\nâš ï¸ <b>FINAL WARNING</b>\n\nThis will:\nâ€¢ Leave ${groupCount} groups\nâ€¢ Delete ALL group data\nâ€¢ Reset bot completely\n\nType "ØªØ§ÛŒÛŒØ¯ Ù…ÛŒâ€ŒÚ©Ù†Ù…" to confirm or /panel to cancel:`,
         buildOwnerNavigationKeyboard()
       );
       return;
     }
     case "awaitingResetConfirm": {
-      if (text !== "تایید می‌کنم") {
-        await ctx.reply("❌ Confirmation phrase incorrect. Type exactly: تایید می‌کنم\n\nOr use /panel to cancel.", buildOwnerNavigationKeyboard());
+      if (text !== "ØªØ§ÛŒÛŒØ¯ Ù…ÛŒâ€ŒÚ©Ù†Ù…") {
+        await ctx.reply("âŒ Confirmation phrase incorrect. Type exactly: ØªØ§ÛŒÛŒØ¯ Ù…ÛŒâ€ŒÚ©Ù†Ù…\n\nOr use /panel to cancel.", buildOwnerNavigationKeyboard());
         return;
       }
 
-      await ctx.reply("🔄 Starting bot reset process...");
+      await ctx.reply("ðŸ”„ Starting bot reset process...");
 
       try {
         // Call the reset API
@@ -10441,10 +10490,10 @@ bot.on("text", async (ctx) => {
         resetOwnerSession();
 
         await ctx.reply(
-          `✅ <b>Bot Reset Complete!</b>\n\n` +
-          `• Left ${result.groupsLeft || 0} groups\n` +
-          `• Deleted ${result.recordsDeleted || 0} database records\n` +
-          `• Reset bot state successfully\n\n` +
+          `âœ… <b>Bot Reset Complete!</b>\n\n` +
+          `â€¢ Left ${result.groupsLeft || 0} groups\n` +
+          `â€¢ Deleted ${result.recordsDeleted || 0} database records\n` +
+          `â€¢ Reset bot state successfully\n\n` +
           `Bot is now in fresh state. Use /panel to access owner controls.`
         );
 
@@ -10452,7 +10501,7 @@ bot.on("text", async (ctx) => {
         resetOwnerSession();
         const message = error instanceof Error ? error.message : String(error);
         await ctx.reply(
-          `❌ <b>Reset Failed!</b>\n\n${message}\n\nPlease try again or contact support.`,
+          `âŒ <b>Reset Failed!</b>\n\n${message}\n\nPlease try again or contact support.`,
           buildOwnerPanelKeyboard()
         );
       }
@@ -10610,7 +10659,7 @@ Image: ${record.imageUrl}`,
       const parts = text.trim().split(/\s+/);
       if (parts.length < 2) {
         await ctx.reply(
-          "❌ Invalid format.\n\nPlease send: <code>days maxUses [expiryDays]</code>\n\nExamples:\n• <code>30 5</code> - 30 days, 5 uses, no expiry\n• <code>30 5 90</code> - 30 days, 5 uses, expires in 90 days",
+          "âŒ Invalid format.\n\nPlease send: <code>days maxUses [expiryDays]</code>\n\nExamples:\nâ€¢ <code>30 5</code> - 30 days, 5 uses, no expiry\nâ€¢ <code>30 5 90</code> - 30 days, 5 uses, expires in 90 days",
           { parse_mode: "HTML", ...buildOwnerNavigationKeyboard() }
         );
         return;
@@ -10621,17 +10670,17 @@ Image: ${record.imageUrl}`,
       const expiryDays = parts[2] ? Number.parseInt(parts[2], 10) : undefined;
 
       if (!Number.isFinite(days) || days <= 0 || days > 365) {
-        await ctx.reply("❌ Days must be between 1 and 365.", buildOwnerNavigationKeyboard());
+        await ctx.reply("âŒ Days must be between 1 and 365.", buildOwnerNavigationKeyboard());
         return;
       }
 
       if (!Number.isFinite(maxUses) || maxUses <= 0 || maxUses > 1000) {
-        await ctx.reply("❌ Max uses must be between 1 and 1000.", buildOwnerNavigationKeyboard());
+        await ctx.reply("âŒ Max uses must be between 1 and 1000.", buildOwnerNavigationKeyboard());
         return;
       }
 
       if (expiryDays !== undefined && (!Number.isFinite(expiryDays) || expiryDays <= 0)) {
-        await ctx.reply("❌ Expiry days must be a positive number.", buildOwnerNavigationKeyboard());
+        await ctx.reply("âŒ Expiry days must be a positive number.", buildOwnerNavigationKeyboard());
         return;
       }
 
@@ -10644,11 +10693,11 @@ Image: ${record.imageUrl}`,
         : "No expiry";
 
       await ctx.reply(
-        `✅ <b>Credit Code Created!</b>\n\n` +
-        `📋 Code: <code>${creditCode.code}</code>\n` +
-        `📅 Days: ${creditCode.days}\n` +
-        `🔢 Max Uses: ${creditCode.maxUses}\n` +
-        `⏰ ${expiryText}\n\n` +
+        `âœ… <b>Credit Code Created!</b>\n\n` +
+        `ðŸ“‹ Code: <code>${creditCode.code}</code>\n` +
+        `ðŸ“… Days: ${creditCode.days}\n` +
+        `ðŸ”¢ Max Uses: ${creditCode.maxUses}\n` +
+        `â° ${expiryText}\n\n` +
         `Share this code with users to give them credit.`,
         { parse_mode: "HTML", ...buildCreditCodesKeyboard() }
       );
@@ -10662,7 +10711,7 @@ Image: ${record.imageUrl}`,
 
       if (!found) {
         await ctx.reply(
-          `❌ Credit code not found: <code>${codeToDelete}</code>\n\nPlease check the code and try again.`,
+          `âŒ Credit code not found: <code>${codeToDelete}</code>\n\nPlease check the code and try again.`,
           { parse_mode: "HTML", ...buildCreditCodesKeyboard() }
         );
         return;
@@ -10673,12 +10722,12 @@ Image: ${record.imageUrl}`,
 
       if (deleted) {
         await ctx.reply(
-          `✅ Credit code <code>${codeToDelete}</code> has been deleted.`,
+          `âœ… Credit code <code>${codeToDelete}</code> has been deleted.`,
           { parse_mode: "HTML", ...buildCreditCodesKeyboard() }
         );
       } else {
         await ctx.reply(
-          `❌ Failed to delete credit code. Please try again.`,
+          `âŒ Failed to delete credit code. Please try again.`,
           buildCreditCodesKeyboard()
         );
       }
@@ -10891,3 +10940,635 @@ export async function startBotWebhookServer(options: WebhookOptions): Promise<We
 }
 
 export { bot };
+
+// ========== ANTI-TABCHI HANDLERS ==========
+
+async function showAntiTabchiSettings(ctx: Context, chatId: string): Promise<void> {
+  let banSettings;
+  try {
+    banSettings = await loadBanSettingsByChatId(chatId);
+  } catch {
+    banSettings = null;
+  }
+
+  const rawBan = banSettings as unknown as Record<string, unknown> | null;
+  const antiTabchi = (rawBan?.antiTabchi as Record<string, unknown>) ?? {};
+
+  // Default values
+  const tabchiLock = antiTabchi.tabchiLock !== false; // Default true if undefined (as requested "Lock: Tabchi" checkmark)
+  const adLock = antiTabchi.adLock !== false;
+  const bioLock = antiTabchi.bioLock !== false;
+  const actionMode = (antiTabchi.actionMode as string) ?? "mute"; // silence = mute
+  const actionTime = (antiTabchi.actionTime as string) ?? "entry"; // entry = immediately
+  const detectionSeconds = (antiTabchi.detectionMessageSeconds as number) ?? 150; // 2 min 30 sec = 150 sec
+
+  // Format labels
+  const getLockIcon = (enabled: boolean) => (enabled ? "âœ…" : "âŒ");
+  const actionModeLabel = actionMode === "ban" ? "Ban" : "Silence";
+  const actionTimeLabel = actionTime === "entry" ? "Immediately" : "After Message"; // "Ø¨Ù…Ø­Ø¶ ÙˆØ±ÙˆØ¯" vs "Ø¨Ø¹Ø¯ Ø§Ø² Ø§Ø±Ø³Ø§Ù„ Ù¾ÛŒØ§Ù…"
+
+  const minutes = Math.floor(detectionSeconds / 60);
+  const seconds = detectionSeconds % 60;
+  const timeLabel = `${minutes}m ${seconds}s`;
+
+  const message = `ðŸ›¡ <b>Anti-Tabchi Settings</b>
+
+â€¢ In this section you can:
+
+* Configure action against Tabchi (Ban or Silence)
+* Set action timing (Immediately on entry or after sending message)
+* Configure Tabchi detection notification`;
+
+  const rows: any[] = [];
+
+  // Locks row
+  rows.push([Markup.button.callback(`â€¢ Tabchi Lock: ${getLockIcon(tabchiLock)}`, `fw_adv_at_toggle:${chatId}:tabchiLock`)]);
+  rows.push([Markup.button.callback(`â€¢ Ad Lock: ${getLockIcon(adLock)}`, `fw_adv_at_toggle:${chatId}:adLock`)]);
+  rows.push([Markup.button.callback(`â€¢ Bio Link Lock: ${getLockIcon(bioLock)}`, `fw_adv_at_toggle:${chatId}:bioLock`)]);
+
+  // Action Mode
+  rows.push([Markup.button.callback(`â€¢ Action Mode: ${actionModeLabel}`, `fw_adv_at_mode:${chatId}`)]);
+
+  // Action Time
+  rows.push([Markup.button.callback(`â€¢ Action Time: ${actionTimeLabel}`, `fw_adv_at_time:${chatId}`)]);
+
+  // Detection Message Time
+  rows.push([Markup.button.callback(`â€¢ Detection Message: ${timeLabel}`, `fw_adv_at_msg_time_show:${chatId}`)]);
+  rows.push([
+    Markup.button.callback("ã€Š", `fw_adv_at_msg_time:${chatId}:downfast`),
+    Markup.button.callback("ã€ˆ", `fw_adv_at_msg_time:${chatId}:down`),
+    Markup.button.callback("ã€‰", `fw_adv_at_msg_time:${chatId}:up`),
+    Markup.button.callback("ã€‹", `fw_adv_at_msg_time:${chatId}:upfast`),
+  ]);
+
+  // Back button
+  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
+
+  const keyboard = Markup.inlineKeyboard(rows);
+  await replyOrEditRoot(ctx, message, keyboard);
+}
+
+// Handler for toggles
+bot.action(/^fw_adv_at_toggle:(-?\d+):([a-zA-Z]+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_at_toggle:(-?\d+):([a-zA-Z]+)$/);
+  const chatId = match?.[1];
+  const settingKey = match?.[2];
+
+  if (!chatId || !settingKey) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    // Ensure antiTabchi struct exists
+    if (!rawSettings.antiTabchi) rawSettings.antiTabchi = {};
+    const at = rawSettings.antiTabchi as Record<string, unknown>;
+
+    // Toggle
+    // If undefined, default was true (for these locks), so toggling makes it false
+    // Logic: if value is strictly false, become true. Else (true or undefined), become false.
+    const current = at[settingKey] !== false;
+    at[settingKey] = !current;
+
+    await saveBanSettingsByChatId(chatId, settings);
+  } catch (error) {
+    logger.error("Failed to toggle anti-tabchi setting", { chatId, settingKey, error });
+  }
+
+  await showAntiTabchiSettings(ctx, chatId);
+});
+
+// Handler for Action Mode (Ban/Silence)
+bot.action(/^fw_adv_at_mode:(-?\d+)$/, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_at_mode:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    if (!rawSettings.antiTabchi) rawSettings.antiTabchi = {};
+    const at = rawSettings.antiTabchi as Record<string, unknown>;
+
+    const current = (at.actionMode as string) ?? "mute";
+    const next = current === "mute" ? "ban" : "mute";
+    at.actionMode = next;
+
+    await saveBanSettingsByChatId(chatId, settings);
+    await ctx.answerCbQuery(`Action set to: ${next === "ban" ? "Ban" : "Silence"}`);
+  } catch (error) {
+    logger.error("Failed to toggle anti-tabchi mode", { chatId, error });
+    await ctx.answerCbQuery("Failed to save settings", { show_alert: true });
+  }
+
+  await showAntiTabchiSettings(ctx, chatId);
+});
+
+// Handler for Action Time (Entry/Message)
+bot.action(/^fw_adv_at_time:(-?\d+)$/, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_at_time:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    if (!rawSettings.antiTabchi) rawSettings.antiTabchi = {};
+    const at = rawSettings.antiTabchi as Record<string, unknown>;
+
+    const current = (at.actionTime as string) ?? "entry";
+    const next = current === "entry" ? "message" : "entry";
+    at.actionTime = next;
+
+    await saveBanSettingsByChatId(chatId, settings);
+    await ctx.answerCbQuery(`Time set to: ${next === "entry" ? "Immediately" : "After Message"}`);
+  } catch (error) {
+    logger.error("Failed to toggle anti-tabchi time", { chatId, error });
+    await ctx.answerCbQuery("Failed to save settings", { show_alert: true });
+  }
+
+  await showAntiTabchiSettings(ctx, chatId);
+});
+
+// Handler for Detection Message Timer
+bot.action(/^fw_adv_at_msg_time:(-?\d+):(up|down|upfast|downfast)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_at_msg_time:(-?\d+):(up|down|upfast|downfast)$/);
+  const chatId = match?.[1];
+  const direction = match?.[2];
+  if (!chatId || !direction) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    if (!rawSettings.antiTabchi) rawSettings.antiTabchi = {};
+    const at = rawSettings.antiTabchi as Record<string, unknown>;
+
+    let current = (at.detectionMessageSeconds as number) ?? 150;
+
+    const adjustments: Record<string, number> = {
+      up: 5,
+      down: -5,
+      upfast: 30,
+      downfast: -30,
+    };
+
+    current += adjustments[direction] ?? 0;
+    current = Math.max(0, Math.min(3600, current)); // 0 to 60 mins
+    at.detectionMessageSeconds = current;
+
+    await saveBanSettingsByChatId(chatId, settings);
+  } catch (error) {
+    logger.error("Failed to adjust detection timer", { chatId, error });
+  }
+
+  await showAntiTabchiSettings(ctx, chatId);
+});
+
+// ========== AUTO LOCK HANDLERS ==========
+
+async function showAutoLockSettings(ctx: Context, chatId: string): Promise<void> {
+  let banSettings;
+  try {
+    banSettings = await loadBanSettingsByChatId(chatId);
+  } catch {
+    banSettings = null;
+  }
+
+  const rawBan = banSettings as unknown as Record<string, unknown> | null;
+  const autoLock = (rawBan?.autoLock as Record<string, unknown>) ?? {};
+
+  const enabled = autoLock.enabled === true;
+  const startTime = (autoLock.startTime as string) ?? "23:00";
+  const endTime = (autoLock.endTime as string) ?? "08:00";
+
+  const statusIcon = enabled ? "âœ…" : "âŒ";
+
+  const message = `ðŸ” <b>Auto Lock Settings</b>
+
+â€¢ In this section you can:
+* Configure automatic group lock schedule
+* Group will be locked during the specified hours (using group timezone)
+
+<b>Status:</b> ${statusIcon} ${enabled ? "Enabled" : "Disabled"}
+<b>Lock Interval:</b> ${startTime} âž¡ï¸ ${endTime}
+  `;
+
+  const rows: any[] = [];
+
+  // Toggle button
+  rows.push([Markup.button.callback(`â€¢ Auto Lock: ${statusIcon}`, `fw_adv_al_toggle:${chatId}`)]);
+
+  if (enabled) {
+    rows.push([
+      Markup.button.callback(`ðŸ•’ Start: ${startTime}`, `fw_adv_al_edit:${chatId}:start`),
+      Markup.button.callback(`ðŸ•’ End: ${endTime}`, `fw_adv_al_edit:${chatId}:end`),
+    ]);
+  }
+
+  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
+
+  const keyboard = Markup.inlineKeyboard(rows);
+  await replyOrEditRoot(ctx, message, keyboard);
+}
+
+// Handler for Toggle
+bot.action(/^fw_adv_al_toggle:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_al_toggle:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    if (!rawSettings.autoLock) rawSettings.autoLock = {};
+    const al = rawSettings.autoLock as Record<string, unknown>;
+
+    al.enabled = !(al.enabled === true);
+
+    await saveBanSettingsByChatId(chatId, settings);
+  } catch (error) {
+    logger.error("Failed to toggle auto lock", { chatId, error });
+  }
+  await showAutoLockSettings(ctx, chatId);
+});
+
+// Handler for Edit Time Menu
+bot.action(/^fw_adv_al_edit:(-?\d+):(start|end)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_al_edit:(-?\d+):(start|end)$/);
+  const chatId = match?.[1];
+  const type = match?.[2]; // start or end
+
+  if (!chatId || !type) return;
+
+  await showAutoLockTimeEditor(ctx, chatId, type as "start" | "end");
+});
+
+async function showAutoLockTimeEditor(ctx: Context, chatId: string, type: "start" | "end"): Promise<void> {
+  let banSettings;
+  try {
+    banSettings = await loadBanSettingsByChatId(chatId);
+  } catch {
+    banSettings = null;
+  }
+
+  const rawBan = banSettings as unknown as Record<string, unknown> | null;
+  const autoLock = (rawBan?.autoLock as Record<string, unknown>) ?? {};
+
+  const timeStr = (type === "start" ? autoLock.startTime : autoLock.endTime) as string ?? (type === "start" ? "23:00" : "08:00");
+  const [hh, mm] = timeStr.split(":").map(Number);
+
+  const title = type === "start" ? "Start Time (Lock)" : "End Time (Unlock)";
+  const message = `ðŸ•’ <b>Set ${title}</b>\n\nCurrent: <b>${timeStr}</b>\n\nUse buttons below to adjust:`;
+
+  const rows: any[] = [];
+
+  // Hour controls
+  rows.push([
+    Markup.button.callback("- H", `fw_adv_al_set:${chatId}:${type}:h:down`),
+    Markup.button.callback(`${hh.toString().padStart(2, '0')}`, "noop"),
+    Markup.button.callback("+ H", `fw_adv_al_set:${chatId}:${type}:h:up`),
+  ]);
+
+  // Minute controls
+  rows.push([
+    Markup.button.callback("- M", `fw_adv_al_set:${chatId}:${type}:m:down`),
+    Markup.button.callback(`${mm.toString().padStart(2, '0')}`, "noop"),
+    Markup.button.callback("+ M", `fw_adv_al_set:${chatId}:${type}:m:up`),
+  ]);
+
+  rows.push([Markup.button.callback("âœ… Done", `fw_adv_auto_lock:${chatId}`)]); // Redirects back to main menu handler
+
+  const keyboard = Markup.inlineKeyboard(rows);
+  await replyOrEditRoot(ctx, message, keyboard);
+}
+
+// Redirect handler for "Done" button
+bot.action(/^fw_adv_auto_lock:(-?\d+)$/, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_auto_lock:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+  await showAutoLockSettings(ctx, chatId);
+});
+
+// Handler for Time Adjustment
+bot.action(/^fw_adv_al_set:(-?\d+):(start|end):(h|m):(up|down)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_al_set:(-?\d+):(start|end):(h|m):(up|down)$/);
+
+  const chatId = match?.[1];
+  const type = match?.[2] as "start" | "end";
+  const unit = match?.[3] as "h" | "m";
+  const direction = match?.[4] as "up" | "down";
+
+  if (!chatId) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    if (!rawSettings.autoLock) rawSettings.autoLock = {};
+    const al = rawSettings.autoLock as Record<string, unknown>;
+
+    let timeStr = (type === "start" ? al.startTime : al.endTime) as string ?? (type === "start" ? "23:00" : "08:00");
+    let [hh, mm] = timeStr.split(":").map(Number); // Assuming valid format "HH:MM"
+
+    if (isNaN(hh)) hh = 0;
+    if (isNaN(mm)) mm = 0;
+
+    if (unit === "h") {
+      hh += (direction === "up" ? 1 : -1);
+      if (hh > 23) hh = 0;
+      if (hh < 0) hh = 23;
+    } else {
+      mm += (direction === "up" ? 15 : -15); // 15 min steps
+      if (mm > 59) mm = 0;
+      if (mm < 0) mm = 45;
+    }
+
+    const newTime = `${hh.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`;
+
+    if (type === "start") al.startTime = newTime;
+    else al.endTime = newTime;
+
+    await saveBanSettingsByChatId(chatId, settings);
+
+    // Re-render
+    await showAutoLockTimeEditor(ctx, chatId, type);
+  } catch (error) {
+    logger.error("Failed to adjust auto lock time", { chatId, error });
+  }
+});
+
+// ========== LOCK LIMIT HANDLERS ==========
+
+async function showLockLimitSettings(ctx: Context, chatId: string): Promise<void> {
+  let banSettings;
+  try {
+    banSettings = await loadBanSettingsByChatId(chatId);
+  } catch {
+    banSettings = null;
+  }
+
+  const rawBan = banSettings as unknown as Record<string, unknown> | null;
+  const lockLimit = (rawBan?.lockLimit as Record<string, unknown>) ?? {};
+
+  const enabled = lockLimit.enabled === true;
+  const maxCount = (lockLimit.maxCount as number) ?? 5;
+  const limitSeconds = (lockLimit.limitSeconds as number) ?? 60; // 1 minute
+  const reportDeleteSeconds = (lockLimit.reportDeleteSeconds as number) ?? 60; // 1 minute
+
+  const statusIcon = enabled ? "âœ…" : "âŒ";
+
+  const message = `ðŸ“Š <b>Lock Limit Settings</b>
+
+â€¢ In this section you can determine message restrictions for users!
+
+<b>Status:</b> ${statusIcon} ${enabled ? "Enabled" : "Disabled"}
+  `;
+
+  const rows: any[] = [];
+
+  // Toggle
+  rows.push([Markup.button.callback(`â€¢ Lock Limit: ${statusIcon}`, `fw_adv_ll_toggle:${chatId}`)]);
+
+  if (enabled) {
+    // Max Count
+    rows.push([Markup.button.callback(`â€¢ Allowed Posts: ${maxCount}`, "noop")]);
+    rows.push([
+      Markup.button.callback("ã€Š", `fw_adv_ll_count:${chatId}:downfast`),
+      Markup.button.callback("ã€ˆ", `fw_adv_ll_count:${chatId}:down`),
+      Markup.button.callback("ã€‰", `fw_adv_ll_count:${chatId}:up`),
+      Markup.button.callback("ã€‹", `fw_adv_ll_count:${chatId}:upfast`),
+    ]);
+
+    // Time Window
+    rows.push([Markup.button.callback(`â€¢ Based on Time: ${Math.floor(limitSeconds / 60)} min`, "noop")]);
+    rows.push([
+      Markup.button.callback("ã€Š", `fw_adv_ll_time:${chatId}:downfast`),
+      Markup.button.callback("ã€ˆ", `fw_adv_ll_time:${chatId}:down`),
+      Markup.button.callback("ã€‰", `fw_adv_ll_time:${chatId}:up`),
+      Markup.button.callback("ã€‹", `fw_adv_ll_time:${chatId}:upfast`),
+    ]);
+
+    // Report Timer
+    rows.push([Markup.button.callback(`â€¢ Send Report in Group: ${Math.floor(reportDeleteSeconds / 60)} min`, "noop")]);
+    rows.push([
+      Markup.button.callback("ã€Š", `fw_adv_ll_report:${chatId}:downfast`),
+      Markup.button.callback("ã€ˆ", `fw_adv_ll_report:${chatId}:down`),
+      Markup.button.callback("ã€‰", `fw_adv_ll_report:${chatId}:up`),
+      Markup.button.callback("ã€‹", `fw_adv_ll_report:${chatId}:upfast`),
+    ]);
+  }
+
+  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
+
+  const keyboard = Markup.inlineKeyboard(rows);
+  await replyOrEditRoot(ctx, message, keyboard);
+}
+
+// Toggle Handler
+bot.action(/^fw_adv_ll_toggle:(-?\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_ll_toggle:(-?\d+)$/);
+  const chatId = match?.[1];
+  if (!chatId) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    if (!rawSettings.lockLimit) rawSettings.lockLimit = {};
+    const ll = rawSettings.lockLimit as Record<string, unknown>;
+
+    ll.enabled = !(ll.enabled === true);
+
+    await saveBanSettingsByChatId(chatId, settings);
+  } catch (error) {
+    logger.error("Failed to toggle lock limit", { chatId, error });
+  }
+  await showLockLimitSettings(ctx, chatId);
+});
+
+// Adjust Count Handler
+bot.action(/^fw_adv_ll_count:(-?\d+):(up|down|upfast|downfast)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_ll_count:(-?\d+):(up|down|upfast|downfast)$/);
+  const chatId = match?.[1];
+  const direction = match?.[2];
+  if (!chatId || !direction) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    if (!rawSettings.lockLimit) rawSettings.lockLimit = {};
+    const ll = rawSettings.lockLimit as Record<string, unknown>;
+
+    let current = (ll.maxCount as number) ?? 5;
+    const adjustments: Record<string, number> = { up: 1, down: -1, upfast: 5, downfast: -5 };
+
+    current += adjustments[direction] ?? 0;
+    current = Math.max(1, current); // Min 1
+
+    ll.maxCount = current;
+    await saveBanSettingsByChatId(chatId, settings);
+  } catch (e) { logger.error("Failed to adjust limit count", { e }); }
+
+  await showLockLimitSettings(ctx, chatId);
+});
+
+// Adjust Time Window Handler (stored in seconds, adjusted in minutes as per UI)
+bot.action(/^fw_adv_ll_time:(-?\d+):(up|down|upfast|downfast)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_ll_time:(-?\d+):(up|down|upfast|downfast)$/);
+  const chatId = match?.[1];
+  const direction = match?.[2];
+  if (!chatId || !direction) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    if (!rawSettings.lockLimit) rawSettings.lockLimit = {};
+    const ll = rawSettings.lockLimit as Record<string, unknown>;
+
+    let currentSeconds = (ll.limitSeconds as number) ?? 60;
+    let currentMinutes = Math.floor(currentSeconds / 60);
+
+    const adjustments: Record<string, number> = { up: 1, down: -1, upfast: 10, downfast: -10 };
+
+    currentMinutes += adjustments[direction] ?? 0;
+    currentMinutes = Math.max(1, currentMinutes); // Min 1 minute
+
+    ll.limitSeconds = currentMinutes * 60;
+    await saveBanSettingsByChatId(chatId, settings);
+  } catch (e) { logger.error("Failed to adjust limit time", { e }); }
+
+  await showLockLimitSettings(ctx, chatId);
+});
+
+// Adjust Report Timer Handler
+bot.action(/^fw_adv_ll_report:(-?\d+):(up|down|upfast|downfast)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_ll_report:(-?\d+):(up|down|upfast|downfast)$/);
+  const chatId = match?.[1];
+  const direction = match?.[2];
+  if (!chatId || !direction) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+    if (!rawSettings.lockLimit) rawSettings.lockLimit = {};
+    const ll = rawSettings.lockLimit as Record<string, unknown>;
+
+    let currentSeconds = (ll.reportDeleteSeconds as number) ?? 60;
+    let currentMinutes = Math.floor(currentSeconds / 60);
+
+    const adjustments: Record<string, number> = { up: 1, down: -1, upfast: 5, downfast: -5 };
+
+    currentMinutes += adjustments[direction] ?? 0;
+    currentMinutes = Math.max(0, currentMinutes); // Min 0 (0 could mean no report or permanent? Assuming 1 is practical min, but 0 allowed)
+
+    ll.reportDeleteSeconds = currentMinutes * 60;
+    await saveBanSettingsByChatId(chatId, settings);
+  } catch (e) { logger.error("Failed to adjust report time", { e }); }
+
+  await showLockLimitSettings(ctx, chatId);
+});
+
+// ========== PERMISSIONS HANDLERS ==========
+
+async function showPermissionsSettings(ctx: Context, chatId: string): Promise<void> {
+    let chat;
+    try {
+        chat = await ctx.telegram.getChat(chatId);
+    } catch (error) {
+        logger.error("Failed to get chat stats", { chatId, error });
+        await ctx.reply("Error getting chat info.");
+        return;
+    }
+
+    const permissions = (chat as any).permissions ?? {};
+
+    // English Labels
+    const permissionMap = [
+        { key: "can_send_messages", label: "Send Messages" },
+        { key: "can_send_photos", label: "Send Photos" },
+        { key: "can_send_videos", label: "Send Videos" },
+        { key: "can_send_video_notes", label: "Send Video Notes" },
+        { key: "can_send_audios", label: "Send Music" },
+        { key: "can_send_voice_notes", label: "Send Voice Notes" },
+        { key: "can_send_documents", label: "Send Files" },
+        { key: "can_send_other_messages", label: "Send Stickers & GIFs" },
+        { key: "can_send_polls", label: "Send Polls" },
+        { key: "can_add_web_page_previews", label: "Embed Links" },
+        { key: "can_change_info", label: "Change Group Info" },
+        { key: "can_invite_users", label: "Invite Users" },
+        { key: "can_pin_messages", label: "Pin Messages" },
+    ];
+
+    const message = `âš™ï¸ <b>Advanced Group Permissions</b>\n\nConfigure what users can do in this group.`;
+
+    const rows: any[] = [];
+
+    for (const item of permissionMap) {
+        const isOpen = permissions[item.key] === true || permissions[item.key] === undefined;
+
+        const statusText = isOpen ? "Allowed" : "Restricted";
+        const statusIcon = isOpen ? "âœ…" : "âŒ";
+
+        const buttonLabel = `${item.label}: ${statusText} ${statusIcon}`;
+
+        rows.push([Markup.button.callback(buttonLabel, `fw_adv_perm_toggle:${chatId}:${item.key}`)]);
+    }
+
+    rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
+
+    const keyboard = Markup.inlineKeyboard(rows);
+    await replyOrEditRoot(ctx, message, keyboard);
+}
+
+// Handler for Toggle
+bot.action(/^fw_adv_perm_toggle:(-?\d+):([a-z_]+)$/, async (ctx) => {
+    const data = (ctx.callbackQuery as any)?.data ?? "";
+    const match = data.match(/^fw_adv_perm_toggle:(-?\d+):([a-z_]+)$/);
+    const chatId = match?.[1];
+    const key = match?.[2];
+
+    if (!chatId || !key) {
+        await ctx.answerCbQuery();
+        return;
+    }
+
+    try {
+        const chat = await ctx.telegram.getChat(chatId);
+        const currentPermissions = (chat as any).permissions ?? {};
+
+        const isAllowed = currentPermissions[key] !== false;
+        const newValue = !isAllowed;
+
+        const newPermissions = { ...currentPermissions, [key]: newValue };
+
+        await ctx.telegram.setChatPermissions(chatId, newPermissions);
+
+        const statusStr = newValue ? "Allowed" : "Restricted";
+        await ctx.answerCbQuery(`${key.replace(/can_|send_/g, "")} ${statusStr}`);
+    } catch (error) {
+        logger.error("Failed to toggle permission", { chatId, key, error });
+        await ctx.answerCbQuery("Failed to change permission");
+    }
+
+    await showPermissionsSettings(ctx, chatId);
+});
