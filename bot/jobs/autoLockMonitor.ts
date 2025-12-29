@@ -1,7 +1,7 @@
 
 import { Telegraf } from "telegraf";
 import { prisma } from "../../server/db/client.js"; // Adjust import path
-import { logger } from "../../utils/logger.js"; // Adjust import path
+import { logger } from "../../server/utils/logger.js"; // Adjust import path
 import { saveBanSettingsByChatId, GroupBanSettingsRecord, AutoLockSettings } from "../../server/db/groupSettingsRepository.js"; // Adjust import path
 import { Context } from "telegraf";
 
