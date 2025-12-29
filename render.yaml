@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: firewall-bot
+    runtime: node
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LANG
+        value: en_US.UTF-8
+      - key: LC_ALL
+        value: en_US.UTF-8
+      - key: NODE_OPTIONS
+        value: --max-old-space-size=512
