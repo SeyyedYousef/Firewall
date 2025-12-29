@@ -27,12 +27,10 @@ export function startAutoLockMonitor(bot: Telegraf<Context>) {
 
 async function checkAutoLocks(bot: Telegraf<Context>) {
     // 1. Fetch all groups with autoLock enabled
-    // Since autoLock is in a JSON column, efficient filtering depends on DB support.
-    // For now, fetch groups where banSettings is not null. 
-    // Optimization: In a real large-scale app, we'd want a specific index or relational column.
-    // Given the scale here, we iterate.
+    // Since autoLock is in a JSON column, we fetch all groups and filter in-memory
+    // Note: For large-scale apps, consider adding a dedicated boolean column
 
-    const groups = await prisma.groupBanSettings.findMany({
+    const groups = await prisma.group.findMany({
         where: {
             banSettings: {
                 path: ['autoLock', 'enabled'],
@@ -42,16 +40,13 @@ async function checkAutoLocks(bot: Telegraf<Context>) {
     });
 
     const now = new Date();
-    const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
 
     for (const group of groups) {
-        const chatId = group.chatId;
+        const chatId = group.telegramChatId;
 
         try {
-            // Load full settings to ensure types and get TZ
-            // We need general settings for Timezone
-            const general = await prisma.groupGeneralSettings.findUnique({ where: { chatId } });
-            const timezone = (general?.generalSettings as any)?.timezone ?? "UTC"; // Default UTC
+            // Get timezone from generalSettings JSON field on the same Group record
+            const timezone = (group.generalSettings as any)?.timezone ?? "UTC"; // Default UTC
 
             // Adjust 'now' to group's timezone
             // We can use Intl.DateTimeFormat or a library. Native is fine.
@@ -59,6 +54,7 @@ async function checkAutoLocks(bot: Telegraf<Context>) {
             const groupMinutes = parseTime(groupTimeStr); // Minutes from 00:00 in group's TZ
 
             const settings = group.banSettings as unknown as GroupBanSettingsRecord;
+            if (!settings) continue;
             const al = settings.autoLock;
             if (!al || !al.enabled || !al.startTime || !al.endTime) continue;
 

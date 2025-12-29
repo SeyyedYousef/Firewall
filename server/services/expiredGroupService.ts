@@ -3,6 +3,7 @@ import { fetchGroupsFromDb } from "../db/stateRepository.js";
 import { setGroupStatus } from "../db/mutateRepository.js";
 import { getStarsState, removeGroupCompletely, getState } from "../../bot/state.js";
 import { prisma } from "../db/client.js";
+import { escapeHtml } from "../utils/monitorUtils.js";
 
 const GRACE_PERIOD_DAYS = 3; // Days after expiration before auto-leave
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -64,8 +65,8 @@ export async function checkExpiredGroups(): Promise<ExpiredGroupInfo[]> {
       // Check if we should send notification today (once per day)
       const lastNotified = lastNotificationSent.get(group.chatId) ?? 0;
       const hoursSinceLastNotification = (nowMs - lastNotified) / (60 * 60 * 1000);
-      const shouldNotifyOwner = !shouldLeave && 
-        Boolean(group.ownerId) && 
+      const shouldNotifyOwner = !shouldLeave &&
+        Boolean(group.ownerId) &&
         hoursSinceLastNotification >= 24;
 
       expiredGroups.push({
@@ -118,10 +119,10 @@ Thank you for using Firewall! 🔥`;
       parse_mode: "HTML",
       disable_web_page_preview: true,
     });
-    
+
     // Mark notification as sent
     lastNotificationSent.set(group.chatId, Date.now());
-    
+
     logger.info("Sent expiration notification to owner", {
       chatId: group.chatId,
       ownerId: group.ownerId,
@@ -159,9 +160,9 @@ Thank you for using Firewall! 🙏`;
         parse_mode: "HTML",
       });
     } catch (msgError) {
-      logger.warn("Failed to send farewell message to group", { 
-        chatId: group.chatId, 
-        error: msgError 
+      logger.warn("Failed to send farewell message to group", {
+        chatId: group.chatId,
+        error: msgError
       });
     }
 
@@ -198,16 +199,16 @@ Thank you for using Firewall! 🔥`;
         error: leaveError,
       });
     }
-    
+
     // Clean up database records
     await cleanupGroupData(group.chatId);
-    
+
     // Clean up local state
     removeGroupCompletely(group.chatId);
-    
+
     // Remove from notification tracking
     lastNotificationSent.delete(group.chatId);
-    
+
     logger.info("Left and cleaned up expired group", {
       chatId: group.chatId,
       title: group.title,
@@ -229,7 +230,7 @@ async function cleanupGroupData(chatId: string): Promise<void> {
   try {
     // Update group status to removed
     await setGroupStatus(chatId, "removed", {});
-    
+
     // Delete related records using raw queries for safety
     const group = await prisma.group.findUnique({
       where: { telegramChatId: chatId },
@@ -274,7 +275,7 @@ async function cleanupGroupData(chatId: string): Promise<void> {
 export async function processExpiredGroups(bot: any): Promise<void> {
   try {
     const expiredGroups = await checkExpiredGroups();
-    
+
     for (const group of expiredGroups) {
       if (group.shouldLeave) {
         // Grace period ended - leave and cleanup
@@ -284,7 +285,7 @@ export async function processExpiredGroups(bot: any): Promise<void> {
         await notifyGroupOwner(bot, group);
       }
     }
-    
+
     if (expiredGroups.length > 0) {
       logger.info("Processed expired groups", {
         total: expiredGroups.length,
@@ -318,20 +319,9 @@ export function startExpiredGroupsMonitor(bot: any): void {
 
   // Schedule periodic runs
   setInterval(runMonitor, MONITOR_INTERVAL);
-  
-  logger.info("Expired groups monitor started", { 
+
+  logger.info("Expired groups monitor started", {
     intervalMs: MONITOR_INTERVAL,
     gracePeriodDays: GRACE_PERIOD_DAYS,
   });
-}
-
-/**
- * Helper function to escape HTML special characters
- */
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 }

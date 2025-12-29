@@ -1256,5 +1256,4 @@ export async function evaluateBanGuards(ctx: GroupChatContext): Promise<Processi
       return null;
     }
   }
-
-
+}

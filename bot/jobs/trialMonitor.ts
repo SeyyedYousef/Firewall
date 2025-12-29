@@ -1,6 +1,7 @@
 import type { Telegraf } from "telegraf";
 import { getState, markTrialReminderSent, markTrialExpired } from "../state.js";
 import { logger } from "../../server/utils/logger.js";
+import { escapeHtml, escapeAttribute, collectRecipients, sendSafe, notifyRecipients, type MonitorRecipientOptions } from "../../server/utils/monitorUtils.js";
 
 const DAY_MS = 86_400_000;
 const WARNING_DAYS = Number.parseInt(process.env.TRIAL_REMINDER_DAYS ?? "3", 10);
@@ -8,10 +9,7 @@ const MONITOR_INTERVAL_MS = Number.parseInt(process.env.TRIAL_MONITOR_INTERVAL_M
 
 let monitorTimer: NodeJS.Timeout | null = null;
 
-export type TrialMonitorOptions = {
-  ownerId?: string | null;
-  getPanelAdmins?: () => string[];
-};
+export type TrialMonitorOptions = MonitorRecipientOptions;
 
 export function startTrialMonitor(bot: Telegraf, options: TrialMonitorOptions = {}): void {
   if (monitorTimer) {
@@ -135,62 +133,4 @@ async function sendExpirationNotice(
     ].join("\n");
     await notifyRecipients(bot, recipients, dmMessage);
   }
-}
-async function notifyRecipients(bot: Telegraf, recipients: string[], message: string): Promise<void> {
-  for (const recipient of recipients) {
-    await sendSafe(bot, recipient, message);
-  }
-}
-
-async function sendSafe(bot: Telegraf, chatId: string, text: string): Promise<void> {
-  try {
-    // Type definitions for Telegraf's sendMessage options may not include
-    // 'disable_web_page_preview' depending on typegram version — cast to any.
-    await bot.telegram.sendMessage(chatId, text, { parse_mode: "HTML", disable_web_page_preview: true } as any);
-  } catch (error) {
-    logger.warn("trial monitor failed to send message", { chatId, error });
-  }
-}
-
-function collectRecipients(options: TrialMonitorOptions): string[] {
-  const ids = new Set<string>();
-  if (options.ownerId) {
-    ids.add(options.ownerId);
-  }
-  try {
-    const admins = options.getPanelAdmins?.();
-    if (admins) {
-      admins.map(String).forEach((id) => {
-        if (id.trim().length > 0) {
-          ids.add(id.trim());
-        }
-      });
-    }
-  } catch (error) {
-    logger.warn("trial monitor failed to load panel admins", { error });
-  }
-  return Array.from(ids);
-}
-
-function escapeHtml(input: string): string {
-  return input.replace(/[&<>"']/g, (char) => {
-    switch (char) {
-      case "&":
-        return "&amp;";
-      case "<":
-        return "&lt;";
-      case ">":
-        return "&gt;";
-      case '"':
-        return "&quot;";
-      case "'":
-        return "&#39;";
-      default:
-        return char;
-    }
-  });
-}
-
-function escapeAttribute(value: string): string {
-  return escapeHtml(value).replace(/"/g, "&quot;");
 }

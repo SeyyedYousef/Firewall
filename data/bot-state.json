@@ -19,7 +19,26 @@
       "adminIds": [],
       "status": null,
       "statusUpdatedAt": null,
-      "dbId": null
+      "dbId": null,
+      "subscriptionType": "free",
+      "lastActivityAt": null,
+      "adsEnabled": true,
+      "premiumFeatures": {
+        "promoButton": false,
+        "mandatoryMembership": false,
+        "mandatoryAdd": false,
+        "detailedWarnings": false,
+        "advancedAnalytics": false,
+        "customSchedule": false,
+        "voteMute": false,
+        "advancedCaptcha": false,
+        "extraSilenceWindows": false,
+        "extraMandatoryChannels": false,
+        "webhook": false,
+        "priorityProcessing": false,
+        "autoWarning": false,
+        "autoDelete": false
+      }
     }
   },
   "settings": {
@@ -74,5 +93,8 @@
   "ownerSession": {
     "state": "idle"
   },
-  "pendingOnboarding": {}
+  "pendingOnboarding": {},
+  "creditCodes": [],
+  "pendingGroupSetups": {},
+  "userFreeGroups": {}
 }

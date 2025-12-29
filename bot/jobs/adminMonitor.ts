@@ -1,5 +1,6 @@
 import type { Telegraf } from "telegraf";
 import { logger } from "../../server/utils/logger.js";
+import { escapeHtml, collectRecipients, sendSafe, notifyRecipients, type MonitorRecipientOptions } from "../../server/utils/monitorUtils.js";
 import { getState, markAdminPermission } from "../state.js";
 
 const ADMIN_MONITOR_INTERVAL_MS = Number.parseInt(process.env.ADMIN_MONITOR_INTERVAL_MS ?? "3600000", 10);
@@ -7,10 +8,7 @@ const ADMIN_WARNING_COOLDOWN_MS = Number.parseInt(process.env.ADMIN_WARNING_COOL
 
 let adminTimer: NodeJS.Timeout | null = null;
 
-export type AdminMonitorOptions = {
-  ownerId?: string | null;
-  getPanelAdmins?: () => string[];
-};
+export type AdminMonitorOptions = MonitorRecipientOptions;
 
 export function startAdminMonitor(bot: Telegraf, options: AdminMonitorOptions = {}): void {
   if (adminTimer) {
@@ -127,57 +125,4 @@ async function notifyRecovery(bot: Telegraf, chatId: string, title: string, reci
   }
 
   await sendSafe(bot, chatId, message);
-}
-function collectRecipients(options: AdminMonitorOptions): string[] {
-  const ids = new Set<string>();
-  if (options.ownerId) {
-    ids.add(options.ownerId);
-  }
-  try {
-    const admins = options.getPanelAdmins?.();
-    if (admins) {
-      admins.map(String).forEach((id) => {
-        if (id.trim().length > 0) {
-          ids.add(id.trim());
-        }
-      });
-    }
-  } catch (error) {
-    logger.warn("admin monitor failed to load panel admins", { error });
-  }
-  return Array.from(ids);
-}
-
-async function notifyRecipients(bot: Telegraf, recipients: string[], message: string): Promise<void> {
-  for (const recipient of recipients) {
-    await sendSafe(bot, recipient, message);
-  }
-}
-
-async function sendSafe(bot: Telegraf, chatId: string, text: string): Promise<void> {
-  try {
-    // Cast options to any to handle type differences in telegraf/typegram
-    await bot.telegram.sendMessage(chatId, text, { parse_mode: "HTML", disable_web_page_preview: true } as any);
-  } catch (error) {
-    logger.warn("admin monitor failed to send message", { chatId, error });
-  }
-}
-
-function escapeHtml(input: string): string {
-  return input.replace(/[&<>"']/g, (char) => {
-    switch (char) {
-      case "&":
-        return "&amp;";
-      case "<":
-        return "&lt;";
-      case ">":
-        return "&gt;";
-      case '"':
-        return "&quot;";
-      case "'":
-        return "&#39;";
-      default:
-        return char;
-    }
-  });
 }

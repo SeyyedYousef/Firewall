@@ -1,16 +1,14 @@
 import type { Telegraf } from "telegraf";
 import { listInactiveGroups, upsertGroup, type GroupRecord } from "../state.js";
 import { logger } from "../../server/utils/logger.js";
+import { escapeHtml, collectRecipients, type MonitorRecipientOptions } from "../../server/utils/monitorUtils.js";
 
 const INACTIVITY_DAYS = 3;
 const MONITOR_INTERVAL_MS = Number.parseInt(process.env.INACTIVITY_MONITOR_INTERVAL_MS ?? "3600000", 10); // Default: 1 hour
 
 let monitorTimer: NodeJS.Timeout | null = null;
 
-export type InactivityMonitorOptions = {
-  ownerId?: string | null;
-  getPanelAdmins?: () => string[];
-};
+export type InactivityMonitorOptions = MonitorRecipientOptions;
 
 export function startInactivityMonitor(bot: Telegraf, options: InactivityMonitorOptions = {}): void {
   if (monitorTimer) {
@@ -74,15 +72,15 @@ async function evaluateInactiveGroups(bot: Telegraf, options: InactivityMonitorO
         await notifyAdmins(bot, recipients, group);
       }
 
-      logger.info("inactivity monitor: left inactive group", { 
-        chatId: group.chatId, 
+      logger.info("inactivity monitor: left inactive group", {
+        chatId: group.chatId,
         title: group.title,
-        lastActivity: group.lastActivityAt 
+        lastActivity: group.lastActivityAt
       });
     } catch (error) {
-      logger.warn("inactivity monitor: failed to process inactive group", { 
-        chatId: group.chatId, 
-        error 
+      logger.warn("inactivity monitor: failed to process inactive group", {
+        chatId: group.chatId,
+        error
       });
     }
   }
@@ -111,7 +109,7 @@ async function sendInactivityWarning(bot: Telegraf, group: GroupRecord): Promise
 async function leaveGroup(bot: Telegraf, group: GroupRecord): Promise<void> {
   try {
     await bot.telegram.leaveChat(group.chatId);
-    
+
     // Mark group as unmanaged
     upsertGroup({
       chatId: group.chatId,
@@ -140,43 +138,4 @@ async function notifyAdmins(bot: Telegraf, recipients: string[], group: GroupRec
       logger.debug("inactivity monitor: could not notify admin", { recipient, error });
     }
   }
-}
-
-function collectRecipients(options: InactivityMonitorOptions): string[] {
-  const ids = new Set<string>();
-  if (options.ownerId) {
-    ids.add(options.ownerId);
-  }
-  try {
-    const admins = options.getPanelAdmins?.();
-    if (admins) {
-      admins.map(String).forEach((id) => {
-        if (id.trim().length > 0) {
-          ids.add(id.trim());
-        }
-      });
-    }
-  } catch (error) {
-    logger.warn("inactivity monitor: failed to load panel admins", { error });
-  }
-  return Array.from(ids);
-}
-
-function escapeHtml(input: string): string {
-  return input.replace(/[&<>"']/g, (char) => {
-    switch (char) {
-      case "&":
-        return "&amp;";
-      case "<":
-        return "&lt;";
-      case ">":
-        return "&gt;";
-      case '"':
-        return "&quot;";
-      case "'":
-        return "&#39;";
-      default:
-        return char;
-    }
-  });
 }
