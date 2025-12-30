@@ -1912,7 +1912,7 @@ function buildStartKeyboard(): InlineKeyboard {
         : Markup.button.callback(label("start_channel", content.buttons.channel), actionId("channel"))
     ],
     [
-      Markup.button.callback("â“ Help", "fw_inline_help:global"),
+      Markup.button.callback("❓ Help", "fw_inline_help:global"),
       Markup.button.callback(label("start_info", content.buttons.info), actionId("info"))
     ]
   ]);
@@ -2126,7 +2126,7 @@ function buildBanNavigationKeyboard(): InlineKeyboard {
     [Markup.button.callback("âž• Ban User", actionId("ownerBanAdd"))],
     [Markup.button.callback("âž– Unban User", actionId("ownerBanRemove"))],
     [Markup.button.callback("ðŸ“‹ View Ban List", actionId("ownerBanList"))],
-    [Markup.button.callback("ðŸ”™ Back to Panel", actionId("ownerBackToPanel"))],
+    [Markup.button.callback("◀️ Back to Panel", actionId("ownerBackToPanel"))],
   ]);
 }
 
@@ -2848,7 +2848,7 @@ async function handleIncomingVerificationStart(ctx: Context, chatId: string): Pr
     rows.push(row);
   }
 
-  const message = `ðŸ‘‹ Hello <b>${userDisplayName}</b>!\n\n` +
+  const message = `👋 Hello <b>${userDisplayName}</b>!\n\n` +
     `To verify your membership request, please answer the following question:\n\n` +
     `<b>${captcha.question}</b>`;
 
@@ -2902,7 +2902,7 @@ bot.action(VERIFY_CAPTCHA_REGEX, async (ctx) => {
     }
 
     const userDisplayName = resolveUserDisplayName(ctx.from!);
-    const message = `ðŸ‘‹ Hello <b>${userDisplayName}</b>!\n\n` +
+    const message = `👋 Hello <b>${userDisplayName}</b>!\n\n` +
       `To verify your membership request, please answer the following question:\n\n` +
       `<b>${captcha.question}</b>`;
 
@@ -2918,7 +2918,7 @@ bot.action(VERIFY_CAPTCHA_REGEX, async (ctx) => {
   }
 
   // Correct answer - generate one-time invite link
-  await ctx.answerCbQuery("âœ… Correct!", { show_alert: false });
+  await ctx.answerCbQuery("✅ Correct!", { show_alert: false });
   incomingVerificationSessions.delete(userId);
 
   try {
@@ -2928,10 +2928,10 @@ bot.action(VERIFY_CAPTCHA_REGEX, async (ctx) => {
       expire_date: Math.floor(Date.now() / 1000) + 86400, // 24 hours
     });
 
-    const successMessage = `âœ… <b>Your request has been approved!</b>\n\n` +
+    const successMessage = `✅ <b>Your request has been approved!</b>\n\n` +
       `You can join the group using the temporary link below.\n` +
       `This link can only be used once and will expire after that.\n\n` +
-      `ðŸ”— <b>Temporary Link:</b>\n${inviteLink.invite_link}`;
+      `🔗 <b>Temporary Link:</b>\n${inviteLink.invite_link}`;
 
     await ctx.editMessageText(successMessage, {
       parse_mode: "HTML",
@@ -2994,10 +2994,10 @@ async function getManageableGroupsForUser(userId: string): Promise<GroupRecord[]
 function buildInlineGroupSelectionKeyboard(groups: GroupRecord[]): InlineKeyboard {
   const rows: any[] = [];
   for (const group of groups) {
-    const label = truncateLabel(`ðŸ“‚ ${group.title}`, 38);
+    const label = truncateLabel(`📂 ${group.title}`, 38);
     rows.push([Markup.button.callback(label, `fw_inline_group:${group.chatId}`)]);
   }
-  rows.push([Markup.button.callback("â—€ï¸ Back", actionId("managementBack"))]);
+  rows.push([Markup.button.callback("◀️ Back", actionId("managementBack"))]);
   return Markup.inlineKeyboard(rows);
 }
 
@@ -3013,11 +3013,11 @@ async function showInlineGroupSelection(ctx: Context): Promise<void> {
     const message =
       "âš ï¸ No manageable groups were found for your account.\n\n" +
       "Make sure the bot is an admin in your group and that you are a group owner or admin.";
-    await replyOrEditRoot(ctx, message, Markup.inlineKeyboard([[Markup.button.callback("â—€ï¸ Back", actionId("managementBack"))]]));
+    await replyOrEditRoot(ctx, message, Markup.inlineKeyboard([[Markup.button.callback("◀️ Back", actionId("managementBack"))]]));
     return;
   }
 
-  const message = "ðŸ“‹ Select a group to manage:\n\nChoose a group from the list below to access its inline management panel.";
+  const message = "📋 Select a group to manage:\n\nChoose a group from the list below to access its inline management panel.";
   await replyOrEditRoot(ctx, message, buildInlineGroupSelectionKeyboard(groups));
 }
 
@@ -3029,14 +3029,14 @@ function buildInlineGroupMenuKeyboard(chatId: string): InlineKeyboard {
 
   return Markup.inlineKeyboard([
     [
-      Markup.button.callback("ðŸ”’ Locks", locksCallback),
-      Markup.button.callback("ðŸ“‹ Lists", listsCallback),
+      Markup.button.callback("🔒 Locks", locksCallback),
+      Markup.button.callback("📋 Lists", listsCallback),
     ],
     [
-      Markup.button.callback("â­ Upgrade to Premium", `group_setup:premium:${chatId}`),
-      Markup.button.callback("âš™ï¸ Advanced", advancedCallback),
+      Markup.button.callback("⭐️ Upgrade to Premium", `group_setup:premium:${chatId}`),
+      Markup.button.callback("⚙️ Advanced", advancedCallback),
     ],
-    [Markup.button.callback("â—€ï¸ Back to Groups", INLINE_BACK_TO_GROUPS)],
+    [Markup.button.callback("◀️ Back to Groups", INLINE_BACK_TO_GROUPS)],
   ]);
 }
 
@@ -3044,7 +3044,7 @@ async function showInlineGroupMenu(ctx: Context, chatId: string): Promise<void> 
   const groups = listGroups();
   const group = groups.find((g) => g.chatId === chatId) ?? null;
   const title = group?.title ?? chatId;
-  const message = `ðŸ›  Group Management Panel\n\nGroup: ${title}\n\nChoose a section to manage:`;
+  const message = `🛠 Group Management Panel\n\nGroup: ${title}\n\nChoose a section to manage:`;
   await replyOrEditRoot(ctx, message, buildInlineGroupMenuKeyboard(chatId));
 }
 
@@ -3071,8 +3071,8 @@ function buildInlineHelpKeyboard(chatId: string): InlineKeyboard {
 
   rows.push([
     chatId === 'global'
-      ? Markup.button.callback("â—€ï¸ Back to Main Menu", actionId("managementBack"))
-      : Markup.button.callback("â—€ï¸ Back to Panel", `fw_inline_menu:${chatId}`)
+      ? Markup.button.callback("◀️ Back to Main Menu", actionId("managementBack"))
+      : Markup.button.callback("◀️ Back to Panel", `fw_inline_menu:${chatId}`)
   ]);
   return Markup.inlineKeyboard(rows);
 }
@@ -3087,7 +3087,7 @@ async function showInlineHelp(ctx: Context, chatId: string): Promise<void> {
     title = "General Help";
   }
 
-  const message = `â“ <b>Help Center</b>\n\nContext: ${title}\n\nSelect a topic to learn more:`;
+  const message = `❓ <b>Help Center</b>\n\nContext: ${title}\n\nSelect a topic to learn more:`;
   await replyOrEditRoot(ctx, message, buildInlineHelpKeyboard(chatId));
 }
 
@@ -3114,16 +3114,16 @@ function buildHelpLocksKeyboard(chatId: string, page: number): InlineKeyboard {
   // Navigation row
   const navRow: any[] = [];
   if (currentPage > 1) {
-    navRow.push(Markup.button.callback("â—€ï¸ Previous", `fw_help_locks:${chatId}:${currentPage - 1}`));
+    navRow.push(Markup.button.callback("◀️ Previous", `fw_help_locks:${chatId}:${currentPage - 1}`));
   }
   if (currentPage < totalPages) {
-    navRow.push(Markup.button.callback("â–¶ï¸ Next", `fw_help_locks:${chatId}:${currentPage + 1}`));
+    navRow.push(Markup.button.callback("▶️ Next", `fw_help_locks:${chatId}:${currentPage + 1}`));
   }
   if (navRow.length > 0) {
     rows.push(navRow);
   }
 
-  rows.push([Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)]);
+  rows.push([Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)]);
   return Markup.inlineKeyboard(rows);
 }
 
@@ -3131,7 +3131,7 @@ async function showHelpLocks(ctx: Context, chatId: string, page: number): Promis
   const totalPages = Math.ceil(LOCK_HELP_DATA.length / HELP_LOCKS_PAGE_SIZE);
   const currentPage = Math.min(Math.max(page, 1), totalPages);
 
-  const message = `ðŸ”’ <b>Lock Management Help</b>\n\nPage ${currentPage}/${totalPages}\n\nSelect a lock to learn more about it:`;
+  const message = `🔒 <b>Lock Management Help</b>\n\nPage ${currentPage}/${totalPages}\n\nSelect a lock to learn more about it:`;
   await replyOrEditRoot(ctx, message, buildHelpLocksKeyboard(chatId, currentPage));
 }
 
@@ -3148,28 +3148,28 @@ async function showHelpLockDetail(ctx: Context, chatId: string, lockId: string):
   lines.push(`<b>ðŸ“ What does it do?</b>`);
   lines.push(lock.whatItDoes);
   lines.push("");
-  lines.push(`<b>ðŸ“Œ Example:</b>`);
+  lines.push(`<b>📌 Example:</b>`);
   lines.push(`<code>${lock.example}</code>`);
   lines.push("");
-  lines.push(`<b>âœ… How to Enable:</b>`);
+  lines.push(`<b>✅ How to Enable:</b>`);
   lines.push(`â€¢ Inline: Settings â†’ Locks â†’ ${lock.name}`);
   lines.push(`â€¢ Command: <code>!lock ${lock.commandAlias}</code>`);
   lines.push("");
   lines.push(`<b>âŒ How to Disable:</b>`);
   lines.push(`â€¢ Command: <code>!unlock ${lock.commandAlias}</code>`);
   lines.push("");
-  lines.push(`<b>ðŸ“± Mini App Path:</b>`);
+  lines.push(`<b>📱 Mini App Path:</b>`);
   lines.push(lock.miniAppPath);
   lines.push("");
-  lines.push(`<b>ðŸ’¡ When to Use:</b>`);
+  lines.push(`<b>💡 When to Use:</b>`);
   lines.push(lock.whenToUse);
   lines.push("");
   lines.push(`<b>âš ï¸ Limitations:</b>`);
   lines.push(lock.limitations);
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("â—€ï¸ Back to Locks", `fw_help_locks:${chatId}:1`)],
-    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("🔒 Locks", `fw_help_locks:${chatId}:1`)],
+    [Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -3193,7 +3193,7 @@ function buildHelpPenaltiesKeyboard(chatId: string): InlineKeyboard {
     rows.push(row);
   }
 
-  rows.push([Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)]);
+  rows.push([Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)]);
   return Markup.inlineKeyboard(rows);
 }
 
@@ -3235,8 +3235,8 @@ async function showHelpPenaltyDetail(ctx: Context, chatId: string, penaltyId: st
   lines.push(penalty.notes);
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("â—€ï¸ Back to Penalties", `fw_help_penalties:${chatId}`)],
-    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("◀️ Back to Penalties", `fw_help_penalties:${chatId}`)],
+    [Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -3298,7 +3298,7 @@ async function showHelpTabchi(ctx: Context, chatId: string): Promise<void> {
   lines.push("<code>!tabchiinfo</code> - Check tabchi info for replied user");
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -3358,7 +3358,7 @@ async function showHelpUserPanel(ctx: Context, chatId: string): Promise<void> {
   lines.push("My Groups â†’ Group Manage â†’ Members â†’ Select User");
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -3382,7 +3382,7 @@ function buildHelpCleanupKeyboard(chatId: string): InlineKeyboard {
     rows.push(row);
   }
 
-  rows.push([Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)]);
+  rows.push([Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)]);
   return Markup.inlineKeyboard(rows);
 }
 
@@ -3423,8 +3423,8 @@ async function showHelpCleanupDetail(ctx: Context, chatId: string, itemId: strin
   }
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("â—€ï¸ Back to Cleanup", `fw_help_cleanup:${chatId}`)],
-    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("◀️ Back to Cleanup", `fw_help_cleanup:${chatId}`)],
+    [Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -3488,7 +3488,7 @@ async function showHelpWelcome(ctx: Context, chatId: string): Promise<void> {
   lines.push("<b>Note:</b> Commands also work with <code>.</code> prefix (e.g., <code>.welcome on</code>)");
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -3507,7 +3507,7 @@ function buildHelpWordFilterKeyboard(chatId: string): InlineKeyboard {
     rows.push([Markup.button.callback(label, `fw_help_wordfilter_item:${chatId}:${item.id}`)]);
   }
 
-  rows.push([Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)]);
+  rows.push([Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)]);
   return Markup.inlineKeyboard(rows);
 }
 
@@ -3564,8 +3564,8 @@ async function showHelpWordFilterDetail(ctx: Context, chatId: string, itemId: st
   }
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("â—€ï¸ Back to Word Filter", `fw_help_wordfilter:${chatId}`)],
-    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("◀️ Back to Word Filter", `fw_help_wordfilter:${chatId}`)],
+    [Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -3589,7 +3589,7 @@ function buildHelpStatsKeyboard(chatId: string): InlineKeyboard {
     rows.push(row);
   }
 
-  rows.push([Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)]);
+  rows.push([Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)]);
   return Markup.inlineKeyboard(rows);
 }
 
@@ -3654,8 +3654,8 @@ async function showHelpStatsDetail(ctx: Context, chatId: string, itemId: string)
   }
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("â—€ï¸ Back to Stats", `fw_help_stats:${chatId}`)],
-    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("◀️ Back to Stats", `fw_help_stats:${chatId}`)],
+    [Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -3679,7 +3679,7 @@ function buildHelpSettingsKeyboard(chatId: string): InlineKeyboard {
     rows.push(row);
   }
 
-  rows.push([Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)]);
+  rows.push([Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)]);
   return Markup.inlineKeyboard(rows);
 }
 
@@ -3718,8 +3718,8 @@ async function showHelpSettingDetail(ctx: Context, chatId: string, settingId: st
   }
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("â—€ï¸ Back to Settings", `fw_help_settings:${chatId}`)],
-    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("◀️ Back to Settings", `fw_help_settings:${chatId}`)],
+    [Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -3743,7 +3743,7 @@ function buildHelpPromoteKeyboard(chatId: string): InlineKeyboard {
     rows.push(row);
   }
 
-  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_help:${chatId}`)]);
+  rows.push([Markup.button.callback("◀️ Back", `fw_inline_help:${chatId}`)]);
   return Markup.inlineKeyboard(rows);
 }
 
@@ -3786,8 +3786,8 @@ async function showHelpRankDetail(ctx: Context, chatId: string, rankId: string):
   lines.push(`ðŸ’¡ <b>Note:</b> ${rank.notes}`);
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("â—€ï¸ Back to Ranks", `fw_help_promote:${chatId}`)],
-    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("◀️ Back to Ranks", `fw_help_promote:${chatId}`)],
+    [Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -3820,7 +3820,7 @@ function buildInlineLocksKeyboard(chatId: string, page: number, settings: GroupB
   // Navigation row
   const navRow: any[] = [];
   if (currentPage > 1) {
-    navRow.push(Markup.button.callback("â—€ï¸ Previous", `fw_inline_locks:${chatId}:${currentPage - 1}`));
+    navRow.push(Markup.button.callback("◀️ Previous", `fw_inline_locks:${chatId}:${currentPage - 1}`));
   }
   if (currentPage < totalPages) {
     navRow.push(Markup.button.callback("â–¶ï¸ Next Page", `fw_inline_locks:${chatId}:${currentPage + 1}`));
@@ -3831,7 +3831,7 @@ function buildInlineLocksKeyboard(chatId: string, page: number, settings: GroupB
   }
 
   // Back button
-  rows.push([Markup.button.callback("â—€ï¸ Back to Panel", `fw_inline_menu:${chatId}`)]);
+  rows.push([Markup.button.callback("◀️ Back to Panel", `fw_inline_menu:${chatId}`)]);
 
   return Markup.inlineKeyboard(rows);
 }
@@ -3844,7 +3844,7 @@ async function showInlineLocksPage(ctx: Context, chatId: string, page: number): 
     await replyOrEditRoot(
       ctx,
       "Unable to load lock settings for this group right now.",
-      Markup.inlineKeyboard([[Markup.button.callback("â—€ï¸ Back to Panel", `fw_inline_menu:${chatId}`)]]),
+      Markup.inlineKeyboard([[Markup.button.callback("◀️ Back to Panel", `fw_inline_menu:${chatId}`)]]),
     );
     return;
   }
@@ -3859,7 +3859,7 @@ async function showInlineLocksPage(ctx: Context, chatId: string, page: number): 
   const pageTitles = [
     "Links & Content",
     "Media & Files",
-    "Bots & Advanced"
+    "⚙️ Advanced"
   ];
   const pageTitle = pageTitles[currentPage - 1] || "Locks";
 
@@ -3886,7 +3886,7 @@ function buildInlineListsKeyboard(chatId: string): InlineKeyboard {
     rows.push(row);
   }
 
-  rows.push([Markup.button.callback("â—€ï¸ Back to Panel", `fw_inline_menu:${chatId}`)]);
+  rows.push([Markup.button.callback("◀️ Back to Panel", `fw_inline_menu:${chatId}`)]);
   return Markup.inlineKeyboard(rows);
 }
 
@@ -4224,8 +4224,8 @@ async function showInlineListDetail(ctx: Context, chatId: string, listId: string
   if (cfg.supportsAdd) {
     rows.push([Markup.button.callback("âž• Add to List", `fw_inline_add:${chatId}:${cfg.id}`)]);
   }
-  rows.push([Markup.button.callback("â—€ï¸ Back to Lists", `fw_inline_lists:${chatId}`)]);
-  rows.push([Markup.button.callback("â—€ï¸ Back to Panel", `fw_inline_menu:${chatId}`)]);
+  rows.push([Markup.button.callback("📋 Lists", `fw_inline_lists:${chatId}`)]);
+  rows.push([Markup.button.callback("◀️ Back to Panel", `fw_inline_menu:${chatId}`)]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), Markup.inlineKeyboard(rows));
 }
@@ -4836,7 +4836,7 @@ ${!isPremium ? `\nâ­ Features marked with â­ require Premium` : ""}
   }
 
   // Back button
-  rows.push([Markup.button.callback("â—€ï¸ Back to Panel", `fw_inline_menu:${chatId}`)]);
+  rows.push([Markup.button.callback("◀️ Back to Panel", `fw_inline_menu:${chatId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
@@ -5100,7 +5100,7 @@ async function showTempMediaSettings(ctx: Context, chatId: string): Promise<void
 
     const keyboard = Markup.inlineKeyboard([
       [Markup.button.callback("Temp Media âŒ", `fw_adv_tm_master:${chatId}:on`)],
-      [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
+      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
     ]);
 
     await replyOrEditRoot(ctx, message, keyboard);
@@ -5147,7 +5147,7 @@ async function showTempMediaSettings(ctx: Context, chatId: string): Promise<void
   rows.push([Markup.button.callback(`User Type: ${userTypeLabel}`, `fw_adv_tm_usertype:${chatId}`)]);
 
   // Back button
-  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
+  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
@@ -5271,7 +5271,7 @@ Bots usually cannot answer it accurately.
       `${isIncoming ? "âœ… " : ""}Verify Incoming Users`,
       `fw_adv_verification_mode:${chatId}:incoming`
     )],
-    [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
+    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
   ]);
 
   await replyOrEditRoot(ctx, message, keyboard);
@@ -5323,7 +5323,7 @@ bot.action(/^fw_adv_verification_mode:(-?\d+):(all|incoming|disabled)$/, async (
       await ctx.editMessageText(infoMessage, {
         parse_mode: "HTML",
         reply_markup: Markup.inlineKeyboard([
-          [Markup.button.callback("â—€ï¸ Back to Verification", `fw_adv_verification:${chatId}`)]
+          [Markup.button.callback("◀️ Back to Verification", `fw_adv_verification:${chatId}`)]
         ]).reply_markup
       });
       return;
@@ -5379,7 +5379,7 @@ async function showAntiBetrayalSettings(ctx: Context, chatId: string): Promise<v
 
     const keyboard = Markup.inlineKeyboard([
       [Markup.button.callback("Anti-Betrayal Lock âŒ", `fw_adv_ab_master:${chatId}:on`)],
-      [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
+      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
     ]);
 
     await replyOrEditRoot(ctx, message, keyboard);
@@ -5429,7 +5429,7 @@ async function showAntiBetrayalSettings(ctx: Context, chatId: string): Promise<v
   ]);
 
   // Back button
-  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
+  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
@@ -5673,8 +5673,8 @@ async function showMandatoryAddSettings(ctx: Context, chatId: string): Promise<v
 <i>Upgrade to Premium to enable this feature.</i>`;
 
     const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback("â­ Upgrade to Premium", `fw_inline_menu:${chatId}`)],
-      [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
+      [Markup.button.callback("⭐️ Upgrade to Premium", `fw_inline_menu:${chatId}`)],
+      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
     ]);
 
     await replyOrEditRoot(ctx, message, keyboard);
@@ -5712,7 +5712,7 @@ async function showMandatoryAddSettings(ctx: Context, chatId: string): Promise<v
 
     const keyboard = Markup.inlineKeyboard([
       [Markup.button.callback("Mandatory Add Lock âŒ", `fw_adv_ma_master:${chatId}:on`)],
-      [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
+      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
     ]);
 
     await replyOrEditRoot(ctx, message, keyboard);
@@ -5759,7 +5759,7 @@ async function showMandatoryAddSettings(ctx: Context, chatId: string): Promise<v
   rows.push([Markup.button.callback(`â€¢ Mandatory Add Message: ${messageTextLabel}`, `fw_adv_ma_text:${chatId}`)]);
 
   // Back button
-  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
+  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
@@ -5999,7 +5999,7 @@ async function showStrictLockSettings(ctx: Context, chatId: string): Promise<voi
 
     const keyboard = Markup.inlineKeyboard([
       [Markup.button.callback("Repeated Message Lock âŒ", `fw_adv_sl_master:${chatId}:on`)],
-      [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
+      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
     ]);
 
     await replyOrEditRoot(ctx, message, keyboard);
@@ -6044,7 +6044,7 @@ async function showStrictLockSettings(ctx: Context, chatId: string): Promise<voi
   ]);
 
   // Back button
-  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
+  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
@@ -6193,7 +6193,7 @@ To use it, you need to get Premium for this group.
 
     const keyboard = Markup.inlineKeyboard([
       [Markup.button.callback("â­ Get Premium", `fw_premium:${chatId}`)],
-      [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
+      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
     ]);
 
     await replyOrEditRoot(ctx, message, keyboard);
@@ -6232,7 +6232,7 @@ To use it, you need to get Premium for this group.
 
     const keyboard = Markup.inlineKeyboard([
       [Markup.button.callback("Mandatory Membership âŒ", `fw_adv_mj_master:${chatId}:on`)],
-      [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
+      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
     ]);
 
     await replyOrEditRoot(ctx, message, keyboard);
@@ -6281,7 +6281,7 @@ To use it, you need to get Premium for this group.
   rows.push([Markup.button.callback(`â€¢ Membership Message Text: ${messageLabel}`, `fw_adv_mj_message:${chatId}`)]);
 
   // Back button
-  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
+  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
@@ -6475,7 +6475,7 @@ async function showWelcomeSettings(ctx: Context, chatId: string): Promise<void> 
 
     const keyboard = Markup.inlineKeyboard([
       [Markup.button.callback("â€¢ Welcome: âŒ", `fw_adv_welcome_toggle:${chatId}:on`)],
-      [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
+      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
     ]);
 
     await replyOrEditRoot(ctx, message, keyboard);
@@ -6530,7 +6530,7 @@ ${displayedPreview}`;
   rows.push([Markup.button.callback(`â€¢ Auto-Delete Welcome Message: ${autoDeleteLabel}`, `fw_adv_welcome_autodelete:${chatId}`)]);
 
   // Back button
-  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
+  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
@@ -6744,7 +6744,7 @@ async function showWarningSettings(ctx: Context, chatId: string): Promise<void> 
 
     const keyboard = Markup.inlineKeyboard([
       [Markup.button.callback("âœ… Enable Warnings", `fw_adv_warning_toggle:${chatId}:on`)],
-      [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
+      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
     ]);
 
     await replyOrEditRoot(ctx, message, keyboard);
@@ -6768,7 +6768,7 @@ async function showWarningSettings(ctx: Context, chatId: string): Promise<void> 
     [
       Markup.button.callback(`Penalty: ${penalty}`, `fw_adv_warning_penalty:${chatId}`),
     ],
-    [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
+    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
   ]);
 
   await replyOrEditRoot(ctx, message, keyboard);
@@ -6891,7 +6891,7 @@ async function showFloodSettings(ctx: Context, chatId: string): Promise<void> {
 
     const keyboard = Markup.inlineKeyboard([
       [Markup.button.callback("âœ… Enable Flood Protection", `fw_adv_flood_toggle:${chatId}:on`)],
-      [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
+      [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
     ]);
 
     await replyOrEditRoot(ctx, message, keyboard);
@@ -6907,7 +6907,7 @@ async function showFloodSettings(ctx: Context, chatId: string): Promise<void> {
 
   const keyboard = Markup.inlineKeyboard([
     [Markup.button.callback("ðŸ’¬ Flood Protection âœ…", `fw_adv_flood_toggle:${chatId}:off`)],
-    [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
+    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
   ]);
 
   await replyOrEditRoot(ctx, message, keyboard);
@@ -6953,7 +6953,7 @@ View moderation statistics and activity logs for your group.
 
   const keyboard = Markup.inlineKeyboard([
     [Markup.button.webApp("ðŸ“Š View Full Reports", miniAppUrl)],
-    [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
+    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
   ]);
 
   await replyOrEditRoot(ctx, message, keyboard);
@@ -6979,7 +6979,7 @@ Configure message limits and word count restrictions.
 
   const keyboard = Markup.inlineKeyboard([
     [Markup.button.webApp("âš™ï¸ Configure Limits", miniAppUrl)],
-    [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
+    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
   ]);
 
   await replyOrEditRoot(ctx, message, keyboard);
@@ -7006,7 +7006,7 @@ Configure what members can do in your group.
 
   const keyboard = Markup.inlineKeyboard([
     [Markup.button.webApp("âš™ï¸ Configure Permissions", miniAppUrl)],
-    [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
+    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
   ]);
 
   await replyOrEditRoot(ctx, message, keyboard);
@@ -7032,7 +7032,7 @@ Clean up your group by removing inactive or unwanted members.
 
   const keyboard = Markup.inlineKeyboard([
     [Markup.button.callback("ðŸ§¹ Remove Deleted Accounts", `fw_adv_cleanup_action:${chatId}:deleted`)],
-    [Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]
+    [Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]
   ]);
 
   await replyOrEditRoot(ctx, message, keyboard);
@@ -7095,7 +7095,7 @@ Select a timezone below:`;
       `fw_adv_tz_set:${chatId}:${tz.name}`
     )]);
   }
-  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
+  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
@@ -7151,7 +7151,7 @@ Select a timezone below:`;
       `fw_adv_tz_set:${chatId}:${tz.name}`
     )]);
   }
-  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
+  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
@@ -7256,7 +7256,7 @@ ${prompt}
 <i>Type /cancel to cancel this operation.</i>`;
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("â—€ï¸ Cancel", `fw_inline_list:${chatId}:${listId}`)]
+    [Markup.button.callback("◀️ Cancel", `fw_inline_list:${chatId}:${listId}`)]
   ]);
 
   await replyOrEditRoot(ctx, message, keyboard);
@@ -7469,7 +7469,7 @@ bot.action(/^fw_help_section:(-?\d+):([a-z_]+)$/, async (ctx) => {
   if (!section.implemented) {
     const message = `${section.icon} <b>${section.title}</b>\n\nðŸš§ This help section is coming soon!\n\nWe're working on documenting this feature.`;
     const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
+      [Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)],
     ]);
     await replyOrEditRoot(ctx, message, keyboard);
     return;
@@ -7657,7 +7657,7 @@ function buildHelpEntertainmentKeyboard(chatId: string): InlineKeyboard {
     rows.push(row);
   }
 
-  rows.push([Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)]);
+  rows.push([Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)]);
   return Markup.inlineKeyboard(rows);
 }
 
@@ -7723,8 +7723,8 @@ async function showHelpEntertainmentDetail(ctx: Context, chatId: string, itemId:
   }
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("â—€ï¸ Back to Entertainment", `fw_help_entertainment:${chatId}`)],
-    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("◀️ Back to Entertainment", `fw_help_entertainment:${chatId}`)],
+    [Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -7763,7 +7763,7 @@ function buildHelpMandatoryAddKeyboard(chatId: string): InlineKeyboard {
     const label = `${item.icon} ${item.name}`;
     rows.push([Markup.button.callback(label, `fw_help_mandatory_add_item:${chatId}:${item.id}`)]);
   }
-  rows.push([Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)]);
+  rows.push([Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)]);
   return Markup.inlineKeyboard(rows);
 }
 
@@ -7817,8 +7817,8 @@ async function showHelpMandatoryAddDetail(ctx: Context, chatId: string, itemId: 
   }
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("â—€ï¸ Back to Mandatory Add", `fw_help_mandatory_add:${chatId}`)],
-    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("◀️ Back to Mandatory Add", `fw_help_mandatory_add:${chatId}`)],
+    [Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -7834,7 +7834,7 @@ function buildHelpMandatoryMembershipKeyboard(chatId: string): InlineKeyboard {
     const label = `${item.icon} ${item.name}`;
     rows.push([Markup.button.callback(label, `fw_help_mandatory_membership_item:${chatId}:${item.id}`)]);
   }
-  rows.push([Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)]);
+  rows.push([Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)]);
   return Markup.inlineKeyboard(rows);
 }
 
@@ -7888,8 +7888,8 @@ async function showHelpMandatoryMembershipDetail(ctx: Context, chatId: string, i
   }
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("â—€ï¸ Back to Mandatory Membership", `fw_help_mandatory_membership:${chatId}`)],
-    [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)],
+    [Markup.button.callback("◀️ Back to Mandatory Membership", `fw_help_mandatory_membership:${chatId}`)],
+    [Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)],
   ]);
 
   await replyOrEditRoot(ctx, lines.join("\n"), keyboard);
@@ -7962,7 +7962,7 @@ bot.action(/^fw_help_section:(.+):([a-z_]+)$/, async (ctx) => {
       break;
     case "user_panel":
       await ctx.reply("To access the User Panel, use the command `!UserPanel` or click the button below.", Markup.inlineKeyboard([
-        [Markup.button.callback("â—€ï¸ Back to Help", `fw_inline_help:${chatId}`)]
+        [Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)]
       ]));
       break;
     case "user_penalties":
@@ -8146,7 +8146,7 @@ async function showUserPanelLocks(ctx: Context, chatId: string, targetUserId: st
   }
 
   // Back button
-  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_userpanel:${chatId}:${targetUserId}`)]);
+  rows.push([Markup.button.callback("◀️ Back", `fw_userpanel:${chatId}:${targetUserId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
@@ -8177,7 +8177,7 @@ In this case, stickers are locked for this user even if stickers are open in the
 In special cases, with this feature, the group owner can restrict sending various content types even for high-ranking users and admins!!!`;
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("â—€ï¸ Back", `fw_up_locks:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("◀️ Back", `fw_up_locks:${chatId}:${targetUserId}`)],
   ]);
 
   await replyOrEditRoot(ctx, message, keyboard);
@@ -8202,7 +8202,7 @@ async function showUserPanelPunishments(ctx: Context, chatId: string, targetUser
   const keyboard = Markup.inlineKeyboard([
     [Markup.button.callback("â€¢ Ban", `fw_up_ban:${chatId}:${targetUserId}`)],
     [Markup.button.callback("â€¢ Mute", `fw_up_mute:${chatId}:${targetUserId}`)],
-    [Markup.button.callback("â—€ï¸ Back", `fw_userpanel:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("◀️ Back", `fw_userpanel:${chatId}:${targetUserId}`)],
   ]);
 
   await replyOrEditRoot(ctx, message, keyboard);
@@ -8227,7 +8227,7 @@ async function showUserPanelPromote(ctx: Context, chatId: string, targetUserId: 
   const keyboard = Markup.inlineKeyboard([
     [Markup.button.callback("â€¢ Promote to VIP Member", `fw_up_vip:${chatId}:${targetUserId}`)],
     [Markup.button.callback("â€¢ Promote to Bot Admin", `fw_up_admin:${chatId}:${targetUserId}`)],
-    [Markup.button.callback("â—€ï¸ Back", `fw_userpanel:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("◀️ Back", `fw_userpanel:${chatId}:${targetUserId}`)],
   ]);
 
   await replyOrEditRoot(ctx, message, keyboard);
@@ -8472,7 +8472,7 @@ bot.action(actionId("channel"), async (ctx) => {
       : content.messages.channel;
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("\u{1F519} Back", actionId("managementBack"))]
+    [Markup.button.callback("◀️ Back", actionId("managementBack"))]
   ]);
   await replyOrEditRoot(ctx, message, keyboard);
 });
@@ -8483,7 +8483,7 @@ bot.action(actionId("commands"), async (ctx) => {
 
   // Always show the full command reference as 5 separate messages
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("\u{1F519} Back", actionId("managementBack"))]
+    [Markup.button.callback("◀️ Back", actionId("managementBack"))]
   ]);
   await replyOrEditRoot(ctx, EXTENDED_COMMANDS[0], keyboard);
 
@@ -8500,7 +8500,7 @@ bot.action(actionId("info"), async (ctx) => {
   const message = custom && custom.length > 0 ? custom : content.messages.info;
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("\u{1F519} Back", actionId("managementBack"))]
+    [Markup.button.callback("◀️ Back", actionId("managementBack"))]
   ]);
 
   await ctx.reply(message, { parse_mode: "HTML", ...keyboard });
@@ -9698,7 +9698,7 @@ bot.on("text", async (ctx, next) => {
   if (text === "/cancel") {
     clearInlineSession(userId);
     await ctx.reply("Operation cancelled.", Markup.inlineKeyboard([
-      [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${session.chatId}:${session.listId}`)]
+      [Markup.button.callback("◀️ Back to List", `fw_inline_list:${session.chatId}:${session.listId}`)]
     ]));
     return;
   }
@@ -9739,11 +9739,11 @@ bot.on("text", async (ctx, next) => {
         if (addedCount > 0) {
           await saveBanSettingsByChatId(chatId, settings);
           await ctx.reply(`âœ… Successfully added ${addedCount} item(s) to ${listId}.`, Markup.inlineKeyboard([
-            [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
           ]));
         } else {
           await ctx.reply("âš ï¸ All items were already in the list.", Markup.inlineKeyboard([
-            [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
           ]));
         }
       } else if (listId === "vip") {
@@ -9762,13 +9762,13 @@ bot.on("text", async (ctx, next) => {
         // Check if already exists
         if (vipMembers.includes(trimmedInput)) {
           await ctx.reply("âš ï¸ This user is already a VIP member.", Markup.inlineKeyboard([
-            [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
           ]));
         } else {
           vipMembers.push(trimmedInput);
           await saveBanSettingsByChatId(chatId, settings);
           await ctx.reply(`âœ… Successfully added VIP member: ${trimmedInput}\n\nðŸ’¡ VIP members bypass all content restrictions.`, Markup.inlineKeyboard([
-            [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
           ]));
         }
       } else if (listId === "exempt") {
@@ -9787,13 +9787,13 @@ bot.on("text", async (ctx, next) => {
         // Check if already exists
         if (exemptUsers.includes(trimmedInput)) {
           await ctx.reply("âš ï¸ This user is already exempt.", Markup.inlineKeyboard([
-            [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
           ]));
         } else {
           exemptUsers.push(trimmedInput);
           await saveBanSettingsByChatId(chatId, settings);
           await ctx.reply(`âœ… Successfully added exempt user: ${trimmedInput}\n\nðŸ’¡ Exempt users bypass content restrictions.`, Markup.inlineKeyboard([
-            [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
           ]));
         }
       } else if (listId === "forward_whitelist") {
@@ -9817,20 +9817,20 @@ bot.on("text", async (ctx, next) => {
         // Check if already exists
         if (forwardWhitelist.includes(trimmedInput)) {
           await ctx.reply("âš ï¸ This channel is already in the forward whitelist.", Markup.inlineKeyboard([
-            [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
           ]));
         } else {
           forwardWhitelist.push(trimmedInput);
           await saveBanSettingsByChatId(chatId, settings);
           await ctx.reply(`âœ… Successfully added to forward whitelist: ${trimmedInput}\n\nðŸ’¡ Messages forwarded from this channel won't be blocked.`, Markup.inlineKeyboard([
-            [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
           ]));
         }
       } else if (listId === "banned" || listId === "muted") {
         const targetUserId = parseInt(text.trim(), 10);
         if (isNaN(targetUserId)) {
           await ctx.reply("âš ï¸ Invalid User ID. Please send a numeric User ID.", Markup.inlineKeyboard([
-            [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
           ]));
         } else {
           try {
@@ -9838,7 +9838,7 @@ bot.on("text", async (ctx, next) => {
             if (listId === "banned") {
               await ctx.telegram.banChatMember(numericChatId, targetUserId);
               await ctx.reply(`âœ… Successfully banned user ${targetUserId}.`, Markup.inlineKeyboard([
-                [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+                [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
               ]));
             } else {
               // Mute (restrict permissions)
@@ -9861,19 +9861,19 @@ bot.on("text", async (ctx, next) => {
                 }
               });
               await ctx.reply(`âœ… Successfully muted user ${targetUserId}.`, Markup.inlineKeyboard([
-                [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+                [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
               ]));
             }
           } catch (error) {
             logger.error(`Failed to ${listId} user via inline panel`, { chatId, targetUserId, error });
             await ctx.reply(`âŒ Failed to ${listId} user. Ensure the bot is an admin and the user ID is valid.\nError: ${(error as Error).message}`, Markup.inlineKeyboard([
-              [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+              [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
             ]));
           }
         }
       } else {
         await ctx.reply("This list does not support adding items yet.", Markup.inlineKeyboard([
-          [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:${listId}`)]
+          [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:${listId}`)]
         ]));
       }
     } catch (error) {
@@ -9908,7 +9908,7 @@ bot.on("text", async (ctx, next) => {
       `Now send the response message that will be sent when someone types "${trigger}".`,
       {
         parse_mode: "Markdown", reply_markup: Markup.inlineKeyboard([
-          [Markup.button.callback("â—€ï¸ Cancel", `fw_inline_list:${chatId}:auto_replies`)]
+          [Markup.button.callback("◀️ Cancel", `fw_inline_list:${chatId}:auto_replies`)]
         ]).reply_markup
       }
     );
@@ -9924,7 +9924,7 @@ bot.on("text", async (ctx, next) => {
     if (!trigger) {
       clearInlineSession(userId);
       await ctx.reply("âš ï¸ Session expired. Please try again.", Markup.inlineKeyboard([
-        [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:auto_replies`)]
+        [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:auto_replies`)]
       ]));
       return;
     }
@@ -9962,14 +9962,14 @@ bot.on("text", async (ctx, next) => {
         `ðŸ’¬ Response: ${response.substring(0, 100)}${response.length > 100 ? '...' : ''}`,
         {
           parse_mode: "Markdown", reply_markup: Markup.inlineKeyboard([
-            [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:auto_replies`)]
+            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:auto_replies`)]
           ]).reply_markup
         }
       );
     } catch (error) {
       logger.error("Failed to save auto-reply", { chatId, trigger, error });
       await ctx.reply("âŒ Failed to save auto-reply. Please try again.", Markup.inlineKeyboard([
-        [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:auto_replies`)]
+        [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:auto_replies`)]
       ]));
     }
 
@@ -10004,7 +10004,7 @@ bot.on("text", async (ctx, next) => {
       `Example: \`09:00\` or \`Friday 18:30\``,
       {
         parse_mode: "Markdown", reply_markup: Markup.inlineKeyboard([
-          [Markup.button.callback("â—€ï¸ Cancel", `fw_inline_list:${chatId}:scheduled_posts`)]
+          [Markup.button.callback("◀️ Cancel", `fw_inline_list:${chatId}:scheduled_posts`)]
         ]).reply_markup
       }
     );
@@ -10020,7 +10020,7 @@ bot.on("text", async (ctx, next) => {
     if (!scheduledMessage) {
       clearInlineSession(userId);
       await ctx.reply("âš ï¸ Session expired. Please try again.", Markup.inlineKeyboard([
-        [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:scheduled_posts`)]
+        [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:scheduled_posts`)]
       ]));
       return;
     }
@@ -10106,14 +10106,14 @@ bot.on("text", async (ctx, next) => {
         `ðŸ’¬ Message: ${scheduledMessage.substring(0, 100)}${scheduledMessage.length > 100 ? '...' : ''}`,
         {
           parse_mode: "Markdown", reply_markup: Markup.inlineKeyboard([
-            [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:scheduled_posts`)]
+            [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:scheduled_posts`)]
           ]).reply_markup
         }
       );
     } catch (error) {
       logger.error("Failed to save scheduled post", { chatId, scheduleInput, error });
       await ctx.reply("âŒ Failed to save scheduled post. Please try again.", Markup.inlineKeyboard([
-        [Markup.button.callback("â—€ï¸ Back to List", `fw_inline_list:${chatId}:scheduled_posts`)]
+        [Markup.button.callback("◀️ Back to List", `fw_inline_list:${chatId}:scheduled_posts`)]
       ]));
     }
 
@@ -10151,7 +10151,7 @@ bot.on("text", async (ctx) => {
         await saveGeneralSettingsByChatId(session.chatId, settings);
         await ctx.reply("âœ… Welcome message reset to default!", {
           reply_markup: Markup.inlineKeyboard([
-            [Markup.button.callback("â—€ï¸ Back to Welcome Settings", `fw_adv_welcome:${session.chatId}`)]
+            [Markup.button.callback("◀️ Back to Welcome Settings", `fw_adv_welcome:${session.chatId}`)]
           ]).reply_markup
         });
       } else {
@@ -10159,7 +10159,7 @@ bot.on("text", async (ctx) => {
         await saveGeneralSettingsByChatId(session.chatId, settings);
         await ctx.reply("âœ… Welcome message updated successfully!", {
           reply_markup: Markup.inlineKeyboard([
-            [Markup.button.callback("â—€ï¸ Back to Welcome Settings", `fw_adv_welcome:${session.chatId}`)]
+            [Markup.button.callback("◀️ Back to Welcome Settings", `fw_adv_welcome:${session.chatId}`)]
           ]).reply_markup
         });
       }
@@ -10189,7 +10189,7 @@ bot.on("text", async (ctx) => {
         await saveBanSettingsByChatId(session.chatId, settings);
         await ctx.reply("âœ… Membership message reset to default!", {
           reply_markup: Markup.inlineKeyboard([
-            [Markup.button.callback("â—€ï¸ Back to Mandatory Join Settings", `fw_adv_mandatory_join:${session.chatId}`)]
+            [Markup.button.callback("◀️ Back to Mandatory Join Settings", `fw_adv_mandatory_join:${session.chatId}`)]
           ]).reply_markup
         });
       } else {
@@ -10197,7 +10197,7 @@ bot.on("text", async (ctx) => {
         await saveBanSettingsByChatId(session.chatId, settings);
         await ctx.reply("âœ… Membership message updated successfully!", {
           reply_markup: Markup.inlineKeyboard([
-            [Markup.button.callback("â—€ï¸ Back to Mandatory Join Settings", `fw_adv_mandatory_join:${session.chatId}`)]
+            [Markup.button.callback("◀️ Back to Mandatory Join Settings", `fw_adv_mandatory_join:${session.chatId}`)]
           ]).reply_markup
         });
       }
@@ -11056,7 +11056,7 @@ async function showAntiTabchiSettings(ctx: Context, chatId: string): Promise<voi
   ]);
 
   // Back button
-  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
+  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
@@ -11225,7 +11225,7 @@ async function showAutoLockSettings(ctx: Context, chatId: string): Promise<void>
     ]);
   }
 
-  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
+  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
@@ -11425,7 +11425,7 @@ async function showLockLimitSettings(ctx: Context, chatId: string): Promise<void
     ]);
   }
 
-  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
+  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
@@ -11588,7 +11588,7 @@ async function showPermissionsSettings(ctx: Context, chatId: string): Promise<vo
     rows.push([Markup.button.callback(buttonLabel, `fw_adv_perm_toggle:${chatId}:${item.key}`)]);
   }
 
-  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
+  rows.push([Markup.button.callback("◀️ Back", `fw_inline_advanced:${chatId}`)]);
 
   const keyboard = Markup.inlineKeyboard(rows);
   await replyOrEditRoot(ctx, message, keyboard);
