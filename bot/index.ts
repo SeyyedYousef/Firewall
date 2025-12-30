@@ -432,19 +432,19 @@ type HelpSectionConfig = {
 };
 
 const HELP_SECTIONS: HelpSectionConfig[] = [
-  { id: "lock_management", icon: "ðŸ”’", title: "Lock Management", implemented: true },
-  { id: "settings", icon: "âš™ï¸", title: "Settings", implemented: true },
-  { id: "tabchi", icon: "ðŸš«", title: "Tabchi (Spam Bots)", implemented: true },
-  { id: "user_panel", icon: "ðŸ‘¤", title: "User Panel", implemented: true },
-  { id: "user_penalties", icon: "âš ï¸", title: "User Penalties", implemented: true },
-  { id: "promote_demote", icon: "ðŸ‘‘", title: "Promote & Demote", implemented: true },
-  { id: "word_filter", icon: "ðŸš·", title: "Word Filter", implemented: true },
-  { id: "cleanup", icon: "ðŸ§¹", title: "Cleanup", implemented: true },
-  { id: "mandatory_add", icon: "âž•", title: "Mandatory Add", implemented: true },
-  { id: "welcome", icon: "ðŸ‘‹", title: "Welcome", implemented: true },
-  { id: "mandatory_membership", icon: "ðŸ“Œ", title: "Mandatory Membership", implemented: true },
-  { id: "activity_stats", icon: "ðŸ“Š", title: "Activity Statistics", implemented: true },
-  { id: "entertainment", icon: "ðŸŽ®", title: "Entertainment & Utilities", implemented: true },
+  { id: "lock_management", icon: "🔒", title: "Lock Management", implemented: true },
+  { id: "settings", icon: "⚙️", title: "Settings", implemented: true },
+  { id: "tabchi", icon: "🚫", title: "Tabchi (Spam Bots)", implemented: true },
+  { id: "user_panel", icon: "👤", title: "User Panel", implemented: true },
+  { id: "user_penalties", icon: "⚠️", title: "User Penalties", implemented: true },
+  { id: "promote_demote", icon: "👑", title: "Promote & Demote", implemented: true },
+  { id: "word_filter", icon: "🚷", title: "Word Filter", implemented: true },
+  { id: "cleanup", icon: "🧹", title: "Cleanup", implemented: true },
+  { id: "mandatory_add", icon: "➕", title: "Mandatory Add", implemented: true },
+  { id: "welcome", icon: "👋", title: "Welcome", implemented: true },
+  { id: "mandatory_membership", icon: "📌", title: "Mandatory Membership", implemented: true },
+  { id: "activity_stats", icon: "📊", title: "Activity Statistics", implemented: true },
+  { id: "entertainment", icon: "🎮", title: "Entertainment & Utilities", implemented: true },
 ];
 
 type LockHelpData = {
@@ -1946,17 +1946,29 @@ async function sendStartMenu(ctx: Context): Promise<void> {
   };
 
   const welcomeMessage = renderTemplate(content.messages.start, replacements);
-  await replyOrEditRoot(ctx, welcomeMessage, buildStartKeyboard());
+  const keyboard = buildStartKeyboard();
 
-  for (const rawMessage of settings.welcomeMessages) {
-    const formatted = renderTemplate(rawMessage, replacements).trim();
-    if (formatted.length > 0) {
-      // welcome message templates may include HTML tags; send as HTML
-      try {
-        await ctx.replyWithHTML(formatted);
-      } catch {
-        // fallback to plain reply if HTML fails
-        await ctx.reply(formatted);
+  // Hybrid UX approach:
+  // - For callback queries (Back button): edit existing message (no spam)
+  // - For /start command: delete old + send fresh message (user gets notification)
+  if (ctx.callbackQuery) {
+    await replyOrEditRoot(ctx, welcomeMessage, keyboard);
+  } else {
+    await sendFreshMessage(ctx, welcomeMessage, keyboard);
+  }
+
+  // Only send welcome messages for fresh /start commands, not for Back navigation
+  if (!ctx.callbackQuery) {
+    for (const rawMessage of settings.welcomeMessages) {
+      const formatted = renderTemplate(rawMessage, replacements).trim();
+      if (formatted.length > 0) {
+        // welcome message templates may include HTML tags; send as HTML
+        try {
+          await ctx.replyWithHTML(formatted);
+        } catch {
+          // fallback to plain reply if HTML fails
+          await ctx.reply(formatted);
+        }
       }
     }
   }
@@ -2260,6 +2272,48 @@ function resetOwnerSession() {
 }
 // Track last bot message per chat to edit instead of sending new ones
 const lastMessageByChat = new Map<number, number>();
+
+/**
+ * Delete the previous bot message in a chat (if exists).
+ * Used to provide fresh UX when user sends /start command.
+ */
+async function deletePreviousBotMessage(ctx: Context): Promise<void> {
+  const chatId = (ctx.chat as any)?.id as number | undefined;
+  if (!chatId) return;
+
+  const lastId = lastMessageByChat.get(chatId);
+  if (lastId) {
+    try {
+      await ctx.telegram.deleteMessage(chatId, lastId);
+      logger.debug("Deleted previous bot message", { chatId, messageId: lastId });
+    } catch (error) {
+      // Message already deleted or bot doesn't have permission - OK
+      logger.debug("Could not delete previous bot message", { chatId, messageId: lastId });
+    }
+    lastMessageByChat.delete(chatId);
+  }
+}
+
+/**
+ * Send a fresh message (delete previous + send new).
+ * Best UX for /start command - user gets notification and clean chat.
+ */
+async function sendFreshMessage(
+  ctx: Context,
+  text: string,
+  keyboard: ReturnType<typeof Markup.inlineKeyboard>,
+): Promise<void> {
+  const chatId = (ctx.chat as any)?.id as number | undefined;
+
+  // Delete previous bot message first
+  await deletePreviousBotMessage(ctx);
+
+  // Send fresh message
+  const sent = await ctx.replyWithHTML(text, keyboard as any);
+  if (chatId && (sent as any)?.message_id) {
+    lastMessageByChat.set(chatId, (sent as any).message_id as number);
+  }
+}
 
 async function replyOrEditRoot(
   ctx: Context,
@@ -11491,84 +11545,84 @@ bot.action(/^fw_adv_ll_report:(-?\d+):(up|down|upfast|downfast)$/, async (ctx) =
 // ========== PERMISSIONS HANDLERS ==========
 
 async function showPermissionsSettings(ctx: Context, chatId: string): Promise<void> {
-    let chat;
-    try {
-        chat = await ctx.telegram.getChat(chatId);
-    } catch (error) {
-        logger.error("Failed to get chat stats", { chatId, error });
-        await ctx.reply("Error getting chat info.");
-        return;
-    }
+  let chat;
+  try {
+    chat = await ctx.telegram.getChat(chatId);
+  } catch (error) {
+    logger.error("Failed to get chat stats", { chatId, error });
+    await ctx.reply("Error getting chat info.");
+    return;
+  }
 
-    const permissions = (chat as any).permissions ?? {};
+  const permissions = (chat as any).permissions ?? {};
 
-    // English Labels
-    const permissionMap = [
-        { key: "can_send_messages", label: "Send Messages" },
-        { key: "can_send_photos", label: "Send Photos" },
-        { key: "can_send_videos", label: "Send Videos" },
-        { key: "can_send_video_notes", label: "Send Video Notes" },
-        { key: "can_send_audios", label: "Send Music" },
-        { key: "can_send_voice_notes", label: "Send Voice Notes" },
-        { key: "can_send_documents", label: "Send Files" },
-        { key: "can_send_other_messages", label: "Send Stickers & GIFs" },
-        { key: "can_send_polls", label: "Send Polls" },
-        { key: "can_add_web_page_previews", label: "Embed Links" },
-        { key: "can_change_info", label: "Change Group Info" },
-        { key: "can_invite_users", label: "Invite Users" },
-        { key: "can_pin_messages", label: "Pin Messages" },
-    ];
+  // English Labels
+  const permissionMap = [
+    { key: "can_send_messages", label: "Send Messages" },
+    { key: "can_send_photos", label: "Send Photos" },
+    { key: "can_send_videos", label: "Send Videos" },
+    { key: "can_send_video_notes", label: "Send Video Notes" },
+    { key: "can_send_audios", label: "Send Music" },
+    { key: "can_send_voice_notes", label: "Send Voice Notes" },
+    { key: "can_send_documents", label: "Send Files" },
+    { key: "can_send_other_messages", label: "Send Stickers & GIFs" },
+    { key: "can_send_polls", label: "Send Polls" },
+    { key: "can_add_web_page_previews", label: "Embed Links" },
+    { key: "can_change_info", label: "Change Group Info" },
+    { key: "can_invite_users", label: "Invite Users" },
+    { key: "can_pin_messages", label: "Pin Messages" },
+  ];
 
-    const message = `âš™ï¸ <b>Advanced Group Permissions</b>\n\nConfigure what users can do in this group.`;
+  const message = `âš™ï¸ <b>Advanced Group Permissions</b>\n\nConfigure what users can do in this group.`;
 
-    const rows: any[] = [];
+  const rows: any[] = [];
 
-    for (const item of permissionMap) {
-        const isOpen = permissions[item.key] === true || permissions[item.key] === undefined;
+  for (const item of permissionMap) {
+    const isOpen = permissions[item.key] === true || permissions[item.key] === undefined;
 
-        const statusText = isOpen ? "Allowed" : "Restricted";
-        const statusIcon = isOpen ? "âœ…" : "âŒ";
+    const statusText = isOpen ? "Allowed" : "Restricted";
+    const statusIcon = isOpen ? "âœ…" : "âŒ";
 
-        const buttonLabel = `${item.label}: ${statusText} ${statusIcon}`;
+    const buttonLabel = `${item.label}: ${statusText} ${statusIcon}`;
 
-        rows.push([Markup.button.callback(buttonLabel, `fw_adv_perm_toggle:${chatId}:${item.key}`)]);
-    }
+    rows.push([Markup.button.callback(buttonLabel, `fw_adv_perm_toggle:${chatId}:${item.key}`)]);
+  }
 
-    rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
+  rows.push([Markup.button.callback("â—€ï¸ Back", `fw_inline_advanced:${chatId}`)]);
 
-    const keyboard = Markup.inlineKeyboard(rows);
-    await replyOrEditRoot(ctx, message, keyboard);
+  const keyboard = Markup.inlineKeyboard(rows);
+  await replyOrEditRoot(ctx, message, keyboard);
 }
 
 // Handler for Toggle
 bot.action(/^fw_adv_perm_toggle:(-?\d+):([a-z_]+)$/, async (ctx) => {
-    const data = (ctx.callbackQuery as any)?.data ?? "";
-    const match = data.match(/^fw_adv_perm_toggle:(-?\d+):([a-z_]+)$/);
-    const chatId = match?.[1];
-    const key = match?.[2];
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_adv_perm_toggle:(-?\d+):([a-z_]+)$/);
+  const chatId = match?.[1];
+  const key = match?.[2];
 
-    if (!chatId || !key) {
-        await ctx.answerCbQuery();
-        return;
-    }
+  if (!chatId || !key) {
+    await ctx.answerCbQuery();
+    return;
+  }
 
-    try {
-        const chat = await ctx.telegram.getChat(chatId);
-        const currentPermissions = (chat as any).permissions ?? {};
+  try {
+    const chat = await ctx.telegram.getChat(chatId);
+    const currentPermissions = (chat as any).permissions ?? {};
 
-        const isAllowed = currentPermissions[key] !== false;
-        const newValue = !isAllowed;
+    const isAllowed = currentPermissions[key] !== false;
+    const newValue = !isAllowed;
 
-        const newPermissions = { ...currentPermissions, [key]: newValue };
+    const newPermissions = { ...currentPermissions, [key]: newValue };
 
-        await ctx.telegram.setChatPermissions(chatId, newPermissions);
+    await ctx.telegram.setChatPermissions(chatId, newPermissions);
 
-        const statusStr = newValue ? "Allowed" : "Restricted";
-        await ctx.answerCbQuery(`${key.replace(/can_|send_/g, "")} ${statusStr}`);
-    } catch (error) {
-        logger.error("Failed to toggle permission", { chatId, key, error });
-        await ctx.answerCbQuery("Failed to change permission");
-    }
+    const statusStr = newValue ? "Allowed" : "Restricted";
+    await ctx.answerCbQuery(`${key.replace(/can_|send_/g, "")} ${statusStr}`);
+  } catch (error) {
+    logger.error("Failed to toggle permission", { chatId, key, error });
+    await ctx.answerCbQuery("Failed to change permission");
+  }
 
-    await showPermissionsSettings(ctx, chatId);
+  await showPermissionsSettings(ctx, chatId);
 });
