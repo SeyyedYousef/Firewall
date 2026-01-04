@@ -629,19 +629,13 @@ const SETTINGS_HELP_DATA: SettingsHelpData[] = [
     whatItDoes: "Set minimum and maximum character/word limits for messages. Messages outside these limits are automatically deleted.",
     commands: ["!MaxWords <count>", "!MinWords <count>"],
   },
-  {
-    id: "add_admin",
-    name: "Add Admin",
-    icon: "👑",
-    whatItDoes: "Add new bot admins to your group with special permissions. Manage or remove admins added by the bot.",
-    commands: ["!AddAdmin", "!RemAdmin", "!AdminList"],
-  },
+
   {
     id: "strict_mode",
     name: "Strict Mode",
     icon: "🔐",
     whatItDoes: "When enabled, rules apply to everyone including admins. When disabled, admins are exempt from most restrictions.",
-    commands: ["!Strict on", "!Strict off", "!AdminLock on (Alias)"],
+    commands: ["!AdminLock on", "!AdminLock off"],
   },
   {
     id: "auto_lock",
@@ -661,8 +655,8 @@ const SETTINGS_HELP_DATA: SettingsHelpData[] = [
     id: "flood_control",
     name: "Flood Control",
     icon: "🌊",
-    whatItDoes: "Prevent message flooding. Users sending too many messages in a short time are automatically muted. Use !MsgLimit to set per-window limits.",
-    commands: ["!Flood on", "!Flood off", "!SetFlood <count> <seconds>", "!MsgLimit <count>"],
+    whatItDoes: "Prevent message flooding. Users sending too many messages in a short time are automatically muted.",
+    commands: ["!MsgLimit <count>"],
   },
   {
     id: "warning_config",
@@ -4716,8 +4710,6 @@ const ADV_WELCOME_REGEX = /^fw_adv_welcome:(-?\d+)$/;
 const ADV_WARNING_REGEX = /^fw_adv_warning:(-?\d+)$/;
 const ADV_FLOOD_REGEX = /^fw_adv_flood:(-?\d+)$/;
 const ADV_MANDATORY_REGEX = /^fw_adv_mandatory:(-?\d+)$/;
-const ADV_CLEANUP_REGEX = /^fw_adv_cleanup:(-?\d+)$/;
-const ADV_REPORTS_REGEX = /^fw_adv_reports:(-?\d+)$/;
 
 // Advanced Settings Types
 type AdvancedFeature = {
@@ -4749,11 +4741,7 @@ const ADVANCED_FEATURES: AdvancedFeature[] = [
   { id: "lock_limit", title: "Lock Limit", icon: "📊", hasSubMenu: true },
   // Row 5
   { id: "permissions", title: "Permissions", icon: "⚙️", hasSubMenu: true },
-  { id: "cleanup", title: "Cleanup", icon: "🧹", hasSubMenu: true },
   { id: "lock_features", title: "Lock Features", icon: "🔒", banSettingsRootKey: "lockFeatures" },
-  // Row 6
-  { id: "timezone", title: "Time Zone", icon: "🕐", hasSubMenu: true },
-  { id: "reports", title: "Reports", icon: "📈", hasSubMenu: true },
 ];
 
 async function showInlineAdvanced(ctx: Context, chatId: string): Promise<void> {
@@ -4996,14 +4984,9 @@ bot.action(/^fw_adv_([a-z_]+):(-?\d+)$/, async (ctx) => {
       case "permissions":
         await showPermissionsSettings(ctx, chatId);
         break;
-      case "cleanup":
-      case "timezone":
-      case "reports":
-        // These have placeholder implementations - will show their existing handlers
-        await ctx.reply(`⚙️ <b>${feature.title}</b>\n\nThis feature configuration is available. Check the existing handlers.`, { parse_mode: "HTML" });
-        break;
       default:
-        await ctx.reply(`⚙️ <b>${feature.title}</b>\n\nThis feature configuration is coming soon!`, { parse_mode: "HTML" });
+        // All submenu features are handled above; unknown ones are silently ignored
+        break;
     }
     return;
   } else {
@@ -7206,11 +7189,11 @@ bot.action(/^fw_adv_[a-z_]+:(-?\d+)$/, async (ctx) => {
   // Check if this is a known feature that should have a handler
   const feature = ADVANCED_FEATURES.find(f => f.id === featureId);
   if (feature) {
-    // If feature exists but handler wasn't found, show coming soon
-    await ctx.answerCbQuery(`⚙️ ${feature.title} is coming soon!`, { show_alert: false });
+    // Feature exists but no specific handler - silently ignore
+    return;
   } else {
-    // Unknown feature ID
-    await ctx.answerCbQuery("ℹ️ This button is for display purposes only.", { show_alert: false });
+    // Unknown feature ID - silently ignore
+    return;
   }
 });
 
@@ -7465,13 +7448,8 @@ bot.action(/^fw_help_section:(-?\d+):([a-z_]+)$/, async (ctx) => {
     return;
   }
 
-  // For unimplemented sections, show "coming soon" message
+  // For unimplemented sections, silently return (all sections should be implemented)
   if (!section.implemented) {
-    const message = `${section.icon} <b>${section.title}</b>\n\n🚧 This help section is coming soon!\n\nWe're working on documenting this feature.`;
-    const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback("❓ Help", `fw_inline_help:${chatId}`)],
-    ]);
-    await replyOrEditRoot(ctx, message, keyboard);
     return;
   }
 });
@@ -7994,7 +7972,8 @@ bot.action(/^fw_help_section:(.+):([a-z_]+)$/, async (ctx) => {
       await showHelpEntertainment(ctx, chatId);
       break;
     default:
-      await ctx.answerCbQuery("Section not implemented yet", { show_alert: true });
+      // All sections are handled above; silently ignore unknown ones
+      break;
   }
 });
 
