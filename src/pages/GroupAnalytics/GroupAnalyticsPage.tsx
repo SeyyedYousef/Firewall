@@ -18,6 +18,7 @@ import {
   Text,
   Title,
 } from "@telegram-apps/telegram-ui";
+import { Skeleton } from '@/components/UI/Skeleton';
 
 import { GroupMenuDrawer } from "@/features/dashboard/GroupMenuDrawer.tsx";
 import { fetchGroupAnalytics, fetchGroupDetails } from "@/features/dashboard/api.ts";
@@ -564,7 +565,7 @@ function MessagesChart({ buckets, series, chartMode, width, height }: MessagesCh
 
   const lineSeries = useMemo(() => {
     if (chartMode !== "line") {
-      return [] as Array<MessagesChartSeries & { points: Array<{ x: number; y: number; value: number }> ; path: string }>;
+      return [] as Array<MessagesChartSeries & { points: Array<{ x: number; y: number; value: number }>; path: string }>;
     }
     return series.map((item) => {
       const points = buckets.map((bucket, index) => {
@@ -1303,7 +1304,7 @@ export function GroupAnalyticsPage() {
       </div>
       <div ref={membersContainerRef} className={styles.chartContainer}>
         {loading && !analytics ? (
-          <div className={styles.skeleton} />
+          <Skeleton height="100%" />
         ) : hasMembersData ? (
           <MembersChart
             buckets={membersBuckets}
@@ -1364,7 +1365,7 @@ export function GroupAnalyticsPage() {
       </div>
       <div ref={messagesContainerRef} className={styles.chartContainer}>
         {loading && !analytics ? (
-          <div className={styles.skeleton} />
+          <Skeleton height="100%" />
         ) : hasMessagesData ? (
           <MessagesChart
             buckets={messagesData.buckets}
@@ -1396,10 +1397,10 @@ export function GroupAnalyticsPage() {
   const bodyContent = (() => {
     if (loading && !analytics) {
       return (
-        <>
-          <div className={styles.skeleton} />
-          <div className={styles.skeleton} />
-        </>
+        <div style={{ padding: 20 }}>
+          <Skeleton height="300px" style={{ marginBottom: 16 }} />
+          <Skeleton height="300px" />
+        </div>
       );
     }
     if (error && !analytics) {

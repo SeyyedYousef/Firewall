@@ -12,6 +12,7 @@ import {
   Text,
   Title,
 } from "@telegram-apps/telegram-ui";
+import { Skeleton } from '@/components/UI/Skeleton';
 
 import { GroupMenuDrawer } from "@/features/dashboard/GroupMenuDrawer.tsx";
 import { fetchGroupDetails, fetchGroupGeneralSettings, updateGroupGeneralSettings } from "@/features/dashboard/api.ts";
@@ -341,8 +342,10 @@ export function GroupGeneralSettingsPage() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
-        <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ padding: 20 }}>
+        <Skeleton height="80px" style={{ marginBottom: 16 }} />
+        <Skeleton height="150px" style={{ marginBottom: 16 }} />
+        <Skeleton height="80px" />
       </div>
     );
   }

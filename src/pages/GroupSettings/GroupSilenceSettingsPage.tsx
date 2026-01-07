@@ -12,6 +12,7 @@ import {
   Text,
   Title,
 } from "@telegram-apps/telegram-ui";
+import { Skeleton } from '@/components/UI/Skeleton';
 
 import { GroupMenuDrawer } from "@/features/dashboard/GroupMenuDrawer.tsx";
 import {
@@ -103,36 +104,36 @@ const CARD_DEFINITIONS: Array<{
   summaryActive: (start: string, end: string) => string;
   summaryInactive: string;
 }> = [
-  {
-    key: "emergencyLock",
-    title: TEXT.emergencyTitle,
-    hint: TEXT.emergencyHint,
-    accent: "danger",
-    summaryActive: TEXT.summaryEmergencyActive,
-    summaryInactive: TEXT.summaryEmergencyInactive,
-  },
-  {
-    key: "window1",
-    title: TEXT.silenceTitle(1),
-    hint: TEXT.silenceHint,
-    summaryActive: TEXT.summaryActive,
-    summaryInactive: TEXT.summaryInactive,
-  },
-  {
-    key: "window2",
-    title: TEXT.silenceTitle(2),
-    hint: TEXT.silenceHint,
-    summaryActive: TEXT.summaryActive,
-    summaryInactive: TEXT.summaryInactive,
-  },
-  {
-    key: "window3",
-    title: TEXT.silenceTitle(3),
-    hint: TEXT.silenceHint,
-    summaryActive: TEXT.summaryActive,
-    summaryInactive: TEXT.summaryInactive,
-  },
-];
+    {
+      key: "emergencyLock",
+      title: TEXT.emergencyTitle,
+      hint: TEXT.emergencyHint,
+      accent: "danger",
+      summaryActive: TEXT.summaryEmergencyActive,
+      summaryInactive: TEXT.summaryEmergencyInactive,
+    },
+    {
+      key: "window1",
+      title: TEXT.silenceTitle(1),
+      hint: TEXT.silenceHint,
+      summaryActive: TEXT.summaryActive,
+      summaryInactive: TEXT.summaryInactive,
+    },
+    {
+      key: "window2",
+      title: TEXT.silenceTitle(2),
+      hint: TEXT.silenceHint,
+      summaryActive: TEXT.summaryActive,
+      summaryInactive: TEXT.summaryInactive,
+    },
+    {
+      key: "window3",
+      title: TEXT.silenceTitle(3),
+      hint: TEXT.silenceHint,
+      summaryActive: TEXT.summaryActive,
+      summaryInactive: TEXT.summaryInactive,
+    },
+  ];
 
 export function GroupSilenceSettingsPage() {
   const navigate = useNavigate();
@@ -297,8 +298,10 @@ export function GroupSilenceSettingsPage() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
-        <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ padding: 20 }}>
+        <Skeleton height="120px" style={{ marginBottom: 16 }} />
+        <Skeleton height="100px" style={{ marginBottom: 16 }} />
+        <Skeleton height="100px" />
       </div>
     );
   }
@@ -387,7 +390,7 @@ export function GroupSilenceSettingsPage() {
             // PREMIUM FEATURE: window2 and window3 are premium-only
             const isPremiumWindow = definition.key === "window2" || definition.key === "window3";
             const isPremium = group?.subscriptionType === 'premium';
-            
+
             const cardContent = (
               <Card key={definition.key} className={cardClass}>
                 <div className={styles.cardHeader}>

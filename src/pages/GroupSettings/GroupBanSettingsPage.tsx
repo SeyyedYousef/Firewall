@@ -13,6 +13,7 @@ import {
   Textarea,
   Title,
 } from "@telegram-apps/telegram-ui";
+import { Skeleton } from '@/components/UI/Skeleton';
 
 import { GroupMenuDrawer } from "@/features/dashboard/GroupMenuDrawer.tsx";
 import {
@@ -48,7 +49,7 @@ type ScheduleSectionProps = {
 function ScheduleSection({ title, value, disabled, isPremium = true, onModeChange, onStartChange, onEndChange }: ScheduleSectionProps) {
   // Custom scheduling is Premium-only
   const canUseCustom = isPremium;
-  
+
   return (
     <div className={styles.scheduleBlock} aria-disabled={disabled}>
       <Text weight="2" className={styles.fieldLabel}>
@@ -187,7 +188,7 @@ const BAN_RULE_DEFINITIONS: BanRuleDefinition[] = [
   { key: "banChinese", title: "Block Chinese characters", description: "Chinese characters are not allowed.", category: "language", icon: "汉" },
   { key: "banUserReplies", title: "Block user replies", description: "Regular members cannot reply to each other.", category: "interaction", icon: "💬" },
   { key: "banCrossReplies", title: "Block cross-chat replies", description: "Replies from other chats are blocked.", category: "interaction", icon: "↔️" },
-];const CATEGORY_GROUPS = [
+]; const CATEGORY_GROUPS = [
   { id: "links", title: "Links & IDs" },
   { id: "text", title: "Text & symbols" },
   { id: "media", title: "Media & files" },
@@ -399,8 +400,10 @@ export function GroupBanSettingsPage() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
-        <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ padding: 20 }}>
+        <Skeleton height="60px" style={{ marginBottom: 16 }} />
+        <Skeleton height="300px" style={{ marginBottom: 16 }} />
+        <Skeleton height="200px" />
       </div>
     );
   }

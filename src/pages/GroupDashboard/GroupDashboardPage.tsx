@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Avatar, Button, IconButton, Placeholder, Snackbar } from '@telegram-apps/telegram-ui';
 
 import { GroupMenuDrawer } from '@/features/dashboard/GroupMenuDrawer.tsx';
+import { Skeleton } from '@/components/UI/Skeleton';
 import { fetchGroupDetails } from '@/features/dashboard/api.ts';
 import type { GroupDetail, GroupWarning, ManagedGroup } from '@/features/dashboard/types.ts';
 import { formatNumber } from '@/utils/format.ts';
@@ -74,12 +75,12 @@ function resolveCreditBadge(group: ManagedGroup, remainingMs: number, isExpired:
   if (group.status.kind === 'removed') {
     return { label: 'Removed', className: styles.statusBadgeDanger || '' };
   }
-  
+
   // Free groups don't expire
   if (group.subscriptionType !== 'premium') {
     return { label: '🆓 Free Plan', className: styles.statusBadge || '' };
   }
-  
+
   // Premium group expired
   if (isExpired || group.status.kind === 'expired') {
     return { label: '⭐ Premium Expired', className: styles.statusBadgeDanger || '' };
@@ -262,8 +263,9 @@ export function GroupDashboardPage() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
-        <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ padding: 20 }}>
+        <Skeleton height="300px" style={{ marginBottom: 20 }} />
+        <Skeleton height="200px" />
       </div>
     );
   }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Avatar, Button, Input, Placeholder, Snackbar, Text } from '@telegram-apps/telegram-ui';
+import { Skeleton } from '@/components/UI/Skeleton';
 
 import {
   fetchStarsOverview,
@@ -313,8 +314,9 @@ export function StarsPage() {
   if (loading) {
     return (
       <div className={styles.page} dir='ltr'>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
-          <div className={styles.spinner} />
+        <div style={{ padding: 20 }}>
+          <Skeleton height="200px" style={{ marginBottom: 16 }} />
+          <Skeleton height="100px" />
         </div>
       </div>
     );
