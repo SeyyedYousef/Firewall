@@ -49,7 +49,7 @@ type PromoSlidesResponse = {
 };
 
 const STARS_PLANS: StarsPlan[] = [
-  { id: "stars-30", days: 30, price: 60 },
+  { id: "stars-30", days: 30, price: 1 },
   { id: "stars-60", days: 60, price: 120 },
   { id: "stars-90", days: 90, price: 180 },
 ];
@@ -132,11 +132,11 @@ export async function requestApi<T>(path: string, init?: RequestInit): Promise<T
     }
     throw new Error(message && message.length > 0 ? message : `Request failed with status ${response.status}`);
   }
-  
+
   if (response.status === 204) {
     return undefined as T;
   }
-  
+
   return (await response.json()) as T;
 }
 
@@ -768,9 +768,9 @@ export async function fetchDashboardSnapshot(): Promise<DashboardSnapshot> {
         promotionsResult.status === "fulfilled"
           ? promotionsResult.value
           : (() => {
-              console.warn("[dashboard] promotions request failed during fallback", promotionsResult.reason);
-              return fallback.promotions;
-            })();
+            console.warn("[dashboard] promotions request failed during fallback", promotionsResult.reason);
+            return fallback.promotions;
+          })();
       return {
         ...fallback,
         promotions: promotionsFallback,
@@ -784,9 +784,9 @@ export async function fetchDashboardSnapshot(): Promise<DashboardSnapshot> {
       promotionsResult.status === "fulfilled"
         ? promotionsResult.value
         : (() => {
-            console.warn("[dashboard] promotions request failed", promotionsResult.reason);
-            return buildPromotionsFromResponse(null);
-          })();
+          console.warn("[dashboard] promotions request failed", promotionsResult.reason);
+          return buildPromotionsFromResponse(null);
+        })();
     return {
       ownerId: 0,
       generatedAt: new Date().toISOString(),
@@ -1515,7 +1515,7 @@ export async function fetchBroadcasts(): Promise<{ broadcasts: any[]; total: num
           createdAt: new Date(Date.now() - 86400000).toISOString(),
         },
         {
-          id: 'mock-2', 
+          id: 'mock-2',
           message: 'System maintenance scheduled for tomorrow at 2 AM UTC.',
           createdAt: new Date(Date.now() - 172800000).toISOString(),
         }

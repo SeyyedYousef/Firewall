@@ -409,6 +409,7 @@ export function StarsPage() {
         {mode === 'other' && (
           <div className={styles.otherTarget}>
             <Input
+              className={styles.searchInput}
               placeholder={TEXT.searchPlaceholder}
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}

@@ -27,6 +27,7 @@ const MENU_ITEMS: MenuItem[] = [
   { key: "mandatory", icon: "📌", label: "Mandatory membership" },
   { key: "texts", icon: "💬", label: "Custom messages" },
   { key: "analytics", icon: "📊", label: "Analytics" },
+  { key: "stars", icon: "⭐", label: "Active Premium" },
 ];
 
 export function GroupMenuDrawer({ open, onClose, activeKey = "home", onSelect }: GroupMenuDrawerProps) {

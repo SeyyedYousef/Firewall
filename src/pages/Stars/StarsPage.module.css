@@ -252,3 +252,40 @@
   background: rgba(255, 255, 255, 0.02);
   border-radius: 12px;
 }
+
+.otherTarget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.searchInput {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+  border-radius: 12px !important;
+  width: 100%;
+}
+
+.searchInput input {
+  color: #fff !important;
+}
+
+.searchInput:focus-within {
+  border-color: var(--magma-primary) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 0 0 2px rgba(255, 69, 0, 0.1);
+}
+
+.searchHint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.searchStatus {
+  font-size: 0.9rem;
+  color: var(--magma-primary);
+  text-align: center;
+  padding: 12px;
+}

@@ -53,6 +53,8 @@
   gap: 8px;
   overflow-y: auto;
   padding-right: 4px;
+  flex: 1;
+  min-height: 0;
   /* Scrollbar spacing */
 }
 

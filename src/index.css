@@ -4,6 +4,16 @@
   box-sizing: border-box;
 }
 
+:root {
+  /* Map legacy/app variables to our theme variables */
+  --app-color-background: var(--oled-black);
+  --app-color-surface: rgba(255, 255, 255, 0.05);
+  --app-color-text-primary: var(--text-primary);
+  --app-font-family: var(--font-family-base);
+  --app-font-size-base: 16px;
+  --app-line-height-base: 1.5;
+}
+
 html,
 body {
   direction: ltr;
@@ -42,33 +52,54 @@ select {
   font: inherit;
 }
 
-/* Basic fallback styles - only apply if not inside Telegram UI */
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([class*="tgui-"]),
-textarea:not([class*="tgui-"]),
-select:not([class*="tgui-"]) {
-  user-select: text;
-  -webkit-user-select: text;
-  background-color: var(--app-color-surface);
-  color: var(--app-color-text-primary);
-}
-
-/* Force readable text for all inputs including Telegram UI */
+/* Force dark theme for ALL inputs, overriding any defaults */
 input,
 textarea,
-select {
-  color: #E2E8F0 !important;
+select,
+input[type="text"],
+input[type="password"],
+input[type="number"],
+input[type="email"],
+input[type="search"],
+[class*="tgui-"] input {
+  background-color: var(--app-color-surface) !important;
+  color: var(--app-color-text-primary) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  /* Default radius, specific pages overrides this */
+  padding: 8px 12px;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+
+/* Fix focus states */
+input:focus,
+textarea:focus,
+select:focus,
+[class*="tgui-"] input:focus {
+  border-color: var(--magma-primary) !important;
+  outline: none !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 0 0 2px rgba(255, 69, 0, 0.1);
 }
 
 /* Ensure all placeholders are visible */
 input::placeholder,
 textarea::placeholder,
 [class*="tgui-"]::placeholder {
-  color: #94A3B8 !important;
+  color: var(--text-muted) !important;
   opacity: 1 !important;
 }
 
-/* Telegram UI switches lose their native proportions when wrapped by flex layouts.
-   Force the base dimensions and prevent flex parents from stretching the switch. */
+/* Reset border for checkbox/radio to avoid white boxes if they fallback */
+input[type="checkbox"],
+input[type="radio"] {
+  background-color: transparent !important;
+  border: none;
+  padding: 0;
+}
+
+/* Telegram UI switch fix */
 .tgui-a1dc55b304d32032 {
   width: 52px;
   height: 32px;

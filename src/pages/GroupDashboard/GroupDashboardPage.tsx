@@ -19,7 +19,7 @@ const TEXT = {
   unavailableDescription: 'Could not load group data. Please try again.',
   retry: 'Retry',
   heroSubline: 'Quick overview',
-  settingsTitle: 'Settings',
+  premiumTitle: 'Get Premium',
   menuActionTitle: 'Quick menu',
   warningsTitle: 'Recent Activity',
   warningsHint: 'Bot actions and interventions',
@@ -226,13 +226,7 @@ export function GroupDashboardPage() {
     setMenuOpen(true);
   };
 
-  const handleOpenSettings = () => {
-    if (!groupId) {
-      return;
-    }
 
-    navigate(`/groups/${groupId}/settings/general`, { state: { group } });
-  };
 
   const handleRetry = useCallback(() => {
     if (!groupId) {
@@ -348,10 +342,10 @@ export function GroupDashboardPage() {
         <div className={styles.quickActions}>
           <button
             type='button'
-            className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
-            onClick={handleOpenSettings}
+            className={styles.actionButton}
+            onClick={() => navigate('/stars', { state: { focusGroupId: groupId } })}
           >
-            ⚙️ {TEXT.settingsTitle}
+            ⭐ {TEXT.premiumTitle}
           </button>
           <button
             type='button'
@@ -428,6 +422,9 @@ export function GroupDashboardPage() {
               break;
             case 'analytics':
               navigate(`/groups/${groupId}/analytics`, { state: { group } });
+              break;
+            case 'stars':
+              navigate(`/stars`, { state: { focusGroupId: groupId } });
               break;
             default:
               console.info(`[group-dashboard] unknown menu item '${key}' selected`);
