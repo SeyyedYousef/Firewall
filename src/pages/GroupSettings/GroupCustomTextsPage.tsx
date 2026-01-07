@@ -13,6 +13,7 @@ import {
   Textarea,
   Title,
 } from "@telegram-apps/telegram-ui";
+import { hapticFeedback } from "@telegram-apps/sdk-react";
 import { Skeleton } from '@/components/UI/Skeleton';
 
 import { GroupMenuDrawer } from "@/features/dashboard/GroupMenuDrawer.tsx";
@@ -198,6 +199,7 @@ export function GroupCustomTextsPage() {
 
   const handlePromoToggle = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
+      hapticFeedback.impactOccurred('light');
       updateSettings({ promoButtonEnabled: event.target.checked });
     },
     [updateSettings],
@@ -496,6 +498,7 @@ export function GroupCustomTextsPage() {
               <div className={styles.fieldRow}>
                 <Text weight="2" className={styles.cardHint}>Button text</Text>
                 <Input
+                  className={styles.input}
                   value={settings.promoButtonText}
                   maxLength={30}
                   onChange={handlePromoTextChange}
@@ -506,6 +509,7 @@ export function GroupCustomTextsPage() {
               <div className={styles.fieldRow}>
                 <Text weight="2" className={styles.cardHint}>Button link</Text>
                 <Input
+                  className={styles.input}
                   value={settings.promoButtonUrl}
                   onChange={handlePromoUrlChange}
                   placeholder="https://t.me/YourChannel"
@@ -535,7 +539,7 @@ Link: ${settings.promoButtonUrl || "(not set)"}`
       </main>
 
       <footer className={styles.saveBar}>
-        <Button mode="filled" size="l" stretched disabled={!canSave} onClick={handleSave}>
+        <Button mode="filled" size="l" stretched disabled={!canSave} onClick={() => { hapticFeedback.impactOccurred('medium'); handleSave(); }}>
           {saving ? "Saving..." : "Save changes"}
         </Button>
       </footer>

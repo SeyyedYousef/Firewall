@@ -157,6 +157,14 @@
   color: #fff !important;
   font-family: var(--font-family-mono);
   border-radius: 8px !important;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.numberInput:focus-within {
+  border-color: var(--magma-primary) !important;
+  box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08) !important;
 }
 
 .fieldStatus {

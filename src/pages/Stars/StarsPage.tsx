@@ -214,7 +214,7 @@ export function StarsPage() {
       setMode('my-groups');
       setSelectedManagedId(focusGroupIdFromState);
     } else {
-      setMode('other');
+      setMode('my-groups');
     }
   }, [focusGroupIdFromState]);
 

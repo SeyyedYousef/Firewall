@@ -11,6 +11,7 @@ import {
   Text,
   Title,
 } from "@telegram-apps/telegram-ui";
+import { hapticFeedback } from "@telegram-apps/sdk-react";
 import { Skeleton } from '@/components/UI/Skeleton';
 
 import { GroupMenuDrawer } from "@/features/dashboard/GroupMenuDrawer.tsx";
@@ -144,6 +145,7 @@ export function GroupCountLimitSettingsPage() {
   const handleNumberChange = useCallback(
     (key: keyof CountLimitSettings) =>
       (event: ChangeEvent<HTMLInputElement>) => {
+        hapticFeedback.impactOccurred('light');
         const raw = event.target.value.trim();
         const parsed = raw === "" ? 0 : Number(raw);
         const sanitized = Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : 0;
@@ -622,7 +624,7 @@ export function GroupCountLimitSettingsPage() {
           size="l"
           stretched
           disabled={!canSave}
-          onClick={handleSave}
+          onClick={() => { hapticFeedback.impactOccurred('medium'); handleSave(); }}
         >
           {saving ? TEXT.savingText : TEXT.saveText}
         </Button>

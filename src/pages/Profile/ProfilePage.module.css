@@ -1,573 +1,421 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 32px;
-  padding: 32px 16px 140px;
+  gap: 24px;
+  padding: 24px 16px 120px;
+  background: var(--oled-black);
+  min-height: 100vh;
+  position: relative;
 }
 
-.heroCard {
+/* --- Hero Section --- */
+.hero {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 24px;
-  border-radius: var(--app-radius-xl);
-  padding: 32px;
-  background:
-    radial-gradient(140% 160% at -20% 0%, rgba(14, 127, 255, 0.32), rgba(14, 127, 255, 0) 65%),
-    radial-gradient(120% 160% at 115% -10%, rgba(155, 90, 255, 0.24), rgba(155, 90, 255, 0) 70%),
-    linear-gradient(145deg, rgba(5, 7, 15, 0.98) 0%, rgba(4, 8, 23, 0.92) 55%, rgba(3, 6, 15, 0.9) 100%);
+  gap: 20px;
+  padding: 24px;
+  border-radius: 24px;
+  background: linear-gradient(160deg, rgba(10, 10, 10, 0.8) 0%, rgba(20, 20, 25, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   position: relative;
   overflow: hidden;
-  box-shadow: var(--app-shadow-raised);
 }
 
-.heroCard::after {
+.hero::before {
   content: "";
   position: absolute;
-  top: -55%;
-  left: -25%;
-  width: 160%;
-  height: 180%;
-  background: radial-gradient(circle at 38% 50%, rgba(21, 168, 255, 0.28), rgba(21, 168, 255, 0) 72%);
-  opacity: 0.45;
-  filter: blur(40px);
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 50% 50%, rgba(30, 162, 255, 0.08), transparent 60%);
+  animation: pulse 8s ease-in-out infinite;
   pointer-events: none;
 }
 
-.heroProfile {
-  position: relative;
-  z-index: 1;
+@keyframes pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+.heroHeader {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  z-index: 1;
+}
+
+.heroProfile {
+  display: flex;
   align-items: center;
   gap: 16px;
-  text-align: center;
-  align-self: center;
 }
 
 .heroMeta {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  align-items: center;
-  text-align: center;
 }
 
 .heroLabel {
-  font-size: 12px;
-  letter-spacing: 0.14em;
+  font-size: 0.75rem;
   text-transform: uppercase;
-  color: rgba(245, 247, 255, 0.75);
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
 }
 
-.heroName {
+.heroTitle {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fff;
   margin: 0;
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--app-color-text-primary);
-  word-wrap: break-word;
-  max-width: 100%;
+  line-height: 1.2;
 }
 
-.heroUsername {
-  font-size: 14px;
-  color: rgba(226, 233, 255, 0.75);
+.heroSubtitle {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 4px;
 }
 
-.heroProgress {
-  position: relative;
-  z-index: 1;
+.heroActions {
+  display: flex;
+  gap: 8px;
+}
+
+.heroStats {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  width: 100%;
+  z-index: 1;
 }
 
-.heroBadge {
+.levelRow {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 14px 18px;
-  border-radius: 18px;
-  background: rgba(5, 7, 15, 0.42);
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  box-shadow: 0 16px 36px rgba(5, 12, 28, 0.36);
-}
-
-.heroBadgeLabel {
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(245, 247, 255, 0.7);
-}
-
-.heroBadgeValue {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--app-color-accent-gold);
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.9rem;
+  color: #fff;
 }
 
 .progressTrack {
-  position: relative;
   height: 8px;
-  border-radius: 999px;
-  background: rgba(8, 12, 22, 0.45);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
   overflow: hidden;
+  position: relative;
 }
 
 .progressValue {
-  position: absolute;
-  inset: 0;
-  width: 0;
-  background: linear-gradient(90deg, rgba(30, 162, 255, 0.92), rgba(72, 187, 120, 0.92));
-  transition: width var(--app-motion-duration-base) var(--app-motion-ease);
+  height: 100%;
+  background: linear-gradient(90deg, var(--magma-primary), #00ffcc);
+  box-shadow: 0 0 12px rgba(0, 255, 204, 0.4);
+  border-radius: 4px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.progressCaption {
-  font-size: 12px;
-  color: rgba(226, 233, 255, 0.78);
-}
-
-.layout {
-  display: grid;
-  gap: 32px;
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.columnPrimary,
-.columnSide {
+.levelMeta {
   display: flex;
-  flex-direction: column;
-  gap: 24px;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.section {
-  background: rgba(10, 16, 28, 0.92);
-  border-radius: var(--app-radius-lg);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  box-shadow: var(--app-shadow-ambient);
-  padding: 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
+.levelProgress {
+  font-size: 0.75rem;
+  color: var(--text-muted);
 }
 
-.sectionHeader {
+.chipRow {
   display: flex;
-  flex-direction: column;
+  gap: 8px;
+}
+
+.chip {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e0e0e0;
+}
+
+/* --- Tabs --- */
+.tabs {
+  display: flex;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 6px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  gap: 6px;
+  position: sticky;
+  top: 10px;
+  z-index: 10;
+  backdrop-filter: blur(12px);
+}
+
+.tabButton {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 10px;
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   gap: 6px;
 }
 
+.tabButtonActive {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* --- Content Sections --- */
 .sectionTitle {
-  margin: 0;
-  font-size: 18px;
+  font-size: 1.1rem;
   font-weight: 700;
-  color: var(--app-color-text-primary);
+  color: #fff;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.sectionHint {
-  font-size: 13px;
-  color: rgba(148, 163, 184, 0.75);
+.sectionTitle::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.1), transparent);
 }
 
+/* --- Stats Grid (Dossier) --- */
 .statsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
 }
 
 .statCard {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 18px;
-  border-radius: var(--app-radius-lg);
-  background: rgba(8, 12, 22, 0.92);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-}
-
-.statLabel {
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: rgba(226, 233, 255, 0.68);
+  gap: 8px;
 }
 
 .statValue {
-  font-size: 24px;
+  font-size: 1.4rem;
   font-weight: 700;
-  color: var(--app-color-text-primary);
+  color: #fff;
+}
+
+.statLabel {
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }
 
 .statHint {
-  font-size: 13px;
-  color: rgba(148, 163, 184, 0.78);
+  font-size: 0.75rem;
+  color: var(--status-safe);
 }
 
-.progressGrid {
-  display: grid;
-  gap: 14px;
-}
-
-.progressCard {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 16px;
-  border-radius: var(--app-radius-lg);
-  background: rgba(8, 12, 22, 0.9);
-  border: 1px solid rgba(148, 163, 184, 0.16);
-}
-
-.progressHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.progressPercent {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--app-color-text-primary);
-}
-
-.progressCard .progressTrack {
-  height: 6px;
-  background: rgba(148, 163, 184, 0.2);
-}
-
-.actionsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-}
-
-.actionCard {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  border-radius: var(--app-radius-lg);
-  background: rgba(10, 16, 28, 0.9);
-  cursor: pointer;
-  text-align: left;
-  transition: transform var(--app-motion-duration-fast) var(--app-motion-ease),
-    border-color var(--app-motion-duration-fast) var(--app-motion-ease);
-}
-
-.actionCard:hover {
-  transform: translateY(-2px);
-  border-color: rgba(30, 162, 255, 0.45);
-}
-
-.actionLabel {
-  font-weight: 600;
-  color: var(--app-color-text-primary);
-}
-
-.actionHint {
-  font-size: 13px;
-  color: rgba(148, 163, 184, 0.78);
-}
-
-.toggleRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding: 14px 16px;
-  border-radius: var(--app-radius-md);
-  background: rgba(5, 7, 15, 0.65);
-}
-
-.toggleText {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-width: 70%;
-}
-
-.linkHint {
-  font-size: 13px;
-  color: rgba(148, 163, 184, 0.78);
-}
-
-.statusList {
+/* --- Mission Cards (Ops) --- */
+.missionList {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.statusItem {
+.missionCard {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 16px !important;
+  padding: 16px;
   display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 16px;
-  border-radius: var(--app-radius-md);
-  background: rgba(5, 7, 15, 0.6);
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  flex-direction: column;
+  gap: 12px;
+  transition: transform 0.2s, background 0.2s;
 }
 
-.statusMeta {
+.missionCard:active {
+  transform: scale(0.98);
+}
+
+.missionCardCompleted {
+  border-color: rgba(72, 187, 120, 0.3) !important;
+  background: rgba(72, 187, 120, 0.05) !important;
+}
+
+.missionHeader {
+  display: flex;
+  gap: 12px;
+}
+
+.missionIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.missionContent {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.statusHint {
-  font-size: 13px;
-  color: rgba(148, 163, 184, 0.78);
-}
-
-.statusBadge {
-  align-self: center;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 12px;
+.missionTitle {
+  font-size: 1rem;
   font-weight: 600;
-  background: rgba(30, 162, 255, 0.18);
-  color: var(--app-color-accent-cyan);
+  color: #fff;
 }
 
+.missionDesc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.missionMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.xpBadge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--magma-primary);
+  background: rgba(255, 69, 0, 0.1);
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+/* --- Armory (Market) --- */
+.marketGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.itemCard {
+  background: rgba(20, 20, 25, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.itemCard::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: var(--magma-primary);
+  opacity: 0.5;
+}
+
+.itemIcon {
+  font-size: 2rem;
+  margin-bottom: 4px;
+}
+
+.itemName {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.itemCost {
+  font-size: 0.85rem;
+  color: var(--status-warning);
+  font-weight: 700;
+}
+
+.referralCard {
+  background: linear-gradient(135deg, rgba(30, 162, 255, 0.1) 0%, rgba(10, 10, 10, 0.6) 100%);
+  border: 1px solid rgba(30, 162, 255, 0.3);
+  padding: 20px;
+  border-radius: 16px;
+  text-align: center;
+}
+
+.referralCode {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 12px;
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: 1rem;
+  color: var(--magma-primary);
+  margin: 12px 0;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.copyBtn {
+  background: transparent;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 1.1rem;
+}
+
+/* --- Activity Log --- */
 .activityList {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.activityCard {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
   gap: 12px;
-  padding: 14px 16px;
-  border-radius: var(--app-radius-md);
-  background: rgba(5, 7, 15, 0.65);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  transition: all 0.3s ease;
-}
-
-.activityCard:hover {
-  background: rgba(5, 7, 15, 0.85);
-  border-color: rgba(30, 162, 255, 0.35);
-  transform: translateX(4px);
-}
-
-.emptyActivity {
-  padding: 24px;
-  text-align: center;
-  color: rgba(148, 163, 184, 0.7);
-  background: rgba(5, 7, 15, 0.4);
-  border-radius: var(--app-radius-md);
-  border: 1px dashed rgba(148, 163, 184, 0.3);
 }
 
 .activityItem {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
   gap: 12px;
-  padding: 12px 14px;
-  border-radius: var(--app-radius-md);
-  background: rgba(5, 7, 15, 0.55);
-  border: 1px solid rgba(148, 163, 184, 0.16);
-}
-
-.activityTitle {
-  font-size: 14px;
-  color: var(--app-color-text-primary);
-  line-height: 1.5;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .activityTime {
-  font-size: 12px;
-  color: rgba(148, 163, 184, 0.75);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  min-width: 60px;
 }
 
-.alertsCard {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 18px;
-  border-radius: var(--app-radius-lg);
-  background: rgba(8, 12, 22, 0.9);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-}
-
-.alertsHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
-}
-
-.alertsList {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.alertsList li {
-  padding: 10px 14px;
-  border-radius: var(--app-radius-sm);
-  background: rgba(5, 7, 15, 0.6);
-  color: rgba(226, 233, 255, 0.85);
-  font-size: 14px;
-  border: 1px solid rgba(148, 163, 184, 0.12);
-  transition: all 0.2s ease;
-}
-
-.alertsList li:hover {
-  background: rgba(30, 162, 255, 0.1);
-  border-color: rgba(30, 162, 255, 0.3);
-}
-
-.securityGrid {
-  display: grid;
-  gap: 14px;
-}
-
-.securityCard {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px;
-  border-radius: var(--app-radius-lg);
-  background: rgba(8, 12, 22, 0.9);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  transition: all 0.3s ease;
-}
-
-.securityCard:hover {
-  border-color: rgba(30, 162, 255, 0.35);
-  background: rgba(8, 12, 22, 0.95);
-}
-
-.securityLabel {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--app-color-text-primary);
-  letter-spacing: 0.02em;
-}
-
-.securityStatus {
-  font-size: 14px;
-  font-weight: 700;
-  padding: 4px 12px;
-  border-radius: 8px;
-  align-self: flex-start;
-  background: rgba(72, 187, 120, 0.15);
-  color: #48bb78;
-  border: 1px solid rgba(72, 187, 120, 0.3);
-}
-
-.securityCard[data-status="Needs review"] .securityStatus {
-  background: rgba(250, 204, 67, 0.15);
-  color: #facc43;
-  border-color: rgba(250, 204, 67, 0.3);
-}
-
-.securityHint {
-  font-size: 13px;
-  color: rgba(148, 163, 184, 0.75);
-  line-height: 1.5;
-}
-
-.supportCard {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 20px;
-  border-radius: var(--app-radius-lg);
-  background: linear-gradient(135deg, rgba(30, 162, 255, 0.12) 0%, rgba(8, 12, 22, 0.95) 50%);
-  border: 1px solid rgba(30, 162, 255, 0.25);
-  box-shadow: 0 4px 16px rgba(30, 162, 255, 0.15);
-}
-
-.supportHint {
-  font-size: 13px;
-  color: rgba(226, 233, 255, 0.8);
-  line-height: 1.6;
-}
-
-.columnSecondary {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.supportList {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.supportItem {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 16px;
-  border-radius: var(--app-radius-md);
-  background: rgba(5, 7, 15, 0.6);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-}
-
-@media (min-width: 640px) {
-  .heroProfile {
-    flex-direction: row;
-    align-items: center;
-    text-align: left;
-    align-self: flex-start;
-  }
-
-  .heroName {
-    font-size: 30px;
-  }
-
-  .heroMeta {
-    align-items: flex-start;
-    text-align: left;
-  }
-}
-
-@media (min-width: 768px) {
-  .page {
-    padding-inline: 40px;
-  }
-
-  .heroCard {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .heroProgress {
-    max-width: 260px;
-  }
-
-  .layout {
-    grid-template-columns: 2.2fr 1fr;
-    gap: 32px;
-  }
-
-  .actionsGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .columnSide {
-    position: sticky;
-    top: 32px;
-    align-self: flex-start;
-  }
-
-  .columnSecondary {
-    position: sticky;
-    top: 32px;
-    align-self: flex-start;
-  }
+.activityText {
+  font-size: 0.9rem;
+  color: #e0e0e0;
 }

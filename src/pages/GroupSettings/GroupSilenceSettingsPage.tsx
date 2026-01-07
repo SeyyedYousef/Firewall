@@ -12,6 +12,7 @@ import {
   Text,
   Title,
 } from "@telegram-apps/telegram-ui";
+import { hapticFeedback } from "@telegram-apps/sdk-react";
 import { Skeleton } from '@/components/UI/Skeleton';
 
 import { GroupMenuDrawer } from "@/features/dashboard/GroupMenuDrawer.tsx";
@@ -201,6 +202,7 @@ export function GroupSilenceSettingsPage() {
 
   const handleToggle = useCallback(
     (key: SilenceKey) => (event: ChangeEvent<HTMLInputElement>) => {
+      hapticFeedback.impactOccurred('light');
       updateWindow(key, { enabled: event.target.checked });
     },
     [updateWindow],
@@ -418,6 +420,7 @@ export function GroupSilenceSettingsPage() {
                       <label className={styles.timeLabel}>
                         <span>{TEXT.startLabel}</span>
                         <Input
+                          className={styles.input}
                           type="time"
                           value={windowSetting.start}
                           onChange={handleTimeChange(definition.key, "start")}
@@ -429,6 +432,7 @@ export function GroupSilenceSettingsPage() {
                       <label className={styles.timeLabel}>
                         <span>{TEXT.endLabel}</span>
                         <Input
+                          className={styles.input}
                           type="time"
                           value={windowSetting.end}
                           onChange={handleTimeChange(definition.key, "end")}
@@ -468,7 +472,7 @@ export function GroupSilenceSettingsPage() {
       </main>
 
       <footer className={styles.saveBar}>
-        <Button mode="filled" size="l" stretched disabled={!canSave} onClick={handleSave}>
+        <Button mode="filled" size="l" stretched disabled={!canSave} onClick={() => { hapticFeedback.impactOccurred('medium'); handleSave(); }}>
           {saving ? TEXT.saving : TEXT.save}
         </Button>
       </footer>

@@ -105,6 +105,14 @@
   margin-bottom: 12px;
 }
 
+.dateInputs {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+  width: 100%;
+}
+
 .dateInput {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -113,6 +121,20 @@
   color: #fff;
   font-size: 0.9rem;
   flex: 1;
+  outline: none;
+  transition: all 0.2s ease;
+  font-family: var(--font-family-mono);
+}
+
+.dateInput:focus {
+  border-color: var(--magma-primary);
+  box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dateInputs span {
+  color: var(--text-muted);
+  font-size: 0.9rem;
 }
 
 .card {
@@ -122,6 +144,29 @@
   padding: 16px;
   box-shadow: none !important;
   overflow: hidden;
+}
+
+/* ... existing styles ... */
+
+.statTrend {
+  font-size: 0.75rem;
+  margin-top: 4px;
+  display: block;
+}
+
+/* Trend aliases to match TSX usage if needed, or we just map them here */
+.summaryTrendPositive,
+.trendUp {
+  color: var(--status-safe);
+}
+
+.summaryTrendNegative,
+.trendDown {
+  color: var(--status-danger);
+}
+
+.trendFlat {
+  color: var(--text-muted);
 }
 
 .cardHeader {

@@ -1,117 +1,136 @@
+/* GiveawayPages.module.css - Magma Redesign */
+
 .page {
   display: flex;
   flex-direction: column;
-  gap: var(--app-spacing-lg);
-  padding-bottom: var(--app-spacing-xl);
+  gap: 20px;
+  padding-bottom: 90px;
+  background: var(--oled-black);
+  min-height: 100vh;
 }
 
 .tabs {
   display: inline-flex;
-  gap: 6px;
+  gap: 4px;
   padding: 4px;
-  border-radius: var(--app-radius-tab-pill);
-  background: rgba(13, 20, 36, 0.78);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  background: var(--surface-glass-heavy);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   align-self: flex-start;
+  margin-left: 20px;
+  margin-top: 20px;
 }
 
 .tab {
-  padding: 8px 18px;
-  border-radius: calc(var(--app-radius-tab-pill) - 8px);
+  padding: 8px 16px;
+  border-radius: 10px;
   font-size: 13px;
-  font-weight: 600;
-  color: var(--app-color-text-muted);
+  font-weight: 500;
+  color: var(--text-muted);
   text-decoration: none;
-  transition: background var(--app-motion-duration-fast) var(--app-motion-ease),
-    color var(--app-motion-duration-fast) var(--app-motion-ease);
+  transition: all 0.2s ease;
 }
 
 .tabActive {
-  color: var(--app-color-text-primary);
-  background: rgba(30, 162, 255, 0.18);
-  box-shadow: var(--app-glow-cyan);
+  color: #fff;
+  background: rgba(30, 162, 255, 0.15);
+  box-shadow: 0 0 12px rgba(30, 162, 255, 0.2);
 }
 
 .section {
-  background: rgba(13, 20, 36, 0.82);
-  border-radius: var(--app-radius-md);
-  padding: var(--app-spacing-md);
-  box-shadow: var(--app-shadow-ambient);
+  background: rgba(10, 10, 10, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: var(--app-spacing-md);
+  gap: 16px;
+  margin: 0 20px;
+  backdrop-filter: blur(10px);
 }
 
 .sectionHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--app-spacing-sm);
+  gap: 12px;
 }
 
 .inlineActions {
   display: flex;
   align-items: center;
-  gap: var(--app-spacing-sm);
+  gap: 8px;
 }
 
 .sectionTitle {
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
 }
 
 .sectionHint {
-  font-size: 13px;
-  color: var(--app-color-text-muted);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: -8px;
 }
 
 .stepTitle {
   margin: 0;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
 }
 
 .balanceCard {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--app-spacing-sm);
-  padding: var(--app-spacing-sm) var(--app-spacing-md);
-  border-radius: var(--app-radius-sm);
-  background: linear-gradient(135deg, rgba(30, 162, 255, 0.18) 0%, rgba(8, 12, 22, 0.88) 100%);
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(30, 162, 255, 0.1) 0%, rgba(0, 0, 0, 0.4) 100%);
+  border: 1px solid rgba(30, 162, 255, 0.2);
 }
 
 .list {
   display: flex;
   flex-direction: column;
-  gap: var(--app-spacing-sm);
+  gap: 12px;
   min-width: 0;
 }
 
 .emptyState {
-  padding: var(--app-spacing-md);
-  border-radius: var(--app-radius-sm);
-  background: rgba(255, 255, 255, 0.05);
+  padding: 24px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
   text-align: center;
-  color: var(--app-color-text-muted);
+  color: var(--text-muted);
+  font-size: 0.9rem;
 }
 
 .card {
-  border-radius: var(--app-radius-sm);
-  padding: var(--app-spacing-sm);
-  background: rgba(5, 7, 15, 0.6);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   flex-direction: column;
-  gap: var(--app-spacing-sm);
+  gap: 12px;
   min-width: 0;
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .cardHeader {
   display: flex;
   justify-content: space-between;
-  gap: var(--app-spacing-sm);
+  gap: 12px;
   align-items: center;
   flex-wrap: wrap;
   min-width: 0;
@@ -119,8 +138,9 @@
 
 .cardTitle {
   margin: 0;
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
+  color: #fff;
   flex: 1 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -130,30 +150,34 @@
 .tagRow {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--app-spacing-sm);
+  gap: 8px;
   row-gap: 6px;
   font-size: 13px;
-  color: var(--app-color-text-secondary);
+  color: var(--text-muted);
   min-width: 0;
 }
 
 .actionsRow {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--app-spacing-sm);
+  gap: 8px;
   justify-content: flex-start;
 }
 
 .actionButton {
-  border: none;
-  border-radius: var(--app-radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
   padding: 10px 14px;
   font-size: 13px;
   font-weight: 600;
-  background: rgba(30, 162, 255, 0.12);
-  color: var(--app-color-text-primary);
+  background: rgba(255, 255, 255, 0.03);
+  color: #fff;
   cursor: pointer;
-  transition: transform var(--app-motion-duration-fast) var(--app-motion-ease);
+  transition: all 0.2s ease;
+}
+
+.actionButton:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .actionButton:active {
@@ -161,195 +185,202 @@
 }
 
 .actionPrimary {
-  background: rgba(30, 162, 255, 0.18);
-  box-shadow: var(--app-glow-cyan);
+  background: rgba(30, 162, 255, 0.15);
+  border-color: rgba(30, 162, 255, 0.3);
+  color: #fff;
+  box-shadow: 0 0 12px rgba(30, 162, 255, 0.1);
 }
 
 .actionDanger {
-  background: rgba(255, 92, 92, 0.18);
+  background: rgba(255, 70, 70, 0.15);
+  border-color: rgba(255, 70, 70, 0.3);
   color: #ff7b7b;
 }
 
 .planGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--app-spacing-sm);
+  gap: 12px;
 }
 
 .planCard {
-  border: none;
-  border-radius: var(--app-radius-sm);
-  padding: var(--app-spacing-sm);
-  background: rgba(5, 7, 15, 0.6);
-  color: var(--app-color-text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #fff;
   text-align: left;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  gap: 8px;
   cursor: pointer;
-  transition: transform var(--app-motion-duration-fast) var(--app-motion-ease),
-    box-shadow var(--app-motion-duration-fast) var(--app-motion-ease);
+  transition: all 0.2s ease;
+}
+
+.planCard:hover {
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .planCardActive {
+  background: rgba(30, 162, 255, 0.15);
+  border-color: rgba(30, 162, 255, 0.4);
+  box-shadow: 0 0 16px rgba(30, 162, 255, 0.15);
   transform: translateY(-2px);
-  box-shadow: var(--app-glow-cyan);
 }
 
 .planDays {
   display: block;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 1.1rem;
+  font-weight: 700;
 }
 
 .planPrice {
   display: block;
-  font-size: 13px;
-  color: var(--app-color-text-muted);
+  font-size: 0.9rem;
+  color: var(--text-muted);
 }
 
 .groupGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--app-spacing-sm);
+  gap: 12px;
 }
 
 .groupCard {
-  border: none;
-  border-radius: var(--app-radius-sm);
-  padding: var(--app-spacing-sm);
-  background: rgba(5, 7, 15, 0.55);
-  color: var(--app-color-text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #fff;
   text-align: left;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  border: 1px solid transparent;
   cursor: pointer;
-  transition: transform var(--app-motion-duration-fast) var(--app-motion-ease),
-    border-color var(--app-motion-duration-fast) var(--app-motion-ease);
+  transition: all 0.2s ease;
+}
+
+.groupCard:hover {
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .groupCardActive {
-  border-color: rgba(30, 162, 255, 0.5);
-  box-shadow: var(--app-glow-cyan);
+  background: rgba(30, 162, 255, 0.15);
+  border-color: rgba(30, 162, 255, 0.4);
+  box-shadow: 0 0 16px rgba(30, 162, 255, 0.15);
   transform: translateY(-2px);
 }
 
 .groupName {
   display: block;
   font-weight: 600;
+  font-size: 0.95rem;
 }
 
 .groupMembers {
   display: block;
   margin-top: 2px;
-  font-size: 13px;
-  color: var(--app-color-text-muted);
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
 .winnerList {
   display: flex;
   flex-direction: column;
-  gap: var(--app-spacing-sm);
-  margin-top: var(--app-spacing-sm);
+  gap: 12px;
+  margin-top: 16px;
   min-width: 0;
 }
 
 .winnerHint {
-  font-size: 13px;
-  color: var(--app-color-text-muted);
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
 .winnerItem {
-  padding: var(--app-spacing-sm);
-  border-radius: var(--app-radius-sm);
-  background: rgba(5, 7, 15, 0.55);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   word-break: break-word;
 }
 
 .winnerBadge {
-  font-size: 11px;
+  font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--app-color-text-muted);
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
 }
 
 .winnerCode {
-  font-size: 16px;
+  font-size: 1.1rem;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  word-break: break-all;
+  letter-spacing: 0.02em;
+  color: #fff;
+  font-family: monospace;
 }
 
 .winnerMessage {
-  font-size: 13px;
-  color: var(--app-color-text-secondary);
+  font-size: 0.9rem;
+  color: var(--text-muted);
 }
 
 .note {
-  font-size: 13px;
-  color: var(--app-color-text-muted);
+  font-size: 0.85rem;
+  color: var(--text-muted);
   display: block;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .badge {
   padding: 4px 10px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--app-color-text-secondary);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
 }
 
 .badgeActive {
-  background: rgba(30, 162, 255, 0.18);
-  color: var(--app-color-accent-cyan);
+  background: rgba(30, 162, 255, 0.15);
+  color: #33b5ff;
+  box-shadow: 0 0 8px rgba(30, 162, 255, 0.2);
 }
 
 .badgeScheduled {
-  background: rgba(250, 204, 67, 0.2);
-  color: var(--app-color-accent-gold);
+  background: rgba(255, 200, 0, 0.15);
+  color: #ffcc00;
 }
 
 .badgeCompleted {
-  background: rgba(255, 92, 92, 0.2);
+  background: rgba(255, 70, 70, 0.15);
   color: #ff7b7b;
 }
 
 .formGrid {
   display: grid;
-  gap: var(--app-spacing-md);
+  gap: 20px;
 }
 
 .formSection {
   display: flex;
   flex-direction: column;
-  gap: var(--app-spacing-sm);
-}
-
-.stepTitle {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
+  gap: 12px;
 }
 
 .formHint {
-  font-size: 13px;
-  color: var(--app-color-text-muted);
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
 .inputRow {
   display: flex;
-  gap: var(--app-spacing-sm);
+  gap: 12px;
   flex-wrap: wrap;
 }
 
@@ -357,10 +388,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--app-spacing-sm);
-  padding: var(--app-spacing-sm);
-  border-radius: var(--app-radius-sm);
-  background: rgba(5, 7, 15, 0.55);
+  gap: 16px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .toggleText {
@@ -369,98 +401,115 @@
   gap: 4px;
 }
 
-.subTitle {
-  margin-top: var(--app-spacing-sm);
-  font-size: 14px;
+.toggleText span:first-child {
+  color: #fff;
   font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.subTitle {
+  margin-top: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
 }
 
 .summaryBox {
-  border-radius: var(--app-radius-sm);
-  padding: var(--app-spacing-sm);
-  background: rgba(5, 7, 15, 0.6);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 12px;
 }
 
 .summaryItem {
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
+  font-size: 0.95rem;
 }
 
 .summaryLabel {
-  color: var(--app-color-text-muted);
+  color: var(--text-muted);
 }
 
 .summaryValue {
   font-weight: 600;
+  color: #fff;
 }
 
 .joinHeader {
   display: flex;
   flex-direction: column;
-  gap: var(--app-spacing-sm);
-  background: radial-gradient(circle at top, rgba(30, 162, 255, 0.18) 0%, rgba(8, 12, 22, 0.96) 65%);
-  border-radius: var(--app-radius-md);
-  padding: var(--app-spacing-lg);
+  gap: 16px;
+  background: radial-gradient(circle at top, rgba(30, 162, 255, 0.2) 0%, rgba(10, 10, 10, 0.9) 70%);
+  border-radius: 20px;
+  padding: 32px 20px;
   text-align: center;
+  border: 1px solid rgba(30, 162, 255, 0.15);
+  box-shadow: 0 0 32px rgba(30, 162, 255, 0.05);
+  margin-top: 20px;
 }
 
 .requirements {
   display: flex;
   flex-direction: column;
-  gap: var(--app-spacing-sm);
+  gap: 12px;
 }
 
 .requirementItem {
   display: flex;
   justify-content: space-between;
-  gap: var(--app-spacing-sm);
-  padding: var(--app-spacing-sm);
-  border-radius: var(--app-radius-sm);
-  background: rgba(5, 7, 15, 0.55);
+  gap: 12px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  align-items: center;
 }
 
 .requirementLabel {
-  font-size: 14px;
+  font-size: 0.95rem;
+  color: #fff;
 }
 
 .requirementStatus {
-  font-size: 13px;
-  color: var(--app-color-text-muted);
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
 .rewardStrip {
   display: flex;
-  gap: var(--app-spacing-sm);
+  gap: 8px;
   flex-wrap: wrap;
   justify-content: center;
 }
 
 .rewardPill {
-  padding: 6px 12px;
+  padding: 6px 14px;
   border-radius: 999px;
-  background: rgba(30, 162, 255, 0.16);
-  color: var(--app-color-accent-cyan);
-  font-size: 12px;
+  background: rgba(30, 162, 255, 0.15);
+  color: #33b5ff;
+  font-size: 0.85rem;
   font-weight: 600;
+  border: 1px solid rgba(30, 162, 255, 0.2);
 }
 
 .joinCTA {
   display: flex;
   flex-direction: column;
-  gap: var(--app-spacing-sm);
+  gap: 16px;
   align-items: stretch;
 }
 
 .successState {
-  padding: var(--app-spacing-md);
-  border-radius: var(--app-radius-sm);
-  background: rgba(65, 214, 94, 0.18);
+  padding: 24px;
+  border-radius: 14px;
+  background: rgba(65, 214, 94, 0.1);
+  border: 1px solid rgba(65, 214, 94, 0.2);
   color: #41d65e;
   text-align: center;
   font-weight: 600;
+  font-size: 1.1rem;
 }

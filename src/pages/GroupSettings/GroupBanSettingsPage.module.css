@@ -155,7 +155,12 @@
   margin-bottom: 8px;
 }
 
-.select {
+.select:focus {
+  border-color: var(--magma-primary);
+  box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.1);
+}
+
+.input {
   width: 100%;
   padding: 10px;
   background: rgba(255, 255, 255, 0.05);
@@ -164,7 +169,13 @@
   color: #fff;
   font-size: 0.9rem;
   outline: none;
-  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.input:focus {
+  border-color: var(--magma-primary);
+  box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .timeRange {
@@ -202,6 +213,13 @@
   resize: vertical;
   margin-top: 12px;
   outline: none;
+  transition: all 0.2s ease;
+}
+
+.textarea:focus {
+  border-color: var(--magma-primary);
+  box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .keywordMeta {

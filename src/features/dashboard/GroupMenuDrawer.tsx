@@ -1,4 +1,5 @@
 import { Button, Text } from "@telegram-apps/telegram-ui";
+import { hapticFeedback } from "@telegram-apps/sdk-react";
 
 import { classNames } from "@/css/classnames.ts";
 
@@ -37,22 +38,17 @@ export function GroupMenuDrawer({ open, onClose, activeKey = "home", onSelect }:
         onClick={(event) => event.stopPropagation()}
       >
         <div className={styles.header}>
-          <Text
-            weight="3"
-            style={{
-              color: "var(--tg-theme-text-color, #000000)",
-            }}
-          >
-            Group management panel
+          <Text weight="3" style={{ color: '#fff' }}>
+            Group management
           </Text>
           <Button
             mode="plain"
             size="s"
-            onClick={onClose}
-            style={{
-              color: "var(--tg-theme-button-text-color, #007AFF)",
-              fontWeight: 600,
+            onClick={() => {
+              hapticFeedback.impactOccurred('light');
+              onClose();
             }}
+            className={styles.closeButton}
             data-testid="menu-close-button"
           >
             Close
@@ -65,6 +61,7 @@ export function GroupMenuDrawer({ open, onClose, activeKey = "home", onSelect }:
               type="button"
               className={classNames(styles.item, activeKey === item.key && styles.itemActive)}
               onClick={() => {
+                hapticFeedback.impactOccurred('light');
                 onSelect?.(item.key);
                 onClose();
               }}

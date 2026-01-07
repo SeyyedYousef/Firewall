@@ -23,7 +23,7 @@ const JoinGiveawayPage = lazy(() => import('@/pages/Giveaways/JoinGiveawayPage')
 const GiveawayHistoryPage = lazy(() => import('@/pages/Giveaways/GiveawayHistoryPage').then(m => ({ default: m.GiveawayHistoryPage })));
 const PromoSliderManagerPage = lazy(() => import('@/pages/PromoSlides/PromoSliderManagerPage').then(m => ({ default: m.PromoSliderManagerPage })));
 const ConfigPage = lazy(() => import('@/pages/Config/ConfigPage').then(m => ({ default: m.ConfigPage })));
-const OperativePage = lazy(() => import('@/pages/Operative/OperativePage').then(m => ({ default: m.OperativePage })));
+const ProfilePage = lazy(() => import('@/pages/Profile/ProfilePage').then(m => ({ default: m.ProfilePage })));
 
 export function App() {
   const lp = useMemo(() => {
@@ -66,7 +66,7 @@ export function App() {
               <Route path='giveaway/join/:giveawayId' element={<JoinGiveawayPage />} />
               <Route path='promo-slides/manage' element={<PromoSliderManagerPage />} />
               <Route path='settings' element={<ConfigPage />} />
-              <Route path='profile' element={<OperativePage />} />
+              <Route path='profile' element={<ProfilePage />} />
               <Route path='missions' element={<Navigate to='/profile' replace />} />
             </Route>
             <Route path='*' element={<Navigate to='/' replace />} />

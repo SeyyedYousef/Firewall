@@ -12,6 +12,7 @@ import {
   Text,
   Title,
 } from "@telegram-apps/telegram-ui";
+import { hapticFeedback } from "@telegram-apps/sdk-react";
 import { Skeleton } from '@/components/UI/Skeleton';
 
 import { GroupMenuDrawer } from "@/features/dashboard/GroupMenuDrawer.tsx";
@@ -120,6 +121,7 @@ function ScheduleSection({ title, value, disabled, onModeChange, onStartChange, 
           <label className={styles.timeItem}>
             <span>From</span>
             <Input
+              className={styles.input}
               type="time"
               value={value.start}
               disabled={disabled}
@@ -129,6 +131,7 @@ function ScheduleSection({ title, value, disabled, onModeChange, onStartChange, 
           <label className={styles.timeItem}>
             <span>To</span>
             <Input
+              className={styles.input}
               type="time"
               value={value.end}
               disabled={disabled}
@@ -436,7 +439,7 @@ export function GroupGeneralSettingsPage() {
             </div>
             <Switch
               checked={settings.welcomeEnabled}
-              onChange={(event) => updateSettings({ welcomeEnabled: event.target.checked })}
+              onChange={(event) => { hapticFeedback.impactOccurred('light'); updateSettings({ welcomeEnabled: event.target.checked }); }}
             />
           </div>
           {settings.welcomeEnabled && (
@@ -507,6 +510,7 @@ export function GroupGeneralSettingsPage() {
             <div className={styles.fieldRow}>
               <label className={styles.fieldLabel}>Deletion time (seconds)</label>
               <Input
+                className={styles.input}
                 type="number"
                 min={1}
                 value={settings.autoDeleteDelayMinutes}
@@ -685,6 +689,7 @@ export function GroupGeneralSettingsPage() {
                 <div className={styles.fieldRow}>
                   <label className={styles.fieldLabel}>Allowed warning count</label>
                   <Input
+                    className={styles.input}
                     type="number"
                     min={1}
                     value={settings.autoWarning.threshold}
@@ -694,6 +699,7 @@ export function GroupGeneralSettingsPage() {
                 <div className={styles.fieldRow}>
                   <label className={styles.fieldLabel}>Retention period (days)</label>
                   <Input
+                    className={styles.input}
                     type="number"
                     min={1}
                     value={settings.autoWarning.retentionDays}
@@ -780,7 +786,7 @@ export function GroupGeneralSettingsPage() {
           size="l"
           stretched
           disabled={!dirty || saving}
-          onClick={handleSave}
+          onClick={() => { hapticFeedback.impactOccurred('medium'); handleSave(); }}
         >
           {saving ? "Saving..." : "Save settings"}
         </Button>

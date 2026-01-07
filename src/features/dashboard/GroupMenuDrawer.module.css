@@ -1,11 +1,14 @@
-﻿.overlay {
+﻿/* GroupMenuDrawer.module.css - Magma Redesign */
+
+.overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.25);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.3s ease;
-  z-index: 40;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100;
 }
 
 .overlayVisible {
@@ -19,14 +22,17 @@
   bottom: 0;
   right: -320px;
   width: 280px;
-  background: var(--tg-theme-bg-color, #ffffff);
-  box-shadow: -12px 0 30px rgba(15, 23, 42, 0.12);
-  padding: 20px 16px;
+  /* Magma Glass Background */
+  background: rgba(20, 20, 25, 0.95);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(20px);
+  padding: 24px 16px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  transition: right 0.3s ease;
-  z-index: 41;
+  gap: 20px;
+  transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 101;
 }
 
 .drawerVisible {
@@ -37,6 +43,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .list {
@@ -44,38 +52,50 @@
   flex-direction: column;
   gap: 8px;
   overflow-y: auto;
-  padding-inline-end: 4px;
+  padding-right: 4px;
+  /* Scrollbar spacing */
+}
+
+/* Custom Scrollbar */
+.list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
 }
 
 .item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  border: none;
-  border-radius: 12px;
-  padding: 10px 12px;
+  gap: 14px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  padding: 12px 14px;
   background: transparent;
-  color: var(--tg-theme-text-color, #1c1c1f);
+  color: #a0a0a0;
+  /* Muted text */
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   -webkit-tap-highlight-color: transparent;
-}
-
-/* Ensure text is visible in both light and dark themes */
-:global(.telegram-theme-dark) .item {
-  color: var(--tg-theme-text-color, #e5e7eb);
+  text-align: left;
 }
 
 .item:hover {
-  background: var(--tg-theme-secondary-bg-color, rgba(15, 23, 42, 0.08));
+  background: rgba(255, 255, 255, 0.03);
+  color: #fff;
 }
 
 .itemActive {
-  background: var(--tg-theme-button-color, rgba(59, 130, 246, 0.18));
-  color: var(--tg-theme-button-text-color, #1d4ed8);
+  background: rgba(30, 162, 255, 0.1);
+  /* Magma Cyan Tint */
+  border-color: rgba(30, 162, 255, 0.2);
+  color: #ffffff;
   font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .itemIcon {
@@ -84,17 +104,21 @@
   align-items: center;
   justify-content: center;
   width: 24px;
+  filter: grayscale(0.4);
+  transition: filter 0.2s;
+}
+
+.itemActive .itemIcon {
+  filter: grayscale(0);
+  text-shadow: 0 0 10px rgba(30, 162, 255, 0.6);
 }
 
 .itemLabel {
   flex: 1;
-  text-align: right;
-  color: inherit;
 }
 
-/* Improve touch targets */
-@media (max-width: 768px) {
-  .item {
-    padding: 12px 16px;
-  }
+/* Close Button Override */
+.closeButton {
+  color: var(--status-critical) !important;
+  font-weight: 600;
 }

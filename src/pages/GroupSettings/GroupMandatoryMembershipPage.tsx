@@ -12,6 +12,7 @@ import {
   Textarea,
   Title,
 } from "@telegram-apps/telegram-ui";
+import { hapticFeedback } from "@telegram-apps/sdk-react";
 import { Skeleton } from '@/components/UI/Skeleton';
 
 import { GroupMenuDrawer } from "@/features/dashboard/GroupMenuDrawer.tsx";
@@ -152,6 +153,7 @@ export function GroupMandatoryMembershipPage() {
 
   const handleForcedChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
+      hapticFeedback.impactOccurred('light');
       const raw = event.target.value;
       setForcedInviteCountText(raw);
       const trimmed = raw.trim();
@@ -168,6 +170,7 @@ export function GroupMandatoryMembershipPage() {
 
   const handleResetChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
+      hapticFeedback.impactOccurred('light');
       const raw = event.target.value;
       setForcedInviteResetDaysText(raw);
       const trimmed = raw.trim();
@@ -489,7 +492,7 @@ export function GroupMandatoryMembershipPage() {
       </main>
 
       <footer className={styles.saveBar}>
-        <Button mode="filled" size="l" stretched disabled={!canSave} onClick={handleSave}>
+        <Button mode="filled" size="l" stretched disabled={!canSave} onClick={() => { hapticFeedback.impactOccurred('medium'); handleSave(); }}>
           {saving ? TEXT.saving : TEXT.save}
         </Button>
       </footer>

@@ -13,6 +13,7 @@ import {
   Textarea,
   Title,
 } from "@telegram-apps/telegram-ui";
+import { hapticFeedback } from "@telegram-apps/sdk-react";
 import { Skeleton } from '@/components/UI/Skeleton';
 
 import { GroupMenuDrawer } from "@/features/dashboard/GroupMenuDrawer.tsx";
@@ -73,6 +74,7 @@ function ScheduleSection({ title, value, disabled, isPremium = true, onModeChang
           <label className={styles.timeItem}>
             <span>From</span>
             <Input
+              className={styles.input}
               type="time"
               value={value.start}
               disabled={disabled}
@@ -82,6 +84,7 @@ function ScheduleSection({ title, value, disabled, isPremium = true, onModeChang
           <label className={styles.timeItem}>
             <span>To</span>
             <Input
+              className={styles.input}
               type="time"
               value={value.end}
               disabled={disabled}
@@ -483,7 +486,7 @@ export function GroupBanSettingsPage() {
                         </div>
                         <Switch
                           checked={ruleSetting.enabled}
-                          onChange={(event) => updateRule(rule.key, { enabled: event.target.checked })}
+                          onChange={(event) => { hapticFeedback.impactOccurred('light'); updateRule(rule.key, { enabled: event.target.checked }); }}
                         />
                       </div>
                       {ruleSetting.enabled && (
@@ -535,7 +538,7 @@ export function GroupBanSettingsPage() {
           size="l"
           stretched
           disabled={!dirty || saving}
-          onClick={handleSave}
+          onClick={() => { hapticFeedback.impactOccurred('medium'); handleSave(); }}
         >
           {saving ? "Saving..." : "Save settings"}
         </Button>

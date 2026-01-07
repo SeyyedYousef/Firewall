@@ -165,6 +165,14 @@
   border-radius: 8px !important;
   width: 80px !important;
   text-align: right;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.numberInput:focus-within {
+  border-color: var(--magma-primary) !important;
+  box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08) !important;
 }
 
 .textarea {
@@ -179,6 +187,13 @@
   resize: vertical;
   margin-bottom: 8px;
   outline: none;
+  transition: all 0.2s ease;
+}
+
+.textarea:focus {
+  border-color: var(--magma-primary);
+  box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .summaryText {

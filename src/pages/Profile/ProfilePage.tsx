@@ -1,448 +1,360 @@
-import { useMemo, useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { Avatar, Button, Switch, Text } from "@telegram-apps/telegram-ui";
+import { useMemo, useState } from "react";
+import { openLink, hapticFeedback } from '@telegram-apps/sdk-react';
+import { Avatar, Button, Spinner, Text } from "@telegram-apps/telegram-ui";
 
 import { useOwnerProfile } from "@/features/dashboard/useOwnerProfile.ts";
 import { useUserProfile } from "@/features/profile/useUserProfile.ts";
-import type { ProfileBootstrap, UserProfileSummary } from "@/features/profile/api.ts";
-import { fetchUserPreferences, updateUserPreferences, type UserPreferences } from "@/features/profile/api.ts";
+import { completeChannelMission, spinDailyWheel } from "@/features/missions/api.ts";
 
 import styles from "./ProfilePage.module.css";
 
-const TEXT = {
-  tagline: "Show your power",
-  statsTitle: "Performance pulse",
-  progressTitle: "Mission cadence",
-  actionsTitle: "Command shortcuts",
-  alertsTitle: "Signal alerts",
-  automationTitle: "Automation",
-  securityTitle: "Security posture",
-  activityTitle: "Latest activity",
-  supportTitle: "Support & resources",
+/* --- Types & Constants --- */
+type TabKey = "status" | "ops" | "armory";
+
+type MissionIconKey = "check" | "stars" | "invite" | "trophy" | "brain" | "gift" | "link" | "groups" | "security";
+
+type Mission = {
+  id: string;
+  title: string;
+  description: string;
+  xp: number;
+  icon: MissionIconKey;
+  verification?: { kind: "telegram-channel"; channelUsername: string };
+  ctaLink?: string;
+  ctaLabel?: string;
 };
 
-const BADGE_LABELS: Record<string, string> = {
-  rookie: "Rookie",
-  active: "Active",
-  master: "Master",
-  elite: "Elite",
-  legend: "Legend",
+type Reward = {
+  id: string;
+  title: string;
+  cost: number;
+  description: string;
+  isBadge?: boolean;
 };
 
-function buildPerformance(xp: number, profile: UserProfileSummary | null) {
-  const uptimeScore = profile?.uptimeScore ?? 0;
-  const missionsCleared = profile?.missionsCleared ?? 0;
-  const globalRank = profile?.globalRank ?? null;
+const DAILY_WHEEL_ID = "daily-wheel";
+const FIREWALL_CHANNEL_URL = "https://t.me/firewall";
+const FIREWALL_CHANNEL_USERNAME = "firewall";
 
-  return [
+const MISSIONS = {
+  daily: [
+    { id: DAILY_WHEEL_ID, title: "Daily Spin", description: "Spin the wheel for bonus XP.", xp: 20, icon: "trophy" },
+  ],
+  weekly: [
+    { id: "upgrade-weekly", title: "Premium Upgrade", description: "Upgrade a group to Premium.", xp: 70, icon: "stars" },
+    { id: "complete-daily-3", title: "3-Day Streak", description: "Maintain a strict 3-day ops streak.", xp: 70, icon: "check" },
+  ],
+  general: [
     {
-      label: "Season XP",
-      value: xp,
-      formatted: xp.toLocaleString("en-US"),
-      delta: xp > 0 ? "+12% vs last season" : "Start your journey",
+      id: "join-channel",
+      title: "Join HQ Channel",
+      description: "Subscribe for critical intel.",
+      xp: 30,
+      icon: "link",
+      ctaLink: FIREWALL_CHANNEL_URL,
+      ctaLabel: "Open Comms",
+      verification: { kind: "telegram-channel", channelUsername: FIREWALL_CHANNEL_USERNAME }
     },
-    {
-      label: "Uptime score",
-      value: uptimeScore,
-      formatted: uptimeScore > 0 ? `${uptimeScore.toFixed(1)}%` : "0%",
-      delta: uptimeScore > 95 ? "All networks stable" : "No data yet",
-    },
-    {
-      label: "Missions cleared",
-      value: missionsCleared,
-      formatted: `${missionsCleared}`,
-      delta: missionsCleared > 0 ? "3 remaining this week" : "No missions completed",
-    },
-    {
-      label: "Global rank",
-      value: globalRank ?? 0,
-      formatted: globalRank ? `#${globalRank}` : "Unranked",
-      delta: globalRank && globalRank <= 100 ? "Top 3% of commanders" : "Complete missions to rank",
-    },
-  ];
+  ]
+} as const;
+
+const REWARDS: Reward[] = [
+  { id: "badge-rookie", title: "Rookie Badge", cost: 200, description: "Mark your debut.", isBadge: true },
+  { id: "badge-elite", title: "Elite Badge", cost: 2000, description: "Flex elite status.", isBadge: true },
+  { id: "reward-uptime-7", title: "7-Day Uptime", cost: 800, description: "Extend protection by a week." },
+];
+
+/* --- Helper Components --- */
+
+function MissionIcon({ icon, completed }: { icon: MissionIconKey; completed: boolean }) {
+  const map: Record<string, string> = {
+    check: "✅", stars: "⭐", invite: "🤝", trophy: "🏆", brain: "🧠", gift: "🎁", link: "🔗", groups: "🛡️", security: "🔒"
+  };
+  return <span style={{ fontSize: '1.2rem', opacity: completed ? 0.5 : 1 }}>{map[icon] ?? "🔹"}</span>;
 }
 
-function clampProgress(value: number | null | undefined): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return 0;
-  }
-  if (value < 0) {
-    return 0;
-  }
-  if (value > 1) {
-    return 1;
-  }
-  return value;
-}
-
-function buildProgressTracks(profile: UserProfileSummary | null, missions: ProfileBootstrap["missions"]) {
-  const streak = profile?.streak ?? 0;
-  const dailyCaption = streak > 0 ? `${streak} day${streak === 1 ? "" : "s"} active` : "No activity recorded yet";
-  const dailyValue = Math.min(1, Math.max(0, streak / 7));
-
-  const weeklyCompleted = profile?.weeklyObjectivesCompleted ?? missions.weekly?.length ?? 0;
-  const weeklyTotal = profile?.weeklyObjectivesTotal ?? 0;
-  const weeklyValue = weeklyTotal > 0 ? clampProgress(weeklyCompleted / weeklyTotal) : 0;
-  const weeklyCaption =
-    weeklyTotal > 0
-      ? `${weeklyCompleted} of ${weeklyTotal} completed`
-      : weeklyCompleted > 0
-        ? `${weeklyCompleted} completed this week`
-        : "No weekly objectives completed yet";
-
-  const seasonProgress = clampProgress(profile?.seasonAmbitionProgress ?? 0);
-  const seasonGoal = profile?.seasonAmbitionGoal ?? null;
-  const seasonCaption =
-    seasonGoal && seasonGoal.trim().length > 0
-      ? `Goal: ${seasonGoal}`
-      : seasonProgress > 0
-        ? `${Math.round(seasonProgress * 100)}% of season target`
-        : "Season ambition not set";
-
-  return [
-    { key: "daily", label: "Daily streak", value: dailyValue, caption: dailyCaption },
-    { key: "weekly", label: "Weekly objectives", value: weeklyValue, caption: weeklyCaption },
-    { key: "monthly", label: "Season ambitions", value: seasonProgress, caption: seasonCaption },
-  ];
-}
+/* --- Main Page --- */
 
 export function ProfilePage() {
-  const navigate = useNavigate();
-  const owner = useOwnerProfile();
-  const { profile, missions, achievements, completions, checkIn } = useUserProfile();
+  /* --- Hooks --- */
+  const { displayName, username, avatarUrl: ownerAvatar } = useOwnerProfile();
+  const { profile, missions: missionState, completions, loading, refresh, redeemReward } = useUserProfile();
 
-  const displayName = profile?.displayName ?? owner.displayName ?? "Firewall Commander";
-  const username = profile?.username ?? owner.username ?? null;
-  const avatarUrl = profile?.avatarUrl ?? owner.avatarUrl ?? null;
-  const badges = profile?.badges ?? [];
-  const latestBadgeId = badges[badges.length - 1] ?? null;
-  const latestBadgeLabel = latestBadgeId ? BADGE_LABELS[latestBadgeId] ?? latestBadgeId : "No badge yet";
+  /* --- State --- */
+  const [activeTab, setActiveTab] = useState<TabKey>("status");
+  const [snackbar, setSnackbar] = useState<string | null>(null);
+  const [processing, setProcessing] = useState<string | null>(null); // ID of item being processed
 
-  const initials = useMemo(() => {
-    const source = displayName || username || "User";
-    const parts = source.trim().split(/\s+/).filter(Boolean);
-    const letters = parts.slice(0, 2).map((word) => word.charAt(0).toUpperCase());
-    return letters.join("") || "U";
-  }, [displayName, username]);
-
+  /* --- Computed --- */
   const xp = profile?.totalXp ?? 0;
-  const performance = useMemo(() => buildPerformance(xp, profile), [xp, profile]);
-  const progressTracks = useMemo(() => buildProgressTracks(profile, missions), [profile, missions]);
   const level = profile?.level ?? 1;
-  const progressToNext = clampProgress(profile?.progressToNext ?? 0);
-  const hasNextLevel = typeof profile?.nextLevelXp === "number" && profile.nextLevelXp !== null;
-  const remainingToNext =
-    hasNextLevel && typeof profile?.nextLevelXp === "number"
-      ? Math.max(0, profile.nextLevelXp - xp)
-      : 0;
+  const nextLevelXp = profile?.nextLevelXp ?? (level * 1000); // Fallback
+  const progress = Math.min(1, Math.max(0, (xp - (profile?.previousLevelXp ?? 0)) / ((nextLevelXp - (profile?.previousLevelXp ?? 0)) || 1)));
 
-  const activityItems = useMemo(
-    () => {
-      const items: { key: string; title: string; time: string; timestamp: number }[] = [];
+  const streak = profile?.streak ?? 0;
 
-      completions.forEach((completion) => {
-        const date = new Date(completion.completedAt);
-        const timestamp = date.getTime();
-        items.push({
-          key: `completion-${completion.missionId}-${completion.cycleKey}-${completion.completedAt}`,
-          title: `Completed ${completion.category} mission (+${completion.xpEarned.toLocaleString("en-US")} XP)`,
-          time: date.toLocaleString("en-US"),
-          timestamp,
-        });
-      });
+  // Referral Logic
+  const referralLink = useMemo(() => {
+    const userId = profile?.id ?? "";
+    return `https://t.me/Firewallmainbot?start=ref_${userId}`;
+  }, [profile?.id]);
 
-      achievements.forEach((achievement) => {
-        const date = new Date(achievement.unlockedAt);
-        const timestamp = date.getTime();
-        items.push({
-          key: `achievement-${achievement.achievementId}-${achievement.unlockedAt}`,
-          title: `Unlocked achievement ${achievement.achievementId}`,
-          time: date.toLocaleString("en-US"),
-          timestamp,
-        });
-      });
+  const copyReferral = async () => {
+    try {
+      hapticFeedback.impactOccurred('light');
+      await navigator.clipboard.writeText(referralLink);
+      setSnackbar("Referral link copied to clipboard.");
+    } catch {
+      setSnackbar("Failed to copy link.");
+    }
+  };
 
-      items.sort((a, b) => b.timestamp - a.timestamp);
-
-      return items.slice(0, 10);
-    },
-    [completions, achievements],
-  );
-
-  const [preferences, setPreferences] = useState<UserPreferences>({
-    pushEnabled: true,
-    digestEnabled: true,
-    autoEscalate: false,
-    silentFailures: true,
-  });
-
-  const [checkInLoading, setCheckInLoading] = useState(false);
-
-  // Load preferences on mount
-  useEffect(() => {
-    const loadPreferences = async () => {
-      try {
-        const userPrefs = await fetchUserPreferences();
-        setPreferences(userPrefs);
-      } catch (error) {
-        console.warn("Failed to load preferences:", error);
-      }
-    };
-    void loadPreferences();
-  }, []);
-
-  // Handle preference updates
-  const handlePreferenceChange = useCallback(async (key: keyof UserPreferences, value: boolean) => {
-    const newPreferences = { ...preferences, [key]: value };
-    setPreferences(newPreferences);
+  /* --- Handlers --- */
+  const handleCompleteMission = async (mission: Mission, _category: string) => {
+    hapticFeedback.impactOccurred('light');
+    if (processing) return;
+    setProcessing(mission.id);
 
     try {
-      await updateUserPreferences(newPreferences);
-    } catch (error) {
-      // Revert on error
-      setPreferences(preferences);
-      console.error("Failed to update preferences:", error);
+      if (mission.id === DAILY_WHEEL_ID) {
+        const result = await spinDailyWheel();
+        setSnackbar(`Spin result: +${result.rewardXp} XP!`);
+        await refresh();
+      } else if (mission.verification?.kind === "telegram-channel") {
+        const res = await completeChannelMission(mission.verification.channelUsername);
+        if (res.ok) {
+          setSnackbar(`Mission Verified: +${mission.xp} XP`);
+          await refresh();
+        } else {
+          setSnackbar("Verification failed. Join the channel first.");
+        }
+      } else {
+        setSnackbar("This mission tracks automatically.");
+      }
+    } catch (e) {
+      console.error(e);
+      setSnackbar("Operation failed.");
     } finally {
-      // Loading state removed
+      setProcessing(null);
     }
-  }, [preferences]);
+  };
 
-  const handleDailyCheckIn = useCallback(async () => {
-    if (!checkIn || !profile) {
+  const handleRedeem = async (reward: Reward) => {
+    hapticFeedback.impactOccurred('light');
+    if (xp < reward.cost) {
+      setSnackbar("Insufficient XP.");
       return;
     }
+    setProcessing(reward.id);
     try {
-      setCheckInLoading(true);
-      await checkIn();
-    } catch (error) {
-      console.error("Failed to record daily check-in:", error);
+      await redeemReward(reward.id, reward.cost);
+      setSnackbar(`Acquired: ${reward.title}`);
+      await refresh();
+    } catch (e) {
+      setSnackbar("Transaction failed.");
     } finally {
-      setCheckInLoading(false);
+      setProcessing(null);
     }
-  }, [checkIn, profile]);
+  };
 
-  const automationOptions = [
-    {
-      key: "push-alerts",
-      label: "Push alerts",
-      description: "Send instant notifications for high-priority incidents.",
-      value: preferences.pushEnabled,
-      onToggle: (value: boolean) => handlePreferenceChange('pushEnabled', value),
-    },
-    {
-      key: "weekly-digest",
-      label: "Weekly digest",
-      description: "Receive a summary of group performance every Monday.",
-      value: preferences.digestEnabled,
-      onToggle: (value: boolean) => handlePreferenceChange('digestEnabled', value),
-    },
-    {
-      key: "silence-failures",
-      label: "Silence failed rules",
-      description: "Automatically mute users when automated rules cannot apply.",
-      value: preferences.silentFailures,
-      onToggle: (value: boolean) => handlePreferenceChange('silentFailures', value),
-    },
-    {
-      key: "auto-escalate",
-      label: "Auto-escalate",
-      description: "Escalate unresolved incidents to managers for follow-up.",
-      value: preferences.autoEscalate,
-      onToggle: (value: boolean) => handlePreferenceChange('autoEscalate', value),
-    },
-  ];
+  /* --- Renderers --- */
 
-  return (
-    <div className={styles.page} dir="ltr">
-      <section className={styles.heroCard}>
+  const renderHero = () => (
+    <section className={styles.hero}>
+      <div className={styles.heroHeader}>
         <div className={styles.heroProfile}>
-          <Avatar
-            size={96}
-            src={avatarUrl ?? undefined}
-            acronym={avatarUrl ? undefined : (initials ?? undefined)}
-            alt={displayName}
-          />
+          <Avatar size={48} src={profile?.avatarUrl ?? ownerAvatar} acronym="OP" />
           <div className={styles.heroMeta}>
-            <span className={styles.heroLabel}>{TEXT.tagline}</span>
-            <h1 className={styles.heroName}>{displayName}</h1>
-            <span className={styles.heroUsername}>{username ? `@${username}` : "No username"}</span>
+            <span className={styles.heroLabel}>COMMAND DECK</span>
+            <h1 className={styles.heroTitle}>{profile?.displayName ?? displayName}</h1>
+            <span className={styles.heroSubtitle}>Class: Sentinel • {username ? `@${username}` : "No Callsign"}</span>
           </div>
         </div>
-        <div className={styles.heroProgress}>
-          <div className={styles.heroBadge}>
-            <span className={styles.heroBadgeLabel}>Current badge</span>
-            <span className={styles.heroBadgeValue}>{latestBadgeLabel}</span>
-          </div>
-          <div className={styles.progressTrack}>
-            <div className={styles.progressValue} style={{ width: `${progressToNext * 100}%` }} />
-          </div>
-          <span className={styles.progressCaption}>
-            {hasNextLevel
-              ? `${remainingToNext.toLocaleString("en-US")} XP until level ${level + 1}`
-              : "Season level cap reached"}
-          </span>
-          <span className={styles.heroSubtitle}>
-            Level {level.toString().padStart(2, "0")}
-          </span>
-        </div>
-      </section>
+      </div>
 
-      <div className={styles.layout}>
-        <div className={styles.columnPrimary}>
-          <section className={styles.section}>
-            <header className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>{TEXT.statsTitle}</h2>
-              <Text className={styles.sectionHint}>Pulse metrics that define your rank each season.</Text>
-              <Button
-                size="s"
-                mode="filled"
-                disabled={checkInLoading || !profile}
-                onClick={() => {
-                  void handleDailyCheckIn();
-                }}
-              >
-                {checkInLoading ? "Checking in..." : "Daily check-in"}
-              </Button>
-            </header>
-            <div className={styles.statsGrid}>
-              {performance.map((item) => (
-                <div key={item.label} className={styles.statCard}>
-                  <span className={styles.statLabel}>{item.label}</span>
-                  <span className={styles.statValue}>{item.formatted}</span>
-                  <span className={styles.statHint}>{item.delta}</span>
+      <div className={styles.heroStats}>
+        <div className={styles.levelRow}>
+          <span>LEVEL {level}</span>
+          <span>{xp.toLocaleString()} XP</span>
+        </div>
+        <div className={styles.progressTrack}>
+          <div className={styles.progressValue} style={{ width: `${progress * 100}%` }} />
+        </div>
+        <div className={styles.levelMeta}>
+          <span className={styles.levelProgress}>Next Rank: {nextLevelXp.toLocaleString()} XP</span>
+          <div className={styles.chipRow}>
+            <span className={styles.chip}>🔥 {streak} Day Streak</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+
+  const renderTabs = () => (
+    <nav className={styles.tabs}>
+      <button className={`${styles.tabButton} ${activeTab === 'status' ? styles.tabButtonActive : ''}`} onClick={() => { hapticFeedback.impactOccurred('light'); setActiveTab('status'); }}>
+        📊 STATUS
+      </button>
+      <button className={`${styles.tabButton} ${activeTab === 'ops' ? styles.tabButtonActive : ''}`} onClick={() => { hapticFeedback.impactOccurred('light'); setActiveTab('ops'); }}>
+        ⚔️ OPS
+      </button>
+      <button className={`${styles.tabButton} ${activeTab === 'armory' ? styles.tabButtonActive : ''}`} onClick={() => { hapticFeedback.impactOccurred('light'); setActiveTab('armory'); }}>
+        🛒 ARMORY
+      </button>
+    </nav>
+  );
+
+  const renderStatus = () => (
+    <div className={styles.tabContent}>
+      <h3 className={styles.sectionTitle}>PERFORMANCE PULSE</h3>
+      <div className={styles.statsGrid}>
+        <div className={styles.statCard}>
+          <span className={styles.statLabel}>Global Rank</span>
+          <span className={styles.statValue}>#{profile?.globalRank ?? "---"}</span>
+          <span className={styles.statHint}>Top 5%</span>
+        </div>
+        <div className={styles.statCard}>
+          <span className={styles.statLabel}>Missions Cleared</span>
+          <span className={styles.statValue}>{profile?.missionsCleared ?? 0}</span>
+        </div>
+        <div className={styles.statCard}>
+          <span className={styles.statLabel}>Uptime Score</span>
+          <span className={styles.statValue}>{profile?.uptimeScore ?? 100}%</span>
+          <span className={styles.statHint}>Stable</span>
+        </div>
+      </div>
+
+      <h3 className={styles.sectionTitle} style={{ marginTop: 24 }}>LATEST INTEL</h3>
+      <div className={styles.activityList}>
+        {completions.slice(0, 5).map((log) => (
+          <div key={log.completedAt} className={styles.activityItem}>
+            <span className={styles.activityTime}>{new Date(log.completedAt).toLocaleDateString()}</span>
+            <span className={styles.activityText}>Completed operation: {log.missionId} (+{log.xpEarned} XP)</span>
+          </div>
+        ))}
+        {completions.length === 0 && <span style={{ color: '#666', fontStyle: 'italic' }}>No recent activity logged.</span>}
+      </div>
+    </div>
+  );
+
+  const renderOps = () => {
+    // Combine local definitions with backend state (simplified for demo)
+    const allMissions: any[] = [
+      ...MISSIONS.daily.map(m => ({ ...m, category: 'daily' })),
+      ...MISSIONS.weekly.map(m => ({ ...m, category: 'weekly' })),
+      ...MISSIONS.general.map(m => ({ ...m, category: 'general' })),
+    ];
+
+    return (
+      <div className={styles.missionList}>
+        {allMissions.map(mission => {
+          const isCompleted = (missionState?.[mission.category as keyof typeof missionState] ?? []).includes(mission.id);
+          const isProcessing = processing === mission.id;
+
+          return (
+            <div key={mission.id} className={`${styles.missionCard} ${isCompleted ? styles.missionCardCompleted : ''}`}>
+              <div className={styles.missionHeader}>
+                <div className={styles.missionIcon}><MissionIcon icon={mission.icon} completed={isCompleted} /></div>
+                <div className={styles.missionContent}>
+                  <span className={styles.missionTitle}>{mission.title}</span>
+                  <span className={styles.missionDesc}>{mission.description}</span>
+                  <div className={styles.missionMeta}>
+                    <span className={styles.xpBadge}>+{mission.xp} XP</span>
+                    {isCompleted && <span style={{ color: 'var(--status-safe)', fontSize: '0.8rem', fontWeight: 700 }}>COMPLETED</span>}
+                  </div>
                 </div>
-              ))}
-            </div>
-          </section>
-
-          {achievements.length > 0 && (
-            <section className={styles.section}>
-              <header className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>Achievements</h2>
-                <Text className={styles.sectionHint}>Recently unlocked milestones.</Text>
-              </header>
-              <div className={styles.activityList}>
-                {achievements.slice(0, 8).map((achievement) => {
-                  const label = BADGE_LABELS[achievement.achievementId] ?? achievement.achievementId;
-                  const unlockedAt = new Date(achievement.unlockedAt).toLocaleString("en-US");
-                  return (
-                    <article
-                      key={`${achievement.achievementId}-${achievement.unlockedAt}`}
-                      className={styles.activityCard}
-                    >
-                      <span className={styles.activityTitle}>{label}</span>
-                      <span className={styles.activityTime}>{unlockedAt}</span>
-                    </article>
-                  );
-                })}
               </div>
-            </section>
-          )}
-
-          <section className={styles.section}>
-            <header className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>{TEXT.progressTitle}</h2>
-              <Text className={styles.sectionHint}>Track how consistently you are hitting mission rhythm.</Text>
-            </header>
-            <div className={styles.progressGrid}>
-              {progressTracks.map((item) => (
-                <div key={item.key} className={styles.progressCard}>
-                  <div className={styles.progressHeader}>
-                    <Text weight="2">{item.label}</Text>
-                    <Text className={styles.progressPercent}>{Math.round(item.value * 100)}%</Text>
-                  </div>
-                  <div className={styles.progressTrack}>
-                    <div className={styles.progressValue} style={{ width: `${Math.min(1, item.value) * 100}%` }} />
-                  </div>
-                  <span className={styles.progressCaption}>{item.caption}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className={styles.section}>
-            <header className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>{TEXT.actionsTitle}</h2>
-              <Text className={styles.sectionHint}>Jump straight to the commands you use the most.</Text>
-            </header>
-            <div className={styles.actionsGrid}>
-              {[
-                { key: "missions", label: "Open missions", hint: "Prioritize next objectives", to: "/missions" },
-                { key: "rewards", label: "XP Store", hint: "Get Premium upgrades & badges", to: "/missions" },
-                { key: "activity", label: "Activity log", hint: "Premium purchases & actions", to: "/stars" },
-                { key: "groups", label: "Manage groups", hint: "Jump to dashboard", to: "/groups" },
-                { key: "analytics", label: "Review analytics", hint: "Week-over-week trends", to: "/groups" },
-                { key: "giveaway", label: "Launch giveaway", hint: "Boost community energy", to: "/giveaway/create" },
-              ].map((action) => (
-                <button
-                  key={action.key}
-                  type="button"
-                  className={styles.actionCard}
-                  onClick={() => navigate(action.to)}
-                >
-                  <span className={styles.actionLabel}>{action.label}</span>
-                  <span className={styles.actionHint}>{action.hint}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section className={styles.section}>
-            <header className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>{TEXT.automationTitle}</h2>
-              <Text className={styles.sectionHint}>Keep the bot two steps ahead of trouble.</Text>
-            </header>
-            <div className={styles.statusList}>
-              {automationOptions.map((option) => (
-                <div key={option.key} className={styles.toggleRow}>
-                  <div className={styles.toggleText}>
-                    <Text weight="2">{option.label}</Text>
-                    <Text className={styles.linkHint}>{option.description}</Text>
-                  </div>
-                  <Switch checked={option.value} onChange={(event) => option.onToggle(event.target.checked)} />
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className={styles.section}>
-            <header className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>{TEXT.activityTitle}</h2>
-              <Text className={styles.sectionHint}>Signals from your latest missions, Premium purchases, and bot actions.</Text>
-            </header>
-            <div className={styles.activityList}>
-              {activityItems.length > 0 ? (
-                activityItems.map((item) => (
-                  <article key={item.key} className={styles.activityCard}>
-                    <span className={styles.activityTitle}>{item.title}</span>
-                    <span className={styles.activityTime}>{item.time}</span>
-                  </article>
-                ))
-              ) : (
-                <div className={styles.emptyActivity}>
-                  <Text>No activity yet. Complete your first mission!</Text>
+              {!isCompleted && (
+                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  {mission.ctaLink && (
+                    <Button size="s" mode="plain" onClick={() => openLink(mission.ctaLink!)}>
+                      {mission.ctaLabel ?? "Execute"}
+                    </Button>
+                  )}
+                  <Button
+                    size="s"
+                    mode="filled"
+                    loading={isProcessing}
+                    disabled={isProcessing}
+                    onClick={() => handleCompleteMission(mission, mission.category)}
+                  >
+                    {mission.verification ? "Verify" : mission.id === DAILY_WHEEL_ID ? "Spin" : "Track"}
+                  </Button>
                 </div>
               )}
             </div>
-          </section>
-        </div>
+          );
+        })}
+      </div>
+    );
+  };
 
-        <aside className={styles.columnSecondary}>
-          <section className={styles.section}>
-            <header className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>{TEXT.supportTitle}</h2>
-              <Text className={styles.sectionHint}>Need backup? Reach out to the Firewall crew.</Text>
-            </header>
-            <div className={styles.supportCard}>
-              <Text weight="2">Support channel</Text>
-              <Text className={styles.supportHint}>Firewall HQ provides 24/7 coverage.</Text>
-              <Button size="s" mode="filled" onClick={() => navigate("/support")}>
-                Contact support
+  const renderArmory = () => (
+    <div>
+      <div className={styles.referralCard}>
+        <h3 style={{ color: '#fff', margin: 0 }}>INVITE NEW OPERATIVES</h3>
+        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>Earn 100 XP for every activated recruit.</p>
+        <div className={styles.referralCode}>
+          {referralLink}
+          <button className={styles.copyBtn} onClick={copyReferral}>📋</button>
+        </div>
+      </div>
+
+      <h3 className={styles.sectionTitle} style={{ marginTop: 24 }}>SUPPLY DROP</h3>
+      <div className={styles.marketGrid}>
+        {REWARDS.map(reward => {
+          const affordable = xp >= reward.cost;
+          return (
+            <div key={reward.id} className={styles.itemCard}>
+              <div className={styles.itemIcon}>{reward.isBadge ? "🎖️" : "📦"}</div>
+              <span className={styles.itemName}>{reward.title}</span>
+              <span className={styles.itemCost}>{reward.cost} XP</span>
+              <Button
+                size="s"
+                mode={affordable ? "filled" : "gray"}
+                disabled={!affordable || processing === reward.id}
+                loading={processing === reward.id}
+                onClick={() => handleRedeem(reward)}
+              >
+                ACQUIRE
               </Button>
             </div>
-          </section>
-        </aside>
+          );
+        })}
       </div>
+    </div>
+  );
+
+  if (loading && !profile) {
+    return (
+      <div className={styles.page} style={{ justifyContent: 'center', alignItems: 'center' }}>
+        <Spinner size="l" />
+        <Text style={{ marginTop: 16 }}>Establishing Uplink...</Text>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.page}>
+      {renderHero()}
+      {renderTabs()}
+
+      <main style={{ flex: 1 }}>
+        {activeTab === 'status' && renderStatus()}
+        {activeTab === 'ops' && renderOps()}
+        {activeTab === 'armory' && renderArmory()}
+      </main>
+
+      {snackbar && (
+        <div style={{
+          position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.8)', color: '#fff', padding: '12px 24px', borderRadius: 24,
+          backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', zIndex: 100
+        }}>
+          {snackbar}
+          <button onClick={() => setSnackbar(null)} style={{ marginLeft: 12, background: 'none', border: 'none', color: '#fff' }}>✕</button>
+        </div>
+      )}
     </div>
   );
 }

@@ -121,6 +121,25 @@
 
 .select:focus {
   border-color: var(--magma-primary);
+  box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.1);
+}
+
+.input {
+  width: 100%;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 0.95rem;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.input:focus {
+  border-color: var(--magma-primary);
+  box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .scheduleBlock {

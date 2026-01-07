@@ -18,6 +18,7 @@ import {
   Text,
   Title,
 } from "@telegram-apps/telegram-ui";
+import { hapticFeedback } from "@telegram-apps/sdk-react";
 import { Skeleton } from '@/components/UI/Skeleton';
 
 import { GroupMenuDrawer } from "@/features/dashboard/GroupMenuDrawer.tsx";
@@ -1047,6 +1048,7 @@ export function GroupAnalyticsPage() {
   );
 
   const handleReload = useCallback(() => {
+    hapticFeedback.impactOccurred('light');
     setReloadKey((value) => value + 1);
   }, []);
 
@@ -1098,6 +1100,7 @@ export function GroupAnalyticsPage() {
   }, []);
 
   const handleMessageTypeToggle = useCallback((type: AnalyticsMessageType) => {
+    hapticFeedback.selectionChanged();
     setSelectedMessageTypes((prev) => {
       if (prev.includes(type)) {
         const next = prev.filter((item) => item !== type);
@@ -1113,6 +1116,7 @@ export function GroupAnalyticsPage() {
   }, []);
 
   const handleLegendToggle = useCallback((type: AnalyticsMessageType) => {
+    hapticFeedback.selectionChanged();
     setHiddenSeries((prev) => {
       const next = new Set(prev);
       if (next.has(type)) {
@@ -1216,7 +1220,8 @@ export function GroupAnalyticsPage() {
                 mode={rangePreset === option.key ? "filled" : "outline"}
                 size="s"
                 disabled={isLocked}
-                onClick={() => !isLocked && setRangePreset(option.key)}
+                disabled={isLocked}
+                onClick={() => { if (!isLocked) { hapticFeedback.selectionChanged(); setRangePreset(option.key); } }}
               >
                 {option.label}
               </Button>
@@ -1226,12 +1231,14 @@ export function GroupAnalyticsPage() {
         {rangePreset === "custom" && (
           <div className={styles.dateInputs}>
             <input
+              className={styles.dateInput}
               type="date"
               value={customRange.from}
               onChange={(event) => handleCustomRangeChange("from", event.target.value)}
             />
             <span>to</span>
             <input
+              className={styles.dateInput}
               type="date"
               value={customRange.to}
               onChange={(event) => handleCustomRangeChange("to", event.target.value)}
@@ -1247,7 +1254,8 @@ export function GroupAnalyticsPage() {
               key={item}
               mode={granularity === item ? "filled" : "outline"}
               size="s"
-              onClick={() => setGranularity(item)}
+              size="s"
+              onClick={() => { hapticFeedback.selectionChanged(); setGranularity(item); }}
             >
               {GRANULARITY_LABELS[item]}
             </Button>
