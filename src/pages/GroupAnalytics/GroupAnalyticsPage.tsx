@@ -1220,7 +1220,6 @@ export function GroupAnalyticsPage() {
                 mode={rangePreset === option.key ? "filled" : "outline"}
                 size="s"
                 disabled={isLocked}
-                disabled={isLocked}
                 onClick={() => { if (!isLocked) { hapticFeedback.selectionChanged(); setRangePreset(option.key); } }}
               >
                 {option.label}
@@ -1253,7 +1252,6 @@ export function GroupAnalyticsPage() {
             <Button
               key={item}
               mode={granularity === item ? "filled" : "outline"}
-              size="s"
               size="s"
               onClick={() => { hapticFeedback.selectionChanged(); setGranularity(item); }}
             >
