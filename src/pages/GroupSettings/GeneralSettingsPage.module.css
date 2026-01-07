@@ -65,6 +65,37 @@
   border: none;
   cursor: pointer;
   color: #fff;
+  transition: all 0.2s ease;
+}
+
+.backButton:hover,
+.menuButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.backIcon {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(45deg);
+  margin-left: 4px;
+}
+
+.burger {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 18px;
+}
+
+.burger span {
+  display: block;
+  height: 2px;
+  width: 100%;
+  background: #fff;
+  border-radius: 1px;
 }
 
 .body {

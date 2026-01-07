@@ -20,6 +20,7 @@ export const DEFAULT_ONBOARDING_MESSAGES: readonly string[] = [
   "🛡️ <b>Firewall Bot is now active!</b>\n\nYour group is protected with smart moderation, security locks, and automated actions.",
   "⚙️ <b>Setup Required:</b>\nPlease promote Firewall Bot to <b>Administrator</b> with permissions to:\n• Delete messages\n• Ban users\n• Manage chat",
   "💡 <b>Pro Tip:</b> For better performance and to avoid conflicts, consider removing other moderation bots from this group.",
+  "🔒 <b>Active Protection (Default):</b>\n• Link Lock ✅\n• Forward Lock ✅\n• Bot Lock ✅\n• Anti-Spam ✅\n• Anti-Tabchi ✅\n\n⭐ <b>Subscription:</b> Free Plan\n\n📊 Open the dashboard to customize settings!",
 ];
 export const EMPTY_PROMO_ANALYTICS = Object.freeze({
   impressions: 0,

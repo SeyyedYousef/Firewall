@@ -127,7 +127,7 @@ export const myChatMemberHandler: UpdateHandler = {
         const { setGroupStatus, setGroupOwner } = await import("../../../server/db/mutateRepository.js");
         const title = "title" in ctx.chat ? (ctx.chat.title ?? null) : null;
         await setGroupStatus(chatId, "active", { title });
-        
+
         // Set group owner if this is a new addition (not already a member)
         if (!alreadyMember && fromUserId) {
           try {
@@ -175,6 +175,7 @@ export const myChatMemberHandler: UpdateHandler = {
             text: entry.text,
             parseMode: entry.parseMode,
             threadId: entry.threadId,
+            autoDeleteSeconds: 60, // Auto-delete after 1 minute
           });
         });
       }
