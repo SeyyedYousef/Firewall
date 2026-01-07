@@ -10,6 +10,9 @@ import { useUserProfile } from "@/features/profile/useUserProfile.ts";
 
 import styles from "./MissionsPage.module.css";
 
+/* Helper to wait */
+const wait = (ms: number) => new Promise(r => setTimeout(r, ms));
+
 type MissionCategory = "daily" | "weekly" | "monthly" | "general";
 
 type MissionIconKey =
@@ -35,9 +38,9 @@ type MissionIconKey =
 
 type MissionVerification =
   | {
-      kind: "telegram-channel";
-      channelUsername: string;
-    };
+    kind: "telegram-channel";
+    channelUsername: string;
+  };
 
 type Mission = {
   id: string;
@@ -502,7 +505,7 @@ export function MissionsPage() {
       return empty;
     }
   });
-  
+
   const [dailyWheelReward, setDailyWheelReward] = useState<number | null>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -519,6 +522,7 @@ export function MissionsPage() {
   const [referralStats, setReferralStats] = useState<ReferralStats>({ tracked: 0, activated: 0, xpEarned: 0 });
   const [redeemedRewards, setRedeemedRewards] = useState<Record<string, number>>({});
   const [ownedBadges, setOwnedBadges] = useState<Set<string>>(new Set());
+  const [showSuccessModal, setShowSuccessModal] = useState<{ xp: number } | null>(null);
   const storeSectionRef = useRef<HTMLDivElement | null>(null);
   const trackedReferrals = useRef<Set<string>>(new Set());
   const activatedReferrals = useRef<Set<string>>(new Set());
@@ -554,7 +558,7 @@ export function MissionsPage() {
         console.warn('[missions] failed to fetch referral stats', error);
       }
     };
-    
+
     fetchReferralStats();
   }, []);
 
@@ -566,7 +570,7 @@ export function MissionsPage() {
 
     const sanitizedXp = Math.max(1, Math.round(dailyTaskChannel.xp));
     const channelUsername = extractChannelUsername(dailyTaskChannel.channelLink);
-    
+
     // Create mission with proper typing for exactOptionalPropertyTypes
     const baseMission = {
       id: "daily-channel-mission",
@@ -581,12 +585,12 @@ ${dailyTaskChannel.channelLink}`,
 
     const mission: Mission = channelUsername
       ? {
-          ...baseMission,
-          verification: {
-            kind: "telegram-channel",
-            channelUsername,
-          },
-        }
+        ...baseMission,
+        verification: {
+          kind: "telegram-channel",
+          channelUsername,
+        },
+      }
       : baseMission;
 
     const baseDaily = MISSIONS.daily.filter((item) => item.id !== mission.id);
@@ -617,7 +621,22 @@ ${dailyTaskChannel.channelLink}`,
     return "CM";
   }, [heroAvatarSrc, heroDisplayName, heroUsername]);
 
-  const missions = useMemo(() => missionsByCategory[activeTab], [missionsByCategory, activeTab]);
+  /* --- Sorting Logic --- */
+  const missionListSorted = useMemo(() => {
+    const list = missionsByCategory[activeTab];
+    const completedSet = completedMissions[activeTab];
+
+    return [...list].sort((a, b) => {
+      const aDone = completedSet.has(a.id);
+      const bDone = completedSet.has(b.id);
+      // If one is done and other isn't, put done last
+      if (aDone && !bDone) return 1;
+      if (!aDone && bDone) return -1;
+      return 0;
+    });
+  }, [missionsByCategory, activeTab, completedMissions]);
+
+  const missions = missionListSorted;
   const activeCompletion = completedMissions[activeTab];
 
   const weeklyProgress = completedMissions.weekly.size / missionsByCategory.weekly.length;
@@ -646,17 +665,17 @@ ${dailyTaskChannel.channelLink}`,
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(referralLink);
         setIsCopied(true);
-        
+
         // Clear previous timeout if exists
         if (copyTimeoutRef.current) {
           clearTimeout(copyTimeoutRef.current);
         }
-        
+
         // Reset copied state after 3 seconds
         copyTimeoutRef.current = setTimeout(() => {
           setIsCopied(false);
         }, 3000);
-        
+
         setSnackbar(TEXT.referralCopied);
       } else {
         // Fallback for browsers without clipboard API
@@ -666,7 +685,7 @@ ${dailyTaskChannel.channelLink}`,
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
-        
+
         try {
           document.execCommand('copy');
           setIsCopied(true);
@@ -676,7 +695,7 @@ ${dailyTaskChannel.channelLink}`,
           // If all else fails, open the link
           window.open(referralLink, "_blank");
         }
-        
+
         document.body.removeChild(textArea);
       }
     } catch (error) {
@@ -684,7 +703,7 @@ ${dailyTaskChannel.channelLink}`,
       window.open(referralLink, "_blank");
     }
   }, [referralLink]);
-  
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -849,7 +868,7 @@ ${dailyTaskChannel.channelLink}`,
             const next = { ...prev };
             const missionCategory = category;
             next[missionCategory] = new Set([...next[missionCategory], mission.id]);
-            
+
             // Save to localStorage with error handling
             if (typeof window !== 'undefined') {
               try {
@@ -864,10 +883,10 @@ ${dailyTaskChannel.channelLink}`,
                 console.warn('[missions] failed to save completedMissions to localStorage', err);
               }
             }
-            
+
             return next;
           });
-          
+
           setDailyWheelReward(rewardXp);
           if (typeof window !== 'undefined') {
             try {
@@ -876,12 +895,12 @@ ${dailyTaskChannel.channelLink}`,
               console.warn('[missions] failed to save dailyWheelReward to localStorage', err);
             }
           }
-          
+
           setXp(nextXp);
-          
+
           // Show success message
           setSnackbar(`You earned ${rewardXp} XP!`);
-          
+
           // Refresh missions after a short delay
           setTimeout(() => {
             refresh().catch((error) => {
@@ -956,11 +975,11 @@ ${dailyTaskChannel.channelLink}`,
       <section className={styles.hero}>
         <div className={styles.heroHeader}>
           <div className={styles.heroProfile}>
-            <Avatar 
-              size={96} 
-              src={heroAvatarSrc} 
-              acronym={heroAcronym ?? undefined} 
-              alt={heroDisplayName} 
+            <Avatar
+              size={96}
+              src={heroAvatarSrc}
+              acronym={heroAcronym ?? undefined}
+              alt={heroDisplayName}
             />
             <div className={styles.heroMeta}>
               <span className={styles.heroLabel}>{heroDisplayName}</span>
@@ -1111,8 +1130,8 @@ ${dailyTaskChannel.channelLink}`,
                 <div className={styles.missionMeta}>
                   <span className={styles.missionXp}>{formatMissionXpLabel(mission)}</span>
                   <span className={`${styles.statusChip} ${completed ? styles.statusChipDone : styles.statusChipPending}`}>
-                    {completed 
-                      ? mission.id === DAILY_WHEEL_ID && dailyWheelReward 
+                    {completed
+                      ? mission.id === DAILY_WHEEL_ID && dailyWheelReward
                         ? `+${dailyWheelReward} XP Today!`
                         : "Completed"
                       : "Pending"
@@ -1163,7 +1182,7 @@ ${dailyTaskChannel.channelLink}`,
               const isBadge = reward.id.startsWith('badge-');
               const badgeId = isBadge ? reward.id.replace('badge-', '') : null;
               const isOwned = badgeId ? ownedBadges.has(badgeId) : false;
-              
+
               return (
                 <div key={reward.id} className={`${styles.rewardCard} ${isOwned ? styles.rewardOwned : ''}`}>
                   <div className={styles.rewardInfo}>
@@ -1207,7 +1226,7 @@ ${dailyTaskChannel.channelLink}`,
             <div className={styles.referralLinkContainer}>
               <code className={styles.referralLink}>
                 {referralLink}
-                <button 
+                <button
                   className={`${styles.copyButton} ${isCopied ? styles.copied : ''}`}
                   onClick={handleCopyReferral}
                   aria-label={isCopied ? 'Copied!' : 'Copy link'}
@@ -1218,9 +1237,9 @@ ${dailyTaskChannel.channelLink}`,
               </code>
             </div>
             <div className={styles.referralActions}>
-              <Button 
-                mode="plain" 
-                size="s" 
+              <Button
+                mode="plain"
+                size="s"
                 onClick={handleCopyReferral}
                 className={styles.copyButton}
                 disabled={isCopied}
@@ -1232,9 +1251,28 @@ ${dailyTaskChannel.channelLink}`,
         </Card>
       </section>
 
-      <Snackbar duration={2400} onClose={() => setSnackbar(null)}>
-        {snackbar}
-      </Snackbar>
+      {snackbar && (
+        <Snackbar onClose={() => setSnackbar(null)}>{snackbar}</Snackbar>
+      )}
+
+      {/* Mission Success Modal */}
+      {showSuccessModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowSuccessModal(null)}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalIcon}>🏆</div>
+            <h3 className={styles.modalTitle}>MISSION ACCOMPLISHED</h3>
+            <p className={styles.modalDesc}>
+              Optimization Complete. Systems Upgraded.
+            </p>
+            <div className={styles.modalReward}>
+              +{showSuccessModal.xp} XP
+            </div>
+            <Button mode="filled" size="l" fullWidth onClick={() => setShowSuccessModal(null)}>
+              CONFIRM
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

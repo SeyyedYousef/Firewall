@@ -1,6 +1,5 @@
-import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { hapticFeedback } from '@telegram-apps/sdk-react';
+import { hapticFeedback, openLink } from '@telegram-apps/sdk-react';
 
 import { PromoSlider } from '@/features/dashboard/PromoSlider';
 import { useDashboardData } from '@/features/dashboard/useDashboardData';
@@ -59,7 +58,7 @@ function getInitials(title: string): string {
 function formatNumber(num: number): string {
   if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`;
   if (num >= 1_000) return `${(num / 1_000).toFixed(1)}K`;
-  return num.toLocaleString();
+  return num.toLocaleString('en-US');
 }
 
 function getGroupStatusClass(group: ManagedGroup): string {
@@ -186,7 +185,7 @@ export function DashboardPage() {
         <button
           type="button"
           className={styles.actionCard}
-          onClick={() => handleNavigate('/my-groups')}
+          onClick={() => openLink('https://t.me/FirewallMainbot?startgroup=inpvbtn&admin=delete_messages+restrict_members+invite_users')}
         >
           <span className={styles.actionIcon}>➕</span>
           <span className={styles.actionLabel}>{TEXT.actions.addGroup}</span>

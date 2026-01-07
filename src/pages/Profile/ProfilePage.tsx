@@ -175,13 +175,13 @@ export function ProfilePage() {
       <div className={styles.heroStats}>
         <div className={styles.levelRow}>
           <span>LEVEL {level}</span>
-          <span>{xp.toLocaleString()} XP</span>
+          <span>{xp.toLocaleString('en-US')} XP</span>
         </div>
         <div className={styles.progressTrack}>
           <div className={styles.progressValue} style={{ width: `${progress * 100}%` }} />
         </div>
         <div className={styles.levelMeta}>
-          <span className={styles.levelProgress}>Next Rank: {nextLevelXp.toLocaleString()} XP</span>
+          <span className={styles.levelProgress}>Next Rank: {nextLevelXp.toLocaleString('en-US')} XP</span>
           <div className={styles.chipRow}>
             <span className={styles.chip}>🔥 {streak} Day Streak</span>
           </div>

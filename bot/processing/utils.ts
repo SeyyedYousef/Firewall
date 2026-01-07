@@ -289,15 +289,19 @@ async function warnMember(ctx: GroupChatContext, action: Extract<ProcessingActio
         return;
       }
 
-      // PREMIUM FEATURE: Auto-warning is only available for Premium groups
-      const chatIdStr = ctx.chat.id.toString();
-      if (generalSettings.autoWarningEnabled && generalSettings.autoWarning && hasAutoWarning(chatIdStr)) {
+      // Load auto-warning config for display (even if feature is disabled/free)
+      if (generalSettings.autoWarningEnabled && generalSettings.autoWarning) {
         const auto = generalSettings.autoWarning;
         warningsLimitTotal = typeof auto.threshold === "number" ? auto.threshold : null;
         warningsRetentionDays = typeof auto.retentionDays === "number" ? auto.retentionDays : null;
         penaltyLabel = auto.penalty || penaltyLabel;
-        if (auto.penalty === "delete" || auto.penalty === "mute" || auto.penalty === "kick") {
-          autoWarningPenalty = auto.penalty;
+
+        // PREMIUM FEATURE: Automatic punishment is only available if feature is active
+        const chatIdStr = ctx.chat.id.toString();
+        if (hasAutoWarning(chatIdStr)) {
+          if (auto.penalty === "delete" || auto.penalty === "mute" || auto.penalty === "kick") {
+            autoWarningPenalty = auto.penalty;
+          }
         }
       }
     } catch (error) {

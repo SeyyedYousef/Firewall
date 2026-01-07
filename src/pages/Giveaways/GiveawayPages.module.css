@@ -75,6 +75,12 @@
   margin-top: -8px;
 }
 
+.formHint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
 .stepTitle {
   margin: 0;
   font-size: 1.1rem;
