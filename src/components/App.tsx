@@ -21,9 +21,9 @@ const GiveawayDashboardPage = lazy(() => import('@/pages/Giveaways/GiveawayDashb
 const CreateGiveawayPage = lazy(() => import('@/pages/Giveaways/CreateGiveawayPage').then(m => ({ default: m.CreateGiveawayPage })));
 const JoinGiveawayPage = lazy(() => import('@/pages/Giveaways/JoinGiveawayPage').then(m => ({ default: m.JoinGiveawayPage })));
 const GiveawayHistoryPage = lazy(() => import('@/pages/Giveaways/GiveawayHistoryPage').then(m => ({ default: m.GiveawayHistoryPage })));
-const ProfilePage = lazy(() => import('@/pages/Profile/ProfilePage').then(m => ({ default: m.ProfilePage })));
-const MissionsPage = lazy(() => import('@/pages/Missions/MissionsPage').then(m => ({ default: m.MissionsPage })));
 const PromoSliderManagerPage = lazy(() => import('@/pages/PromoSlides/PromoSliderManagerPage').then(m => ({ default: m.PromoSliderManagerPage })));
+const ConfigPage = lazy(() => import('@/pages/Config/ConfigPage').then(m => ({ default: m.ConfigPage })));
+const OperativePage = lazy(() => import('@/pages/Operative/OperativePage').then(m => ({ default: m.OperativePage })));
 
 export function App() {
   const lp = useMemo(() => {
@@ -58,14 +58,16 @@ export function App() {
               <Route path='groups/:groupId/settings/texts' element={<GroupCustomTextsPage />} />
               <Route path='stars' element={<StarsPage />} />
               <Route path='premium' element={<StarsPage />} />
-              <Route path='missions' element={<MissionsPage />} />
+
               <Route path='giveaway' element={<Navigate to='giveaway/active' replace />} />
               <Route path='giveaway/active' element={<GiveawayDashboardPage />} />
               <Route path='giveaway/create' element={<CreateGiveawayPage />} />
               <Route path='giveaway/history' element={<GiveawayHistoryPage />} />
               <Route path='giveaway/join/:giveawayId' element={<JoinGiveawayPage />} />
               <Route path='promo-slides/manage' element={<PromoSliderManagerPage />} />
-              <Route path='profile' element={<ProfilePage />} />
+              <Route path='settings' element={<ConfigPage />} />
+              <Route path='profile' element={<OperativePage />} />
+              <Route path='missions' element={<Navigate to='/profile' replace />} />
             </Route>
             <Route path='*' element={<Navigate to='/' replace />} />
           </Routes>
