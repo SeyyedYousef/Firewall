@@ -7,45 +7,51 @@ import type { Message } from "typegram";
 process.env.DATABASE_URL = "postgres://mock:5432/db";
 
 // 2. Define Mocks
-const mockGroupSettingsRepo = {
-    loadBanSettingsByChatId: async (chatId) => {
-        // console.log("Mock loadBanSettingsByChatId called for", chatId);
-        return testState.currentSettings || null;
+// 2. Define Mocks
+const mocks = {
+    groupSettingsRepo: {
+        loadBanSettingsByChatId: async (chatId) => {
+            return testState.currentSettings || null;
+        },
+        loadGeneralSettingsByChatId: async () => null,
+        loadSilenceSettingsByChatId: async () => null,
+        loadLimitSettingsByChatId: async () => null,
+        loadCustomTextSettingsByChatId: async () => null,
     },
-    loadGeneralSettingsByChatId: async () => null,
-    loadSilenceSettingsByChatId: async () => null,
-    loadLimitSettingsByChatId: async () => null,
-    loadCustomTextSettingsByChatId: async () => null,
-};
 
-const mockState = {
-    hasCustomSchedule: () => false,
-    hasVoteMute: () => false,
-    hasExtraSilenceWindows: () => false,
-    hasAutoWarning: () => false,
-    hasAutoDelete: () => false,
-    markAdminPermission: () => { },
-    isPanelAdmin: () => false,
-    getState: () => ({ groups: {} }),
-    // Add all potential feature flags
-    hasPromoButton: () => false,
-    hasMandatoryMembership: () => false,
-    hasMandatoryAdd: () => false,
-    hasDetailedWarnings: () => false,
-    hasAdvancedAnalytics: () => false,
-    hasAdvancedCaptcha: () => false,
-    hasExtraMandatoryChannels: () => false,
-    hasWebhook: () => false,
-    hasPriorityProcessing: () => false,
-    queuePendingOnboardingMessages: () => { },
-    isGroupPremium: () => false,
+    state: {
+        hasCustomSchedule: () => false,
+        hasVoteMute: () => false,
+        hasExtraSilenceWindows: () => false,
+        hasAutoWarning: () => false,
+        hasAutoDelete: () => false,
+        markAdminPermission: () => { },
+        isPanelAdmin: () => false,
+        getState: () => ({ groups: {} }),
+        hasPromoButton: () => false,
+        hasMandatoryMembership: () => false,
+        hasMandatoryAdd: () => false,
+        hasDetailedWarnings: () => false,
+        hasAdvancedAnalytics: () => false,
+        hasAdvancedCaptcha: () => false,
+        hasExtraMandatoryChannels: () => false,
+        hasWebhook: () => false,
+        hasPriorityProcessing: () => false,
+        queuePendingOnboardingMessages: () => { },
+        isGroupPremium: () => false,
+    },
+
+    mockTabchiService: {
+        analyzeAndFlagIfTabchi: async () => false,
+    }
 };
 
 // 3. Register Mocks
-mock.module("../server/db/groupSettingsRepository.js", () => mockGroupSettingsRepo);
-mock.module("../../server/db/groupSettingsRepository.js", () => mockGroupSettingsRepo); // for relative import in banGuards
-mock.module("../bot/state.js", () => mockState);
-mock.module("../../bot/state.js", () => mockState);
+mock.module("../server/db/groupSettingsRepository.js", () => mocks.groupSettingsRepo);
+mock.module("../../server/db/groupSettingsRepository.js", () => mocks.groupSettingsRepo); // for relative import in banGuards
+mock.module("../bot/state.js", () => mocks.state);
+mock.module("../../bot/state.js", () => mocks.state);
+mock.module("../server/services/tabchiService.js", () => mocks.mockTabchiService);
 
 // Test State
 const testState = {
@@ -138,6 +144,80 @@ describe("Firewall Lock Verification", () => {
 
         const ctx = createMockContext({
             photo: [{ file_id: '123', width: 100, height: 100 }]
+        });
+        ctx.chat.id = Number(chatId);
+
+        const actions = await evaluateBanGuards(ctx);
+        expect(actions.some((a: any) => a.type === 'delete_message')).toBe(true);
+    });
+
+    it("should BLOCK forwarding from channels when Forward Channel Lock is enabled", async () => {
+        const chatId = "1005";
+        testState.currentSettings = {
+            ...defaultBanSettings,
+            chatId,
+            rules: { ...defaultBanSettings.rules, banForwardChannels: { enabled: true } }
+        };
+
+        const ctx = createMockContext({
+            forward_from_chat: { id: -123, type: 'channel', title: "Some Channel" } as any,
+            forward_date: 12345
+        });
+        ctx.chat.id = Number(chatId);
+
+        const actions = await evaluateBanGuards(ctx);
+        expect(actions.some((a: any) => a.type === 'delete_message')).toBe(true);
+    });
+
+    it("should BLOCK stickers when Sticker Lock is enabled", async () => {
+        const chatId = "1006";
+        testState.currentSettings = {
+            ...defaultBanSettings,
+            chatId,
+            rules: { ...defaultBanSettings.rules, banStickers: { enabled: true } }
+        };
+
+        // Mock sticker message
+        const ctx = createMockContext({
+            sticker: { file_id: "123", width: 512, height: 512, is_animated: false, is_video: false, type: "regular" }
+        });
+        ctx.chat.id = Number(chatId);
+
+        const actions = await evaluateBanGuards(ctx);
+        expect(actions.some((a: any) => a.type === 'delete_message')).toBe(true);
+    });
+
+    it("should BLOCK bots when Bot Lock is enabled", async () => {
+        const chatId = "1007";
+        testState.currentSettings = {
+            ...defaultBanSettings,
+            chatId,
+            rules: { ...defaultBanSettings.rules, banBots: { enabled: true } }
+        };
+
+        // Mock message from a bot
+        const ctx = createMockContext({
+            text: "I am a bot",
+            from: { id: 12345, is_bot: true, first_name: "Bad Bot" } as any
+        });
+        ctx.chat.id = Number(chatId);
+
+        const actions = await evaluateBanGuards(ctx);
+        expect(actions.some((a: any) => a.type === 'delete_message')).toBe(true);
+        // banBots usually adds ban_member too if configured, but default delete is enough to test rule trigger
+    });
+
+    it("should BLOCK text patterns when Pattern Lock matches", async () => {
+        const chatId = "1008";
+        testState.currentSettings = {
+            ...defaultBanSettings,
+            chatId,
+            rules: { ...defaultBanSettings.rules, banTextPatterns: { enabled: true } },
+            blacklist: ["badword", "spam"]
+        };
+
+        const ctx = createMockContext({
+            text: "This message contains a badword here."
         });
         ctx.chat.id = Number(chatId);
 

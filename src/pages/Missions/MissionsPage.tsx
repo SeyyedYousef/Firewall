@@ -10,8 +10,7 @@ import { useUserProfile } from "@/features/profile/useUserProfile.ts";
 
 import styles from "./MissionsPage.module.css";
 
-/* Helper to wait */
-const wait = (ms: number) => new Promise(r => setTimeout(r, ms));
+
 
 type MissionCategory = "daily" | "weekly" | "monthly" | "general";
 
@@ -1267,7 +1266,7 @@ ${dailyTaskChannel.channelLink}`,
             <div className={styles.modalReward}>
               +{showSuccessModal.xp} XP
             </div>
-            <Button mode="filled" size="l" fullWidth onClick={() => setShowSuccessModal(null)}>
+            <Button mode="filled" size="l" stretched onClick={() => setShowSuccessModal(null)}>
               CONFIRM
             </Button>
           </div>
