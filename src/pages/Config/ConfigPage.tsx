@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import { useDashboardData } from '@/features/dashboard/useDashboardData';
-import { LoadingState } from '@/components/LoadingState';
 import { Skeleton } from '@/components/UI/Skeleton';
 import styles from './ConfigPage.module.css';
 

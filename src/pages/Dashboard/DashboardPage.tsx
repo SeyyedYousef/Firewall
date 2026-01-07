@@ -2,7 +2,7 @@ import { SecurityCard } from '@/components/Dashboard/SecurityCard';
 import { PromoSlider } from '@/features/dashboard/PromoSlider';
 import { useDashboardData } from '@/features/dashboard/useDashboardData';
 import { LoadingState } from '@/components/LoadingState';
-import { Skeleton } from '@/components/UI/Skeleton';
+
 import styles from './DashboardPage.module.css';
 
 // Component for Quick Stats
