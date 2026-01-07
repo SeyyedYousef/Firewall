@@ -155,8 +155,23 @@ export interface BotContent {
     inlinePanel: string;
     managementPanel: string;
     managementQuestion: string;
-    start: string;        // ← added
+    start: string;
     welcome: string;
+    firewallIntro: string;
+    firewallNoRules: string;
+    firewallDeleted: string;
+    firewallPromptEdit: string;
+    firewallPromptAdd: string;
+    firewallPromptCreate: string;
+    firewallAdded: string;
+    firewallEdited: string;
+    firewallSaved: string;
+    firewallNotFound: string;
+    firewallToggledOn: string;
+    firewallToggledOff: string;
+    firewallInvalidJson: string;
+    firewallInvalidPayload: string;
+    banNotFound: string;
   };
 }
 
@@ -183,6 +198,21 @@ const fallbackContent: BotContent = {
     welcome: "Welcome to <b>{group}</b>, {user}! 👋\n\nWe're excited to have you here. Please take a moment to read our group rules and enjoy your stay!\n\n💡 <i>This group is protected by Firewall for your safety.</i>",
     managementPanel: "⚙️ <b>Management Dashboard</b>\n\n<b>Your command center for group management.</b>\n\n✨ <b>What you can do:</b>\n• 📊 View real-time analytics and insights\n• 🔒 Configure content locks and filters\n• ⚡ Monitor automated actions\n• 📈 Track member growth and engagement\n\n<i>Open the Mini App to access your full dashboard.</i>",
     managementQuestion: "<b>Choose Your Management Style</b>\n\nHow would you like to manage your group?\n\n🧩 <b>Mini App Dashboard</b>\n• Full visual interface with detailed analytics\n• Advanced settings and controls\n• Real-time monitoring and insights\n• Complete management experience\n\n⌨️ <b>Inline Panel</b>\n• Quick actions directly in chat\n• Toggle locks and manage lists\n• Lightweight and fast\n• Perfect for quick adjustments\n\n💡 <i>Choose the option that best fits your workflow!</i>",
+    firewallIntro: "🔥 <b>Firewall Settings</b>\n\nManage your group's protection rules here.",
+    firewallNoRules: "No custom rules configured yet.",
+    firewallDeleted: "✅ Rule deleted successfully.",
+    firewallPromptEdit: "Please send the new value for this rule.",
+    firewallPromptAdd: "Please send the value for this rule.",
+    firewallPromptCreate: "Please send the configuration for the new rule.",
+    firewallAdded: "✅ Rule added successfully.",
+    firewallEdited: "✅ Rule updated successfully.",
+    firewallSaved: "✅ Settings saved successfully.",
+    firewallNotFound: "❌ Rule not found.",
+    firewallToggledOn: "✅ Firewall rule enabled.",
+    firewallToggledOff: "✅ Firewall rule disabled.",
+    firewallInvalidJson: "❌ Invalid JSON format. Please check your input.",
+    firewallInvalidPayload: "❌ Invalid payload. Please check your input.",
+    banNotFound: "❌ Ban setting not found.",
     channel: "📢 <b>Join Our Official Channel</b>\n\n<b>Stay ahead with Firewall updates!</b>\n\n✨ <b>What you'll get:</b>\n• 🚀 New feature announcements\n• 🔐 Security tips and best practices\n• 🐛 Bug fixes and improvements\n• 💡 Pro tips for better moderation\n\n<i>Never miss an important update — join now!</i>",
     commands: "📚 <b>Firewall Command Reference</b>\n\nUse <code>!</code> or <code>.</code> prefix for commands.\n\n<b>👤 User Moderation</b>\n<code>!ban [hours]</code> — Ban user (reply)\n<code>!mute [hours]</code> — Mute user (reply)\n<code>!unmute</code> — Unmute user (reply)\n<code>!reset</code> — Reset warnings (reply)\n\n<b>🔒 Content Locks</b>\n<code>!lock [type]</code> — Lock content type\n<code>!unlock [type]</code> — Unlock content type\n\n<i>Types: link, url, photo, video, sticker, voice, file, gif, poll, forward, emoji, hashtag, mention, game, bot</i>\n\n<b>📝 Word Filter</b>\n<code>!filter [word]</code> — Add to blacklist\n<code>!unfilter [word]</code> — Remove from blacklist\n<code>!filters</code> — Show filter list\n\n<b>🌙 Quiet Hours</b>\n<code>!silence1 from HH:MM to HH:MM</code>\n<code>!silence1 off</code> — Disable\n\n<b>⚙️ Settings</b>\n<code>!welcome on/off</code>\n<code>!warning on/off</code>\n<code>!autodelete on/off</code>\n<code>!joinleave on/off</code>\n\n<b>🛡️ Group Control</b>\n<code>!lockgroup</code> — Emergency lock\n<code>!unlockgroup</code> — Unlock group\n<code>!purge [count]</code> — Delete messages\n\n<b>📊 Limits</b>\n<code>!msglimit [count]</code> — Rate limit\n<code>!duplicate [count]</code> — Anti-spam\n\n<b>👥 Whitelist</b>\n<code>!whitelist</code> — Add user (reply)\n<code>!unwhitelist</code> — Remove (reply)\n\n💡 <b>Tip:</b> Use Mini App for visual controls!",
     info: "🚀 <b>About Firewall</b>\n\n<b>Firewall</b> is proudly developed and maintained by <b>@iamSeyyed</b> with dedication to making Telegram communities safer and better.\n\n🙏 <b>Special Thanks:</b>\n• Development team for continuous improvements\n• Beta testers and early adopters\n• Every user who reports bugs and suggests features\n• All community admins who trust Firewall\n\n💬 <b>Your feedback matters!</b>\nEvery suggestion helps us improve. Together, we're building the best moderation bot for Telegram.\n\n<b>Firewall — Built with care, powered by community.</b> 🔥",

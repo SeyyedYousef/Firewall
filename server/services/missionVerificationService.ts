@@ -1,5 +1,6 @@
 import { randomInt } from "node:crypto";
 
+import { Prisma } from "@prisma/client";
 import { prisma } from "../db/client.js";
 import { logger } from "../utils/logger.js";
 import { resolveActiveMissionCycle } from "./missionCycleService.js";
@@ -168,7 +169,7 @@ async function logMissionEvent(entry: MissionEventLog): Promise<void> {
       category: entry.category,
       cycleKey: entry.cycleKey,
       state: entry.state,
-      payload: entry.payload,
+      payload: (entry.payload ?? undefined) as Prisma.InputJsonValue | undefined,
     },
   });
 }

@@ -101,7 +101,27 @@ export async function primeBanSettings(ctx: GroupChatContext): Promise<void> {
     return;
   }
 
-  await resolveBanSettings(ctx);
+  // Inline resolveBanSettings logic
+  if (ctx.processing.banSettings !== undefined) {
+    return;
+  }
+
+  try {
+    const cached = banCache.get(chatId);
+    const now = Date.now();
+    if (cached && cached.expiresAt > now) {
+      ctx.processing.banSettings = cached.settings;
+      return;
+    }
+
+    const settings = await loadBanSettingsByChatId(chatId);
+    banCache.set(chatId, { settings, expiresAt: now + BAN_CACHE_TTL_MS });
+    ctx.processing.banSettings = settings;
+  } catch (error) {
+    logger.debug("ban settings unavailable for chat", { chatId, error });
+    banCache.set(chatId, { settings: null, expiresAt: Date.now() + BAN_CACHE_TTL_MS });
+    ctx.processing.banSettings = null;
+  }
 }
 
 export async function evaluateBanGuards(ctx: GroupChatContext): Promise<ProcessingAction[]> {
@@ -580,7 +600,7 @@ export async function evaluateBanGuards(ctx: GroupChatContext): Promise<Processi
               if (actionMode === "ban") {
                 actions.push({ type: "ban_member", userId, reason: `Anti-Tabchi: ${tabchiReason}` });
               } else {
-                actions.push({ type: "restrict_member", userId, untilDate: 0, reason: `Anti-Tabchi: ${tabchiReason}` }); // Mute
+                actions.push({ type: "restrict_member", userId, durationSeconds: 0, reason: `Anti-Tabchi: ${tabchiReason}` }); // Mute
               }
 
               // Detection Message
@@ -631,7 +651,7 @@ export async function evaluateBanGuards(ctx: GroupChatContext): Promise<Processi
             actions.push({ type: "delete_message", messageId, reason: "Lock Limit" });
 
             // 2. Restrict the user (Mute)
-            actions.push({ type: "restrict_member", userId, untilDate: 0, reason: "Lock Limit Exceeded" });
+            actions.push({ type: "restrict_member", userId, durationSeconds: 0, reason: "Lock Limit Exceeded" });
 
             // 3. Send Report (Direct send to handle auto-delete timing)
             if (reportDeleteSeconds > 0) {
@@ -654,6 +674,9 @@ export async function evaluateBanGuards(ctx: GroupChatContext): Promise<Processi
 
     return ensureActions(actions);
   }
+
+  // If userId is undefined, still return actions collected so far
+  return ensureActions(actions);
 
   async function resolveBanSettings(ctx: GroupChatContext): Promise<GroupBanSettingsRecord | null> {
     ctx.processing ??= {};
@@ -923,35 +946,37 @@ export async function evaluateBanGuards(ctx: GroupChatContext): Promise<Processi
     const messageId = (ctx.message as any)?.message_id as number | undefined;
     const words = facts.text.trim().length ? facts.text.trim().split(/\s+/).length : 0;
 
-    if (limits.minWordsPerMessage > 0 && words > 0 && words < limits.minWordsPerMessage) {
-      actions.push({ type: "delete_message", messageId, reason: "min words limit" });
-    }
-    if (limits.maxWordsPerMessage > 0 && words > limits.maxWordsPerMessage) {
-      actions.push({ type: "delete_message", messageId, reason: "max words limit" });
-    }
-
-    if (userId && limits.messagesPerWindow > 0 && limits.windowMinutes > 0) {
-      const key = `${chatId}:${userId}:rate`;
-      const now = Date.now();
-      const windowMs = limits.windowMinutes * 60 * 1000;
-      const list = (rateHistory.get(key) ?? []).filter((t) => t >= now - windowMs);
-      list.push(now);
-      rateHistory.set(key, list);
-      if (list.length > limits.messagesPerWindow) {
-        actions.push({ type: "delete_message", messageId, reason: "rate limit" });
+    if (messageId !== undefined) {
+      if (limits.minWordsPerMessage > 0 && words > 0 && words < limits.minWordsPerMessage) {
+        actions.push({ type: "delete_message", messageId, reason: "min words limit" });
       }
-    }
+      if (limits.maxWordsPerMessage > 0 && words > limits.maxWordsPerMessage) {
+        actions.push({ type: "delete_message", messageId, reason: "max words limit" });
+      }
 
-    if (userId && limits.duplicateMessages > 0 && limits.duplicateWindowMinutes > 0 && facts.text.trim().length > 0) {
-      const key = `${chatId}:${userId}:dups`;
-      const now = Date.now();
-      const windowMs = limits.duplicateWindowMinutes * 60 * 1000;
-      const arr = (recentTexts.get(key) ?? []).filter((e) => e.at >= now - windowMs);
-      arr.push({ text: facts.text.trim(), at: now });
-      recentTexts.set(key, arr);
-      const sameCount = arr.filter((e) => e.text === facts.text.trim()).length;
-      if (sameCount > limits.duplicateMessages) {
-        actions.push({ type: "delete_message", messageId, reason: "duplicate message" });
+      if (userId && limits.messagesPerWindow > 0 && limits.windowMinutes > 0) {
+        const key = `${chatId}:${userId}:rate`;
+        const now = Date.now();
+        const windowMs = limits.windowMinutes * 60 * 1000;
+        const list = (rateHistory.get(key) ?? []).filter((t) => t >= now - windowMs);
+        list.push(now);
+        rateHistory.set(key, list);
+        if (list.length > limits.messagesPerWindow) {
+          actions.push({ type: "delete_message", messageId, reason: "rate limit" });
+        }
+      }
+
+      if (userId && limits.duplicateMessages > 0 && limits.duplicateWindowMinutes > 0 && facts.text.trim().length > 0) {
+        const key = `${chatId}:${userId}:dups`;
+        const now = Date.now();
+        const windowMs = limits.duplicateWindowMinutes * 60 * 1000;
+        const arr = (recentTexts.get(key) ?? []).filter((e) => e.at >= now - windowMs);
+        arr.push({ text: facts.text.trim(), at: now });
+        recentTexts.set(key, arr);
+        const sameCount = arr.filter((e) => e.text === facts.text.trim()).length;
+        if (sameCount > limits.duplicateMessages) {
+          actions.push({ type: "delete_message", messageId, reason: "duplicate message" });
+        }
       }
     }
 

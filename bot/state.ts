@@ -1345,7 +1345,7 @@ function persistState(next: BotState): void {
     });
 }
 
-function withState(mutator: (draft: BotState) => BotState): BotState {
+export function withState(mutator: (draft: BotState) => BotState): BotState {
   const workingCopy = structuredClone(state);
   let draft: BotState;
   try {

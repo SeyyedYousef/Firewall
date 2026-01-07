@@ -28,7 +28,7 @@ function isVoteMuteCommand(ctx: GroupChatContext): boolean {
   if (!message || !("text" in message) || typeof message.text !== "string") {
     return false;
   }
-  
+
   const text = message.text.trim().toLowerCase();
   return text === "/votemute" || text.startsWith("/votemute ");
 }
@@ -38,7 +38,7 @@ function isVoteMuteReply(ctx: GroupChatContext): boolean {
   if (!message || !("text" in message) || typeof message.text !== "string") {
     return false;
   }
-  
+
   const text = message.text.trim().toLowerCase();
   return text === "mute" && Boolean(message.reply_to_message);
 }
@@ -47,7 +47,7 @@ async function handleVoteMuteCommand(ctx: GroupChatContext): Promise<ProcessingA
   const message = ctx.message as any;
   const fromUserId = message.from?.id;
   const chatId = ctx.chat.id;
-  
+
   if (!fromUserId) {
     return [];
   }
@@ -82,7 +82,7 @@ async function handleVoteMuteCommand(ctx: GroupChatContext): Promise<ProcessingA
   }
 
   let targetUserId: number | undefined;
-  
+
   // Check if replying to a message
   if (message.reply_to_message?.from?.id) {
     targetUserId = message.reply_to_message.from.id;
@@ -120,7 +120,7 @@ async function handleVoteMuteCommand(ctx: GroupChatContext): Promise<ProcessingA
 
   const voteKey = makeVoteKey(chatId, targetUserId);
   const now = Date.now();
-  
+
   // Check if there's already an active vote for this user
   const existingVote = voteMuteData.get(voteKey);
   if (existingVote && existingVote.expiresAt > now) {
@@ -134,7 +134,7 @@ async function handleVoteMuteCommand(ctx: GroupChatContext): Promise<ProcessingA
 
   // Calculate required votes (minimum 3, or 1/3 of active members)
   const requiredVotes = Math.max(3, Math.ceil(10 / 3)); // Simplified for now
-  
+
   // Start new vote
   voteMuteData.set(voteKey, {
     targetUserId,
@@ -157,7 +157,7 @@ async function handleVoteMuteReply(ctx: GroupChatContext): Promise<ProcessingAct
   const fromUserId = message.from?.id;
   const chatId = ctx.chat.id;
   const replyToMessage = message.reply_to_message;
-  
+
   if (!fromUserId || !replyToMessage) {
     return [];
   }
@@ -178,7 +178,7 @@ async function handleVoteMuteReply(ctx: GroupChatContext): Promise<ProcessingAct
   // Find active vote for any user
   const now = Date.now();
   let activeVote: { key: string; data: any } | null = null;
-  
+
   for (const [key, data] of voteMuteData.entries()) {
     if (key.startsWith(`${chatId}:`) && data.expiresAt > now) {
       activeVote = { key, data };
@@ -196,7 +196,7 @@ async function handleVoteMuteReply(ctx: GroupChatContext): Promise<ProcessingAct
   }
 
   const { key, data } = activeVote;
-  
+
   // Don't allow voting for yourself
   if (data.targetUserId === fromUserId) {
     return [{
@@ -219,32 +219,26 @@ async function handleVoteMuteReply(ctx: GroupChatContext): Promise<ProcessingAct
 
   // Add vote
   data.votes.add(fromUserId);
-  
+
   const actions: ProcessingAction[] = [];
-  
+
   // Check if enough votes collected
   if (data.votes.size >= data.requiredVotes) {
     // Execute mute
     actions.push({
       type: "restrict_member",
       userId: data.targetUserId,
-      permissions: {
-        can_send_messages: false,
-        can_send_media_messages: false,
-        can_send_polls: false,
-        can_send_other_messages: false,
-        can_add_web_page_previews: false,
-      },
-      untilDate: Math.floor((now + VOTE_MUTE_DURATION_MS) / 1000),
+      durationSeconds: Math.floor(VOTE_MUTE_DURATION_MS / 1000),
+      reason: "Vote mute: community decided",
     });
-    
+
     actions.push({
       type: "send_message",
       text: `✅ <b>Vote Mute Executed</b>\n\nUser ${data.targetUserId} has been muted for 10 minutes.\nVotes: ${data.votes.size}/${data.requiredVotes}`,
       parseMode: "HTML",
       autoDeleteSeconds: 30,
     });
-    
+
     // Clean up vote data
     voteMuteData.delete(key);
   } else {
@@ -271,7 +265,7 @@ export const voteMuteHandler: UpdateHandler = {
   async handle(ctx) {
     try {
       let actions: ProcessingAction[] = [];
-      
+
       if (isVoteMuteCommand(ctx)) {
         actions = await handleVoteMuteCommand(ctx);
       } else if (isVoteMuteReply(ctx)) {

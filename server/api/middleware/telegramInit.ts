@@ -33,6 +33,7 @@ type TelegramUserPayload = {
   language_code?: string;
   is_premium?: boolean;
   is_bot?: boolean;
+  photo_url?: string;
 };
 
 type TelegramInitContext = {

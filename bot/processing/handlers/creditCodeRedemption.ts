@@ -10,7 +10,7 @@ function isCreditCodeCommand(ctx: GroupChatContext): boolean {
   if (!message || !("text" in message) || typeof message.text !== "string") {
     return false;
   }
-  
+
   const text = message.text.trim().toLowerCase();
   return text.startsWith("/redeem ") || text.startsWith("/credit ");
 }
@@ -19,14 +19,14 @@ async function handleCreditCodeRedemption(ctx: GroupChatContext): Promise<Proces
   const message = ctx.message as any;
   const fromUserId = message.from?.id;
   const chatId = ctx.chat.id;
-  
+
   if (!fromUserId) {
     return [];
   }
 
   const text = message.text.trim();
   const parts = text.split(/\s+/);
-  
+
   if (parts.length < 2) {
     return [{
       type: "send_message",
@@ -37,11 +37,11 @@ async function handleCreditCodeRedemption(ctx: GroupChatContext): Promise<Proces
   }
 
   const creditCode = parts[1].toUpperCase();
-  
+
   try {
     // Import credit code functions
     const { findCreditCode, useCreditCode } = await import("../../state.js");
-    
+
     const code = findCreditCode(creditCode);
     if (!code) {
       return [{
@@ -70,7 +70,7 @@ async function handleCreditCodeRedemption(ctx: GroupChatContext): Promise<Proces
       }];
     }
 
-    if (code.usageCount >= code.maxUses) {
+    if (code.currentUses >= code.maxUses) {
       return [{
         type: "send_message",
         text: "❌ This credit code has reached its usage limit.",
@@ -91,7 +91,7 @@ async function handleCreditCodeRedemption(ctx: GroupChatContext): Promise<Proces
 
     // Use the credit code
     const success = useCreditCode(creditCode, fromUserId.toString());
-    
+
     if (!success) {
       return [{
         type: "send_message",
@@ -105,7 +105,7 @@ async function handleCreditCodeRedemption(ctx: GroupChatContext): Promise<Proces
     if (databaseAvailable) {
       try {
         const { upsertGroup } = await import("../../state.js");
-        
+
         // Add days to group credit
         upsertGroup({
           chatId: chatId.toString(),
@@ -133,7 +133,7 @@ async function handleCreditCodeRedemption(ctx: GroupChatContext): Promise<Proces
 
     return [{
       type: "send_message",
-      text: `✅ <b>Credit Code Redeemed!</b>\n\n🎁 You have successfully redeemed <b>${code.days} days</b> of credit.\n\nCode: <code>${creditCode}</code>\nRemaining uses: ${code.maxUses - code.usageCount}/${code.maxUses}`,
+      text: `✅ <b>Credit Code Redeemed!</b>\n\n🎁 You have successfully redeemed <b>${code.days} days</b> of credit.\n\nCode: <code>${creditCode}</code>\nRemaining uses: ${code.maxUses - code.currentUses}/${code.maxUses}`,
       parseMode: "HTML",
       autoDeleteSeconds: 30,
     }];

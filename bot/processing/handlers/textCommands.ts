@@ -1382,7 +1382,7 @@ async function handleCleanForceAdd(
           event: "join",
           payload: {
             path: ["invitedBy"],
-            not: null
+            not: { equals: {} }
           }
         }
       });

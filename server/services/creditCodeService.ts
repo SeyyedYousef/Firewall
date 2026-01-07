@@ -137,7 +137,6 @@ export async function redeemCreditCode(options: {
       include: {
         redeemedGroup: true,
       },
-      lock: { mode: "ForUpdate" },
     });
     if (!record) {
       throw assignStatus(new Error("Code not found"), 404);
@@ -181,7 +180,7 @@ export async function redeemCreditCode(options: {
         metadata: mergeRedemptionMetadata(record.metadata, {
           redeemedBy: options.actorTelegramId,
           redeemedGroup: options.groupTelegramId,
-        }),
+        }) as Prisma.InputJsonValue,
       },
     });
 

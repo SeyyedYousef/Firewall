@@ -5,6 +5,25 @@ import type { PromoSlideRecord } from "../../shared/promo.js";
 
 type JsonRecord = Record<string, unknown>;
 
+export type ModerationActionRecord = {
+  id: string;
+  userId: string | null;
+  actorId: string | null;
+  action: string;
+  severity: string | null;
+  reason: string | null;
+  metadata: unknown;
+  createdAt: string;
+};
+
+export type MembershipEventRecord = {
+  id: string;
+  userId: string;
+  event: string;
+  payload: unknown;
+  createdAt: string;
+};
+
 export async function fetchPanelSettingsFromDb() {
   const record = await withPrismaRetry(
     () =>
@@ -132,20 +151,20 @@ export async function fetchGroupsFromDb() {
   const membershipAggregates =
     groupIds.length > 0
       ? await withPrismaRetry(
-          () =>
-            prisma.membershipEvent.groupBy({
-              by: ["groupId", "event"],
-              where: {
-                groupId: {
-                  in: groupIds,
-                },
+        () =>
+          prisma.membershipEvent.groupBy({
+            by: ["groupId", "event"],
+            where: {
+              groupId: {
+                in: groupIds,
               },
-              _count: {
-                _all: true,
-              },
-            }),
-          "fetchGroupsFromDb:membershipAggregates",
-        )
+            },
+            _count: {
+              _all: true,
+            },
+          }),
+        "fetchGroupsFromDb:membershipAggregates",
+      )
       : [];
 
   const joinCounts = new Map<string, number>();
@@ -222,16 +241,16 @@ export async function fetchStarsWalletsFromDb() {
     group:
       wallet.group && wallet.group.telegramChatId
         ? {
-            chatId: wallet.group.telegramChatId,
-            title: wallet.group.title,
-          }
+          chatId: wallet.group.telegramChatId,
+          title: wallet.group.title,
+        }
         : null,
     owner:
       wallet.owner && wallet.owner.telegramId
         ? {
-            telegramId: wallet.owner.telegramId,
-            displayName: wallet.owner.displayName ?? null,
-          }
+          telegramId: wallet.owner.telegramId,
+          displayName: wallet.owner.displayName ?? null,
+        }
         : null,
   }));
 }
@@ -320,7 +339,7 @@ export async function fetchLatestStarsStatusForGroups(
   const result = new Map<string, LatestStarsStatusRecord>();
 
   for (const tx of transactions) {
-    if (result.has(tx.groupId) || tx.status !== "completed") {
+    if (!tx.groupId || result.has(tx.groupId) || tx.status !== "completed") {
       continue;
     }
 

@@ -5,6 +5,7 @@
  * Uses confidence scoring to prevent false positives.
  */
 
+import { Prisma } from "@prisma/client";
 import { prisma } from "../db/client.js";
 import { logger } from "../utils/logger.js";
 
@@ -124,7 +125,7 @@ export async function recordTabchi(input: {
                 detectionType: input.detectionType,
                 confidence: Math.min(100, Math.max(0, input.confidence)),
                 groupsAffected: input.groupsAffected ?? 1,
-                metadata: input.metadata ?? null,
+                metadata: (input.metadata ?? undefined) as Prisma.InputJsonValue | undefined,
             },
             update: {
                 username: input.username ?? undefined,
@@ -134,7 +135,7 @@ export async function recordTabchi(input: {
                 confidence: Math.min(100, Math.max(0, input.confidence)),
                 groupsAffected: { increment: 1 },
                 lastSeenAt: new Date(),
-                metadata: input.metadata ?? undefined,
+                metadata: (input.metadata ?? undefined) as Prisma.InputJsonValue | undefined,
                 // Clear removal if re-detected
                 removedAt: null,
                 removedBy: null,

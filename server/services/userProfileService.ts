@@ -482,13 +482,13 @@ export async function unlockAchievement(options: {
       },
     },
     update: {
-      metadata: options.metadata ?? Prisma.JsonNull,
+      metadata: (options.metadata ?? undefined) as Prisma.InputJsonValue | undefined,
       unlockedAt: new Date(),
     },
     create: {
       userProfileId: options.profileId,
       achievementId: options.achievementId,
-      metadata: options.metadata ?? Prisma.JsonNull,
+      metadata: (options.metadata ?? undefined) as Prisma.InputJsonValue | undefined,
     },
   });
 
@@ -546,7 +546,7 @@ export async function redeemReward(options: {
         userProfileId: options.profileId,
         rewardId: definition.id,
         cost: definition.cost,
-        metadata: initialMetadata ?? Prisma.JsonNull,
+        metadata: (initialMetadata ?? undefined) as Prisma.InputJsonValue | undefined,
       },
     });
 
@@ -621,7 +621,7 @@ export async function redeemReward(options: {
     await prisma.rewardRedemption.update({
       where: { id: context.redemption.id },
       data: {
-        metadata: rewardMetadata as Prisma.JsonValue,
+        metadata: rewardMetadata as Prisma.InputJsonValue,
       },
     });
   }

@@ -54,7 +54,7 @@ export function createAdminRouter(options: AdminRouterOptions): Router {
         recordsDeleted += groupDeleteResult.count;
 
         // Delete stars transactions
-        const starsDeleteResult = await prisma.starsTransaction.deleteMany({});
+        const starsDeleteResult = await prisma.starTransaction.deleteMany({});
         recordsDeleted += starsDeleteResult.count;
 
         // Delete firewall rules
@@ -65,9 +65,9 @@ export function createAdminRouter(options: AdminRouterOptions): Router {
         const membershipDeleteResult = await prisma.membershipEvent.deleteMany({});
         recordsDeleted += membershipDeleteResult.count;
 
-        // Delete analytics events
-        const analyticsDeleteResult = await prisma.analyticsEvent.deleteMany({});
-        recordsDeleted += analyticsDeleteResult.count;
+        // Delete moderation actions
+        const moderationDeleteResult = await prisma.moderationAction.deleteMany({});
+        recordsDeleted += moderationDeleteResult.count;
 
       } catch (error) {
         console.error("Database cleanup error:", error);
@@ -111,7 +111,7 @@ export function createAdminRouter(options: AdminRouterOptions): Router {
 
     } catch (error) {
       console.error("Bot reset error:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Internal server error during reset",
         details: error instanceof Error ? error.message : String(error)
       });

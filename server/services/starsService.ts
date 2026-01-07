@@ -364,7 +364,7 @@ export async function finalizeStarsPurchase(
       const existingTransactions = await prisma.starTransaction.count({
         where: {
           wallet: {
-            user: {
+            owner: {
               telegramId: ownerTelegramId,
             },
           },
@@ -392,7 +392,7 @@ export async function finalizeStarsPurchase(
 
           // Import and call recordReferralActivation
           const { recordReferralActivation } = await import("./missionVerificationService.js");
-          
+
           // Count total activated referrals for the referrer
           const totalActivated = await prisma.referral.count({
             where: {
@@ -409,7 +409,7 @@ export async function finalizeStarsPurchase(
           const activatedThisWeek = await prisma.referral.count({
             where: {
               referrerId: referral.referrerId,
-              activatedAt: { 
+              activatedAt: {
                 not: null,
                 gte: startOfWeek,
               },
@@ -419,7 +419,7 @@ export async function finalizeStarsPurchase(
           const activatedThisMonth = await prisma.referral.count({
             where: {
               referrerId: referral.referrerId,
-              activatedAt: { 
+              activatedAt: {
                 not: null,
                 gte: startOfMonth,
               },
