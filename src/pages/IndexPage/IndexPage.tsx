@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { hapticFeedback, openLink } from '@telegram-apps/sdk-react';
 import type { FC } from 'react';

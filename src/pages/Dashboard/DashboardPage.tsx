@@ -84,7 +84,7 @@ export function DashboardPage() {
 
   // Calculate total members across all groups
   const totalMembers = useMemo(() => {
-    return groups.reduce((sum, g) => sum + (g.memberCount ?? 0), 0);
+    return groups.reduce((sum, g) => sum + (g.membersCount ?? 0), 0);
   }, [groups]);
 
   // Handle navigation with haptic feedback
@@ -275,7 +275,7 @@ export function DashboardPage() {
                 <div className={styles.groupInfo}>
                   <h3 className={styles.groupName}>{group.title}</h3>
                   <span className={styles.groupMeta}>
-                    {formatNumber(group.memberCount ?? 0)} members
+                    {formatNumber(group.membersCount ?? 0)} members
                   </span>
                 </div>
                 <span className={`${styles.groupStatus} ${getGroupStatusClass(group)}`}>

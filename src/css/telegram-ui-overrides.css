@@ -89,5 +89,5 @@ textarea[class*="tgui-"] {
 .tgui-520270a6b0e44a8b .tgui-a1dc55b304d32032::before {
   transform: translateX(20px);
   background: var(--app-color-text-primary);
-  box-shadow: 0 0 20px rgba(30, 162, 255, 0.45);
+  box-shadow: 0 0 20px rgba(255, 69, 0, 0.45);
 }
