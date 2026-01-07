@@ -1,13 +1,25 @@
-@import url('../../css/theme.css');
-
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .wrapper {
@@ -26,13 +38,12 @@
   gap: var(--app-spacing-md);
   padding: var(--app-spacing-lg);
   border-radius: 24px;
-  background: linear-gradient(135deg, 
-    rgba(30, 162, 255, 0.12) 0%,
-    rgba(59, 130, 246, 0.08) 30%,
-    rgba(13, 20, 36, 0.95) 70%
-  );
+  background: linear-gradient(135deg,
+      rgba(30, 162, 255, 0.12) 0%,
+      rgba(59, 130, 246, 0.08) 30%,
+      rgba(13, 20, 36, 0.95) 70%);
   border: 1px solid rgba(30, 162, 255, 0.2);
-  box-shadow: 
+  box-shadow:
     0 10px 40px rgba(0, 0, 0, 0.3),
     0 0 0 1px rgba(30, 162, 255, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -55,8 +66,13 @@
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .content {
@@ -116,7 +132,7 @@
   border-radius: 14px !important;
   font-weight: 700 !important;
   font-size: 15px !important;
-  box-shadow: 
+  box-shadow:
     0 8px 24px rgba(0, 122, 255, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
   transition: all 0.3s ease !important;
@@ -124,7 +140,7 @@
 
 .cta:hover {
   transform: translateY(-2px);
-  box-shadow: 
+  box-shadow:
     0 12px 32px rgba(0, 122, 255, 0.5),
     0 0 40px rgba(0, 122, 255, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
@@ -135,4 +151,3 @@
   color: rgba(245, 247, 255, 0.5);
   text-align: center;
 }
-

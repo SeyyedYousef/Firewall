@@ -1,0 +1,117 @@
+.shell {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    /* Ensure it fills the viewport exactly */
+    height: 100dvh;
+    background-color: var(--oled-black);
+    color: var(--text-primary);
+    overflow: hidden;
+}
+
+.header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: var(--surface-glass-heavy);
+    backdrop-filter: var(--glass-blur);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.headerTitle {
+    font-family: var(--font-family-mono);
+    font-size: 1.1rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: var(--magma-gradient);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.main {
+    flex: 1;
+    overflow-y: auto;
+    padding-top: 60px;
+    /* Header height */
+    padding-bottom: 70px;
+    /* Footer height */
+    -webkit-overflow-scrolling: touch;
+}
+
+.tabBar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 65px;
+    background: var(--surface-glass-heavy);
+    backdrop-filter: var(--glass-blur);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.tabButton {
+    background: none;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    gap: 4px;
+    padding: 8px;
+    transition: all 0.2s var(--haptic-spring);
+    width: 100%;
+}
+
+.tabButtonActive {
+    color: var(--magma-primary);
+}
+
+.tabIconWrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+
+.tabButtonActive .tabIconWrapper svg {
+    filter: drop-shadow(0 0 8px rgba(255, 69, 0, 0.5));
+}
+
+.tabLabel {
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+}
+
+/* Animations */
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 69, 0, 0.4);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(255, 69, 0, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 69, 0, 0);
+    }
+}

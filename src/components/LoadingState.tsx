@@ -1,4 +1,4 @@
-import { Spinner } from '@telegram-apps/telegram-ui';
+import { Skeleton } from '@/components/UI/Skeleton';
 
 interface LoadingStateProps {
   message?: string;
@@ -6,20 +6,24 @@ interface LoadingStateProps {
   fullScreen?: boolean;
 }
 
-export function LoadingState({ 
-  size = 's',
-  fullScreen = false 
-}: LoadingStateProps) {
-  // Minimal loading indicator - just a spinner, no text
+export function LoadingState({ fullScreen = false }: LoadingStateProps) {
+  // Skeleton loading - no spinners
   return (
     <div style={{
       display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: fullScreen ? '100vh' : '120px',
-      padding: '20px'
+      flexDirection: 'column',
+      gap: '16px',
+      padding: '24px',
+      minHeight: fullScreen ? '100vh' : '100%',
+      justifyContent: 'flex-start'
     }}>
-      <Spinner size={size} />
+      <Skeleton height="180px" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        <Skeleton height="120px" />
+        <Skeleton height="120px" />
+      </div>
+      <Skeleton height="60px" />
+      <Skeleton height="200px" />
     </div>
   );
 }
@@ -30,7 +34,7 @@ interface LoadingOverlayProps {
   children: React.ReactNode;
 }
 
-export function LoadingOverlay({ isLoading, message, children }: LoadingOverlayProps) {
+export function LoadingOverlay({ isLoading, children }: LoadingOverlayProps) {
   return (
     <div style={{ position: 'relative' }}>
       {children}
@@ -41,40 +45,24 @@ export function LoadingOverlay({ isLoading, message, children }: LoadingOverlayP
           left: 0,
           right: 0,
           bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.7)', // Darker overlay
+          backdropFilter: 'blur(4px)',
+          zIndex: 1000,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          zIndex: 1000
+          justifyContent: 'center'
         }}>
-          <div style={{
-            backgroundColor: 'var(--tgui--bg_color, #fff)',
-            padding: '24px',
-            borderRadius: '12px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '12px'
-          }}>
-            <Spinner size="m" />
-            {message && <p>{message}</p>}
-          </div>
+          <Skeleton width="80%" height="150px" /> {/* Skeleton overlay instead of spinner box */}
         </div>
       )}
     </div>
   );
 }
 
-export function InlineLoader({ message }: { message?: string }) {
+export function InlineLoader() {
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: '12px'
-    }}>
-      <Spinner size="s" />
-      {message && <span style={{ fontSize: '14px', opacity: 0.7 }}>{message}</span>}
+    <div style={{ padding: '8px' }}>
+      <Skeleton width="100%" height="24px" variant="text" />
     </div>
   );
 }

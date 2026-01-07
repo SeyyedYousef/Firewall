@@ -1,11 +1,11 @@
-@import "./css/theme.css";
-@import "./css/telegram-ui-overrides.css";
-
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   direction: ltr;
   margin: 0;
   padding: 0;
@@ -35,13 +35,16 @@ a {
   text-decoration: none;
 }
 
-button, input, textarea, select {
+button,
+input,
+textarea,
+select {
   font: inherit;
 }
 
 /* Basic fallback styles - only apply if not inside Telegram UI */
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([class*="tgui-"]), 
-textarea:not([class*="tgui-"]), 
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([class*="tgui-"]),
+textarea:not([class*="tgui-"]),
 select:not([class*="tgui-"]) {
   user-select: text;
   -webkit-user-select: text;
@@ -50,12 +53,14 @@ select:not([class*="tgui-"]) {
 }
 
 /* Force readable text for all inputs including Telegram UI */
-input, textarea, select {
+input,
+textarea,
+select {
   color: #E2E8F0 !important;
 }
 
 /* Ensure all placeholders are visible */
-input::placeholder, 
+input::placeholder,
 textarea::placeholder,
 [class*="tgui-"]::placeholder {
   color: #94A3B8 !important;
@@ -83,7 +88,9 @@ textarea {
   resize: vertical;
 }
 
-img, svg, video {
+img,
+svg,
+video {
   max-width: 100%;
   height: auto;
 }

@@ -3021,7 +3021,6 @@ async function showInlineGroupSelection(ctx: Context): Promise<void> {
 function buildInlineGroupMenuKeyboard(chatId: string): InlineKeyboard {
   const locksCallback = `fw_inline_locks:${chatId}:1`;
   const listsCallback = `fw_inline_lists:${chatId}`;
-  const helpCallback = `fw_inline_help:${chatId}`;
 
   return Markup.inlineKeyboard([
     [
@@ -3029,7 +3028,6 @@ function buildInlineGroupMenuKeyboard(chatId: string): InlineKeyboard {
       Markup.button.callback("📋 Lists", listsCallback),
     ],
     [
-      Markup.button.callback("❓ Help", helpCallback),
       Markup.button.callback("⭐️ Upgrade to Premium", `group_setup:premium:${chatId}`),
     ],
     [Markup.button.callback("◀️ Back to Groups", INLINE_BACK_TO_GROUPS)],

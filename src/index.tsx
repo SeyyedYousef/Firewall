@@ -9,6 +9,7 @@ import { Root } from '@/components/Root.tsx';
 import { EnvUnsupported } from '@/components/EnvUnsupported.tsx';
 import { init } from '@/init.ts';
 
+import '@/css/variables.css';
 import './index.css';
 
 // Mock the environment in case, we are outside Telegram.
@@ -44,12 +45,12 @@ try {
     .then(() => {
       root.render(
         <StrictMode>
-          <Root/>
+          <Root />
         </StrictMode>,
       );
     });
 } catch (error) {
   console.error('[app] Failed to initialize Telegram SDK:', error);
-  root.render(<EnvUnsupported/>);
+  root.render(<EnvUnsupported />);
 }
 

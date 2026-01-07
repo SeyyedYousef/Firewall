@@ -3,7 +3,7 @@ import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { retrieveLaunchParams } from '@telegram-apps/sdk-react';
 import { AppRoot } from '@telegram-apps/telegram-ui';
 
-import { AppLayout } from '@/components/layout/AppLayout';
+import { AppShell } from '@/components/layout/AppShell';
 import { LoadingState } from '@/components/LoadingState';
 
 // Lazy load pages for better performance
@@ -43,30 +43,31 @@ export function App() {
       platform={platform}
     >
       <HashRouter>
-        <Suspense fallback={<LoadingState />}>
+        <Suspense fallback={<LoadingState fullScreen />}>
           <Routes>
-            <Route path='/' element={<AppLayout/>}>
-              <Route index element={<Navigate to='groups' replace/>}/>
-              <Route path='groups' element={<DashboardPage/>}/>
-              <Route path='groups/:groupId' element={<GroupDashboardPage/>}/>
-              <Route path='groups/:groupId/analytics' element={<GroupAnalyticsPage/>}/>
-              <Route path='groups/:groupId/settings/general' element={<GroupGeneralSettingsPage/>}/>
-              <Route path='groups/:groupId/settings/bans' element={<GroupBanSettingsPage/>}/>
-              <Route path='groups/:groupId/settings/limits' element={<GroupCountLimitSettingsPage/>}/>
-              <Route path='groups/:groupId/settings/mute' element={<GroupSilenceSettingsPage/>}/>
-              <Route path='groups/:groupId/settings/mandatory' element={<GroupMandatoryMembershipPage/>}/>
-              <Route path='groups/:groupId/settings/texts' element={<GroupCustomTextsPage/>}/>
-              <Route path='stars' element={<StarsPage/>}/>
-              <Route path='missions' element={<MissionsPage/>}/>
-              <Route path='giveaway' element={<Navigate to='giveaway/active' replace/>}/>
-              <Route path='giveaway/active' element={<GiveawayDashboardPage/>}/>
-              <Route path='giveaway/create' element={<CreateGiveawayPage/>}/>
-              <Route path='giveaway/history' element={<GiveawayHistoryPage/>}/>
-              <Route path='giveaway/join/:giveawayId' element={<JoinGiveawayPage/>}/>
-              <Route path='promo-slides/manage' element={<PromoSliderManagerPage/>}/>
-              <Route path='profile' element={<ProfilePage/>}/>
+            <Route path='/' element={<AppShell />}>
+              <Route index element={<DashboardPage />} />
+              <Route path='groups' element={<Navigate to='/' replace />} />
+              <Route path='groups/:groupId' element={<GroupDashboardPage />} />
+              <Route path='groups/:groupId/analytics' element={<GroupAnalyticsPage />} />
+              <Route path='groups/:groupId/settings/general' element={<GroupGeneralSettingsPage />} />
+              <Route path='groups/:groupId/settings/bans' element={<GroupBanSettingsPage />} />
+              <Route path='groups/:groupId/settings/limits' element={<GroupCountLimitSettingsPage />} />
+              <Route path='groups/:groupId/settings/mute' element={<GroupSilenceSettingsPage />} />
+              <Route path='groups/:groupId/settings/mandatory' element={<GroupMandatoryMembershipPage />} />
+              <Route path='groups/:groupId/settings/texts' element={<GroupCustomTextsPage />} />
+              <Route path='stars' element={<StarsPage />} />
+              <Route path='premium' element={<StarsPage />} />
+              <Route path='missions' element={<MissionsPage />} />
+              <Route path='giveaway' element={<Navigate to='giveaway/active' replace />} />
+              <Route path='giveaway/active' element={<GiveawayDashboardPage />} />
+              <Route path='giveaway/create' element={<CreateGiveawayPage />} />
+              <Route path='giveaway/history' element={<GiveawayHistoryPage />} />
+              <Route path='giveaway/join/:giveawayId' element={<JoinGiveawayPage />} />
+              <Route path='promo-slides/manage' element={<PromoSliderManagerPage />} />
+              <Route path='profile' element={<ProfilePage />} />
             </Route>
-            <Route path='*' element={<Navigate to='/groups' replace/>}/>
+            <Route path='*' element={<Navigate to='/' replace />} />
           </Routes>
         </Suspense>
       </HashRouter>

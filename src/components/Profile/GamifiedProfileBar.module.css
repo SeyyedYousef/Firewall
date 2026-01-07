@@ -1,0 +1,105 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: var(--surface-glass);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.levelInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.levelLabel {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.levelValue {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.xpText {
+    font-family: var(--font-family-mono);
+    font-size: 0.9rem;
+    color: var(--magma-primary);
+}
+
+.progressContainer {
+    position: relative;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.progressBar {
+    height: 100%;
+    background: var(--magma-gradient);
+    border-radius: 4px;
+    position: relative;
+    box-shadow: 0 0 10px rgba(255, 69, 0, 0.5);
+}
+
+/* Particle effect via CSS shimmy */
+.progressBar::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.8) 1px, transparent 1px);
+    background-size: 10px 10px;
+    opacity: 0.5;
+    animation: particles 10s linear infinite;
+}
+
+@keyframes particles {
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        transform: translateX(-50px);
+    }
+}
+
+.badges {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.badgeSlot {
+    width: 40px;
+    height: 40px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.badge {
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5));
+    transform: perspective(500px) rotateX(10deg);
+}

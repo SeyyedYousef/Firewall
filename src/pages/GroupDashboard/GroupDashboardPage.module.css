@@ -1,5 +1,3 @@
-@import url('../../css/theme.css');
-
 .page {
   display: flex;
   flex-direction: column;
@@ -340,4 +338,3 @@
     padding: calc(var(--app-spacing-xl));
   }
 }
-

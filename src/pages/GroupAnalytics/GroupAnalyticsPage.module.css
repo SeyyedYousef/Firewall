@@ -1,6 +1,4 @@
-﻿@import url('../../css/theme.css');
-
-.page {
+﻿.page {
   min-height: 100vh;
   background: var(--app-color-background);
   color: var(--app-color-text-primary);
@@ -331,6 +329,7 @@
   0% {
     background-position: 0% 50%;
   }
+
   100% {
     background-position: 100% 50%;
   }
@@ -351,4 +350,3 @@
     justify-content: space-between;
   }
 }
-
