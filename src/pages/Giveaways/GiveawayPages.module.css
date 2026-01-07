@@ -33,8 +33,8 @@
 
 .tabActive {
   color: #fff;
-  background: rgba(30, 162, 255, 0.15);
-  box-shadow: 0 0 12px rgba(30, 162, 255, 0.2);
+  background: rgba(255, 69, 0, 0.15);
+  box-shadow: 0 0 12px rgba(255, 69, 0, 0.2);
 }
 
 .section {
@@ -89,8 +89,8 @@
   gap: 12px;
   padding: 16px;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(30, 162, 255, 0.1) 0%, rgba(0, 0, 0, 0.4) 100%);
-  border: 1px solid rgba(30, 162, 255, 0.2);
+  background: linear-gradient(135deg, rgba(255, 69, 0, 0.1) 0%, rgba(0, 0, 0, 0.4) 100%);
+  border: 1px solid rgba(255, 69, 0, 0.2);
 }
 
 .list {
@@ -185,10 +185,10 @@
 }
 
 .actionPrimary {
-  background: rgba(30, 162, 255, 0.15);
-  border-color: rgba(30, 162, 255, 0.3);
+  background: rgba(255, 69, 0, 0.15);
+  border-color: rgba(255, 69, 0, 0.3);
   color: #fff;
-  box-shadow: 0 0 12px rgba(30, 162, 255, 0.1);
+  box-shadow: 0 0 12px rgba(255, 69, 0, 0.1);
 }
 
 .actionDanger {
@@ -222,9 +222,9 @@
 }
 
 .planCardActive {
-  background: rgba(30, 162, 255, 0.15);
-  border-color: rgba(30, 162, 255, 0.4);
-  box-shadow: 0 0 16px rgba(30, 162, 255, 0.15);
+  background: rgba(255, 69, 0, 0.15);
+  border-color: rgba(255, 69, 0, 0.4);
+  box-shadow: 0 0 16px rgba(255, 69, 0, 0.15);
   transform: translateY(-2px);
 }
 
@@ -265,9 +265,9 @@
 }
 
 .groupCardActive {
-  background: rgba(30, 162, 255, 0.15);
-  border-color: rgba(30, 162, 255, 0.4);
-  box-shadow: 0 0 16px rgba(30, 162, 255, 0.15);
+  background: rgba(255, 69, 0, 0.15);
+  border-color: rgba(255, 69, 0, 0.4);
+  box-shadow: 0 0 16px rgba(255, 69, 0, 0.15);
   transform: translateY(-2px);
 }
 
@@ -347,9 +347,9 @@
 }
 
 .badgeActive {
-  background: rgba(30, 162, 255, 0.15);
-  color: #33b5ff;
-  box-shadow: 0 0 8px rgba(30, 162, 255, 0.2);
+  background: rgba(255, 69, 0, 0.15);
+  color: var(--magma-primary);
+  box-shadow: 0 0 8px rgba(255, 69, 0, 0.2);
 }
 
 .badgeScheduled {
@@ -443,12 +443,12 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  background: radial-gradient(circle at top, rgba(30, 162, 255, 0.2) 0%, rgba(10, 10, 10, 0.9) 70%);
+  background: radial-gradient(circle at top, rgba(255, 69, 0, 0.2) 0%, rgba(10, 10, 10, 0.9) 70%);
   border-radius: 20px;
   padding: 32px 20px;
   text-align: center;
-  border: 1px solid rgba(30, 162, 255, 0.15);
-  box-shadow: 0 0 32px rgba(30, 162, 255, 0.05);
+  border: 1px solid rgba(255, 69, 0, 0.15);
+  box-shadow: 0 0 32px rgba(255, 69, 0, 0.05);
   margin-top: 20px;
 }
 
@@ -489,11 +489,11 @@
 .rewardPill {
   padding: 6px 14px;
   border-radius: 999px;
-  background: rgba(30, 162, 255, 0.15);
-  color: #33b5ff;
+  background: rgba(255, 69, 0, 0.15);
+  color: var(--magma-primary);
   font-size: 0.85rem;
   font-weight: 600;
-  border: 1px solid rgba(30, 162, 255, 0.2);
+  border: 1px solid rgba(255, 69, 0, 0.2);
 }
 
 .joinCTA {

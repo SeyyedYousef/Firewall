@@ -1,0 +1,222 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   🔥 FIREWALL INDEX PAGE - Quick Start Hub
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    padding: 20px 16px;
+    padding-bottom: 100px;
+    min-height: 100vh;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Hero Section
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 40px 20px;
+    background: linear-gradient(180deg,
+            rgba(255, 100, 50, 0.08) 0%,
+            transparent 100%);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 100, 50, 0.15);
+}
+
+.heroIcon {
+    font-size: 4rem;
+    margin-bottom: 12px;
+    filter: drop-shadow(0 0 30px rgba(255, 100, 50, 0.5));
+    animation: pulse-hero 3s ease-in-out infinite;
+}
+
+@keyframes pulse-hero {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.heroTitle {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.02em;
+    text-shadow: 0 2px 20px rgba(255, 100, 50, 0.3);
+}
+
+.heroSubtitle {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+    max-width: 260px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Sections
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.sectionTitle {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 0.15em;
+    margin: 0;
+    padding-left: 4px;
+    font-weight: 600;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Card Grid
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.grid> :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 20px 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.card:hover,
+.card:focus {
+    background: rgba(255, 255, 255, 0.06);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 100, 50, 0.3);
+}
+
+.card:active {
+    transform: translateY(-1px);
+}
+
+.cardIcon {
+    font-size: 1.8rem;
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.3));
+}
+
+.cardTitle {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.cardSubtitle {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   List Items
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.listItem {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 14px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.listItem:hover,
+.listItem:focus {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 100, 50, 0.2);
+    transform: translateX(4px);
+}
+
+.listIcon {
+    font-size: 1.4rem;
+    width: 36px;
+    text-align: center;
+}
+
+.listContent {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.listTitle {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.listSubtitle {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.listArrow {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.3);
+    transition: transform 0.2s;
+}
+
+.listItem:hover .listArrow {
+    transform: translateX(4px);
+    color: rgba(255, 100, 50, 0.7);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Footer
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.3);
+    padding: 20px 0;
+}

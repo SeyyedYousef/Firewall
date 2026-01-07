@@ -3,9 +3,11 @@
   align-items: center;
   gap: 16px;
   padding: 16px 20px;
-  background: var(--tg-theme-bg-color, #ffffff);
+  background: var(--surface-glass);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  backdrop-filter: var(--glass-blur);
   margin-bottom: 20px;
 }
 
@@ -18,10 +20,10 @@
 
 .name {
   margin: 0;
-  color: var(--tg-theme-text-color, #111);
+  color: var(--text-primary);
 }
 
 .username {
   margin: 0;
-  color: var(--tg-theme-hint-color, #6c7883);
+  color: var(--text-muted);
 }

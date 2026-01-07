@@ -343,7 +343,7 @@ export function GroupDashboardPage() {
           <button
             type='button'
             className={styles.actionButton}
-            onClick={() => navigate('/stars', { state: { focusGroupId: groupId } })}
+            onClick={() => navigate('/premium', { state: { focusGroupId: groupId } })}
           >
             ⭐ {TEXT.premiumTitle}
           </button>
@@ -422,9 +422,6 @@ export function GroupDashboardPage() {
               break;
             case 'analytics':
               navigate(`/groups/${groupId}/analytics`, { state: { group } });
-              break;
-            case 'stars':
-              navigate(`/stars`, { state: { focusGroupId: groupId } });
               break;
             default:
               console.info(`[group-dashboard] unknown menu item '${key}' selected`);

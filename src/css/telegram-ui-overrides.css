@@ -11,16 +11,18 @@
   border: 1px solid rgba(148, 163, 184, 0.25) !important;
   border-radius: 12px !important;
 }
+
 /* Focus state */
 .tgui-8ca550c2fc85eff5:focus-within {
-  border-color: var(--app-color-accent-cyan) !important;
+  border-color: var(--magma-primary) !important;
 }
 
 /* Input text color - همه ورودی‌ها */
 .tgui-0f5050defacbf813,
 [class*="tgui-"] input,
 [class*="tgui-"] textarea {
-  color: #E2E8F0 !important; /* رنگ روشن و خوانا */
+  color: #E2E8F0 !important;
+  /* رنگ روشن و خوانا */
   background: transparent !important;
   border: none !important;
   outline: none !important;
@@ -29,7 +31,8 @@
 /* Textarea مخصوص */
 .tgui-d40ec83150e66029,
 textarea[class*="tgui-"] {
-  color: #E2E8F0 !important; /* رنگ سفید کرمی */
+  color: #E2E8F0 !important;
+  /* رنگ سفید کرمی */
   background: transparent !important;
   line-height: 1.6 !important;
   font-size: 15px !important;
@@ -40,7 +43,8 @@ textarea[class*="tgui-"] {
 .tgui-d40ec83150e66029::placeholder,
 [class*="tgui-"] input::placeholder,
 [class*="tgui-"] textarea::placeholder {
-  color: #94A3B8 !important; /* رنگ خاکستری روشن */
+  color: #94A3B8 !important;
+  /* رنگ خاکستری روشن */
   opacity: 1 !important;
 }
 
@@ -78,7 +82,7 @@ textarea[class*="tgui-"] {
 }
 
 .tgui-520270a6b0e44a8b .tgui-a1dc55b304d32032 {
-  background: var(--app-color-accent-cyan);
+  background: var(--magma-primary);
   border-color: var(--app-color-accent-cyan);
 }
 

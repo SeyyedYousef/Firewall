@@ -11,17 +11,16 @@
   position: relative;
   overflow: hidden;
   border-radius: 28px;
-  background: linear-gradient(140deg, 
-    rgba(30, 162, 255, 0.4) 0%, 
-    rgba(59, 130, 246, 0.25) 30%,
-    rgba(74, 222, 128, 0.2) 100%
-  );
+  background: linear-gradient(140deg,
+      rgba(255, 69, 0, 0.4) 0%,
+      rgba(255, 0, 0, 0.25) 30%,
+      rgba(255, 191, 0, 0.2) 100%);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(30, 162, 255, 0.3);
-  box-shadow: 
-    0 20px 60px rgba(30, 162, 255, 0.3),
-    0 0 80px rgba(74, 222, 128, 0.2),
+  border: 1px solid rgba(255, 69, 0, 0.3);
+  box-shadow:
+    0 20px 60px rgba(255, 69, 0, 0.3),
+    0 0 80px rgba(255, 191, 0, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
   padding: 28px;
   display: flex;
@@ -33,11 +32,10 @@
   content: "";
   position: absolute;
   inset: -40%;
-  background: radial-gradient(circle at center, 
-    rgba(30, 162, 255, 0.6) 0%,
-    rgba(74, 222, 128, 0.3) 40%,
-    transparent 70%
-  );
+  background: radial-gradient(circle at center,
+      rgba(255, 69, 0, 0.6) 0%,
+      rgba(255, 191, 0, 0.3) 40%,
+      transparent 70%);
   opacity: 0.4;
   pointer-events: none;
   animation: float 6s ease-in-out infinite;
@@ -114,7 +112,7 @@
   position: absolute;
   inset: 0;
   width: 0;
-  background: linear-gradient(90deg, rgba(30, 162, 255, 0.9), rgba(72, 187, 120, 0.9));
+  background: linear-gradient(90deg, rgba(255, 69, 0, 0.9), rgba(255, 191, 0, 0.9));
   transition: width var(--app-motion-duration-base) var(--app-motion-ease);
 }
 
@@ -197,7 +195,7 @@
   position: absolute;
   inset: 0;
   width: 0;
-  background: linear-gradient(90deg, rgba(30, 162, 255, 0.85), rgba(20, 184, 166, 0.85));
+  background: linear-gradient(90deg, rgba(255, 69, 0, 0.85), rgba(255, 191, 0, 0.85));
   transition: width var(--app-motion-duration-base) var(--app-motion-ease);
 }
 
@@ -241,9 +239,9 @@
 }
 
 .tabButtonActive {
-  background: rgba(30, 162, 255, 0.2);
+  background: rgba(255, 69, 0, 0.2);
   color: var(--app-color-text-primary);
-  box-shadow: 0 0 18px rgba(30, 162, 255, 0.35);
+  box-shadow: 0 0 18px rgba(255, 69, 0, 0.35);
 }
 
 .tabCount {
@@ -277,7 +275,7 @@
 
 .missionCard:hover {
   transform: translateY(-2px);
-  border-color: rgba(30, 162, 255, 0.35);
+  border-color: rgba(255, 69, 0, 0.35);
 }
 
 .missionCardCompleted {
@@ -295,7 +293,7 @@
   width: 56px;
   height: 56px;
   border-radius: 18px;
-  background: rgba(30, 162, 255, 0.18);
+  background: rgba(255, 69, 0, 0.18);
   border: 1px solid rgba(148, 163, 184, 0.25);
   display: flex;
   align-items: center;
@@ -310,7 +308,7 @@
   position: absolute;
   inset: 8px;
   border-radius: 14px;
-  background: rgba(30, 162, 255, 0.24);
+  background: rgba(255, 69, 0, 0.24);
   filter: blur(12px);
   pointer-events: none;
 }
@@ -442,11 +440,9 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
-  max-height: clamp(
-    320px,
-    calc(100vh - 48px - 96px - env(safe-area-inset-bottom, 0px)),
-    720px
-  );
+  max-height: clamp(320px,
+      calc(100vh - 48px - 96px - env(safe-area-inset-bottom, 0px)),
+      720px);
   overflow: hidden;
 }
 
@@ -613,7 +609,7 @@
   font-size: 12px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  background: rgba(30, 162, 255, 0.18);
+  background: rgba(255, 69, 0, 0.18);
   color: var(--app-color-accent-cyan);
 }
 
@@ -637,7 +633,7 @@
 .rewardTierList li::before {
   content: "-";
   margin-right: 8px;
-  color: rgba(30, 162, 255, 0.6);
+  color: rgba(255, 69, 0, 0.6);
 }
 
 .rewardTierCode {
@@ -788,7 +784,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: rgba(30, 162, 255, 0.2);
+  background: rgba(255, 69, 0, 0.2);
   border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
@@ -805,7 +801,7 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  box-shadow: 0 0 12px rgba(30, 162, 255, 0.45);
+  box-shadow: 0 0 12px rgba(255, 69, 0, 0.45);
 }
 
 .iconStub::after {
@@ -816,25 +812,81 @@
   mix-blend-mode: screen;
 }
 
-.iconStub[data-kind="check"]::after { content: "C"; }
-.iconStub[data-kind="stars"]::after { content: "S"; }
-.iconStub[data-kind="settings"]::after { content: "T"; }
-.iconStub[data-kind="chat"]::after { content: "M"; }
-.iconStub[data-kind="target"]::after { content: "T"; }
-.iconStub[data-kind="gift"]::after { content: "G"; }
-.iconStub[data-kind="invite"]::after { content: "I"; }
-.iconStub[data-kind="shield"]::after { content: "D"; }
-.iconStub[data-kind="uptime"]::after { content: "U"; }
-.iconStub[data-kind="brain"]::after { content: "B"; }
-.iconStub[data-kind="trophy"]::after { content: "#"; }
-.iconStub[data-kind="link"]::after { content: "L"; }
-.iconStub[data-kind="review"]::after { content: "W"; }
-.iconStub[data-kind="groups"]::after { content: "A"; }
-.iconStub[data-kind="puzzle"]::after { content: "P"; }
-.iconStub[data-kind="analytics"]::after { content: "%"; }
-.iconStub[data-kind="broadcast"]::after { content: "!"; }
-.iconStub[data-kind="security"]::after { content: "X"; }
-.iconStub[data-kind="insight"]::after { content: "?"; }
+.iconStub[data-kind="check"]::after {
+  content: "C";
+}
+
+.iconStub[data-kind="stars"]::after {
+  content: "S";
+}
+
+.iconStub[data-kind="settings"]::after {
+  content: "T";
+}
+
+.iconStub[data-kind="chat"]::after {
+  content: "M";
+}
+
+.iconStub[data-kind="target"]::after {
+  content: "T";
+}
+
+.iconStub[data-kind="gift"]::after {
+  content: "G";
+}
+
+.iconStub[data-kind="invite"]::after {
+  content: "I";
+}
+
+.iconStub[data-kind="shield"]::after {
+  content: "D";
+}
+
+.iconStub[data-kind="uptime"]::after {
+  content: "U";
+}
+
+.iconStub[data-kind="brain"]::after {
+  content: "B";
+}
+
+.iconStub[data-kind="trophy"]::after {
+  content: "#";
+}
+
+.iconStub[data-kind="link"]::after {
+  content: "L";
+}
+
+.iconStub[data-kind="review"]::after {
+  content: "W";
+}
+
+.iconStub[data-kind="groups"]::after {
+  content: "A";
+}
+
+.iconStub[data-kind="puzzle"]::after {
+  content: "P";
+}
+
+.iconStub[data-kind="analytics"]::after {
+  content: "%";
+}
+
+.iconStub[data-kind="broadcast"]::after {
+  content: "!";
+}
+
+.iconStub[data-kind="security"]::after {
+  content: "X";
+}
+
+.iconStub[data-kind="insight"]::after {
+  content: "?";
+}
 
 .iconStub[data-complete="true"] {
   background: rgba(74, 222, 128, 0.3);
@@ -894,6 +946,7 @@
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   }
 }
+
 .marketSection {
   display: grid;
   gap: var(--app-spacing-md);
@@ -905,7 +958,8 @@
   }
 }
 
-.storeCard, .referralCard {
+.storeCard,
+.referralCard {
   background: rgba(8, 12, 22, 0.92);
   border-radius: var(--app-radius-lg);
   border: 1px solid rgba(148, 163, 184, 0.18);

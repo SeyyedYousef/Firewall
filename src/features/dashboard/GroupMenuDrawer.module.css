@@ -76,7 +76,7 @@
   border-radius: 14px;
   padding: 12px 14px;
   background: transparent;
-  color: #a0a0a0;
+  color: var(--text-muted);
   /* Muted text */
   font-size: 15px;
   font-weight: 500;
@@ -92,9 +92,9 @@
 }
 
 .itemActive {
-  background: rgba(30, 162, 255, 0.1);
-  /* Magma Cyan Tint */
-  border-color: rgba(30, 162, 255, 0.2);
+  background: rgba(255, 69, 0, 0.1);
+  /* Magma Orange Tint */
+  border-color: rgba(255, 69, 0, 0.2);
   color: #ffffff;
   font-weight: 600;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -112,7 +112,7 @@
 
 .itemActive .itemIcon {
   filter: grayscale(0);
-  text-shadow: 0 0 10px rgba(30, 162, 255, 0.6);
+  text-shadow: 0 0 10px rgba(255, 69, 0, 0.6);
 }
 
 .itemLabel {

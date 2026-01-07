@@ -61,15 +61,24 @@ input[type="password"],
 input[type="number"],
 input[type="email"],
 input[type="search"],
+.tgui-input,
+[class*="tgui-Input"],
 [class*="tgui-"] input {
   background-color: var(--app-color-surface) !important;
   color: var(--app-color-text-primary) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  /* Default radius, specific pages overrides this */
-  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
   user-select: text !important;
   -webkit-user-select: text !important;
+  box-shadow: none !important;
+  -webkit-appearance: none;
+}
+
+/* Specific fix for Telegram UI Input wrapper/container if it has a background */
+[class*="tgui-Input"] {
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 /* Fix focus states */
@@ -80,7 +89,7 @@ select:focus,
   border-color: var(--magma-primary) !important;
   outline: none !important;
   background-color: rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 0 0 2px rgba(255, 69, 0, 0.1);
+  box-shadow: 0 0 0 2px rgba(255, 69, 0, 0.1) !important;
 }
 
 /* Ensure all placeholders are visible */
@@ -95,8 +104,12 @@ textarea::placeholder,
 input[type="checkbox"],
 input[type="radio"] {
   background-color: transparent !important;
-  border: none;
-  padding: 0;
+  border: none !important;
+  padding: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  appearance: auto;
+  -webkit-appearance: auto;
 }
 
 /* Telegram UI switch fix */

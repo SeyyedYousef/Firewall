@@ -3028,7 +3028,7 @@ function buildInlineGroupMenuKeyboard(chatId: string): InlineKeyboard {
       Markup.button.callback("📋 Lists", listsCallback),
     ],
     [
-      Markup.button.callback("⭐️ Upgrade to Premium", `group_setup:premium:${chatId}`),
+      Markup.button.callback("⭐️ Upgrade to Premium", `fw_premium_upgrade:${chatId}`),
     ],
     [Markup.button.callback("◀️ Back to Groups", INLINE_BACK_TO_GROUPS)],
   ]);
@@ -6863,6 +6863,75 @@ bot.action(/^group_setup:premium:(.+)$/, async (ctx) => {
   finalizeGroupAsPremium(chatId, userId, pendingSetup.title);
 
   logger.info("user directed to premium payment", { chatId, userId, title: pendingSetup.title });
+});
+
+bot.action(/^fw_premium_upgrade:(.+)$/, async (ctx) => {
+  const match = ctx.match;
+  const chatId = match[1];
+  const userId = ctx.from?.id?.toString();
+
+  if (!userId) {
+    await ctx.answerCbQuery("Unable to verify your identity.", { show_alert: true });
+    return;
+  }
+
+  const groups = await getManageableGroupsForUser(userId);
+  const group = groups.find((g) => g.chatId === chatId);
+
+  if (!group) {
+    await ctx.answerCbQuery("You do not have permission to manage this group.", { show_alert: true });
+    return;
+  }
+
+  const starsState = getStarsState();
+  // Default to the first plan (usually 1 month)
+  const plan = starsState.plans[0];
+
+  if (!plan) {
+    await ctx.answerCbQuery("No premium plans available.", { show_alert: true });
+    return;
+  }
+
+  await ctx.answerCbQuery("Generating invoice...");
+
+  try {
+    const purchase = await purchaseStars({
+      ownerTelegramId: userId,
+      groupId: chatId,
+      planId: plan.id,
+      gifted: false,
+      metadata: {
+        title: group.title,
+        managed: true,
+      },
+    });
+
+    if (!purchase.paymentUrl) {
+      await ctx.reply("Failed to generate payment link.");
+      return;
+    }
+
+    const message =
+      `🌟 <b>Upgrade to Premium</b>\n\n` +
+      `Unlock the full potential of <b>${group.title}</b>:\n` +
+      `• 🚫 <b>No Ads</b>\n` +
+      `• 📊 <b>Advanced Analytics</b>\n` +
+      `• 🛡️ <b>Enhanced Protection</b>\n\n` +
+      `<i>Instant activation. Secure payment via Stars.</i>`;
+
+    await ctx.editMessageText(message, {
+      parse_mode: "HTML",
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: `⭐️ Upgrade Now (${plan.price} Stars)`, url: purchase.paymentUrl }],
+          [{ text: "◀️ Back", callback_data: `fw_inline_menu:${chatId}` }],
+        ],
+      },
+    });
+  } catch (error) {
+    logger.error("failed to generate premium upgrade invoice", { chatId, userId, error });
+    await ctx.answerCbQuery("An error occurred while generating the invoice.", { show_alert: true });
+  }
 });
 
 bot.on("pre_checkout_query", async (ctx) => {
