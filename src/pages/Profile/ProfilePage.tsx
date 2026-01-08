@@ -9,7 +9,7 @@ import { completeChannelMission, spinDailyWheel } from "@/features/missions/api.
 import styles from "./ProfilePage.module.css";
 
 /* --- Types & Constants --- */
-type TabKey = "status" | "ops" | "armory";
+type TabKey = "status" | "missions" | "rewards";
 
 type MissionIconKey = "check" | "stars" | "invite" | "trophy" | "brain" | "gift" | "link" | "groups" | "security";
 
@@ -42,26 +42,26 @@ const MISSIONS = {
   ],
   weekly: [
     { id: "upgrade-weekly", title: "Premium Upgrade", description: "Upgrade a group to Premium.", xp: 70, icon: "stars" },
-    { id: "complete-daily-3", title: "3-Day Streak", description: "Maintain a strict 3-day ops streak.", xp: 70, icon: "check" },
+    { id: "complete-daily-3", title: "3-Day Streak", description: "Complete daily tasks 3 days in a row.", xp: 70, icon: "check" },
   ],
   general: [
     {
       id: "join-channel",
-      title: "Join HQ Channel",
-      description: "Subscribe for critical intel.",
+      title: "Join Our Channel",
+      description: "Subscribe for updates and news.",
       xp: 30,
       icon: "link",
       ctaLink: FIREWALL_CHANNEL_URL,
-      ctaLabel: "Open Comms",
+      ctaLabel: "Join Channel",
       verification: { kind: "telegram-channel", channelUsername: FIREWALL_CHANNEL_USERNAME }
     },
   ]
 } as const;
 
 const REWARDS: Reward[] = [
-  { id: "badge-rookie", title: "Rookie Badge", cost: 200, description: "Mark your debut.", isBadge: true },
-  { id: "badge-elite", title: "Elite Badge", cost: 2000, description: "Flex elite status.", isBadge: true },
-  { id: "reward-uptime-7", title: "7-Day Uptime", cost: 800, description: "Extend protection by a week." },
+  { id: "badge-rookie", title: "Starter Badge", cost: 200, description: "Your first badge!", isBadge: true },
+  { id: "badge-elite", title: "Pro Badge", cost: 2000, description: "Show your dedication.", isBadge: true },
+  { id: "reward-uptime-7", title: "7-Day Premium", cost: 800, description: "Extend protection by a week." },
 ];
 
 /* --- Helper Components --- */
@@ -163,11 +163,11 @@ export function ProfilePage() {
     <section className={styles.hero}>
       <div className={styles.heroHeader}>
         <div className={styles.heroProfile}>
-          <Avatar size={48} src={profile?.avatarUrl ?? ownerAvatar} acronym="OP" />
+          <Avatar size={48} src={profile?.avatarUrl ?? ownerAvatar} acronym="U" />
           <div className={styles.heroMeta}>
-            <span className={styles.heroLabel}>COMMAND DECK</span>
+            <span className={styles.heroLabel}>MY PROFILE</span>
             <h1 className={styles.heroTitle}>{profile?.displayName ?? displayName}</h1>
-            <span className={styles.heroSubtitle}>Class: Sentinel • {username ? `@${username}` : "No Callsign"}</span>
+            <span className={styles.heroSubtitle}>Group Admin • {username ? `@${username}` : "No Username"}</span>
           </div>
         </div>
       </div>
@@ -181,7 +181,7 @@ export function ProfilePage() {
           <div className={styles.progressValue} style={{ width: `${progress * 100}%` }} />
         </div>
         <div className={styles.levelMeta}>
-          <span className={styles.levelProgress}>Next Rank: {nextLevelXp.toLocaleString('en-US')} XP</span>
+          <span className={styles.levelProgress}>Next Level: {nextLevelXp.toLocaleString('en-US')} XP</span>
           <div className={styles.chipRow}>
             <span className={styles.chip}>🔥 {streak} Day Streak</span>
           </div>
@@ -195,18 +195,18 @@ export function ProfilePage() {
       <button className={`${styles.tabButton} ${activeTab === 'status' ? styles.tabButtonActive : ''}`} onClick={() => { hapticFeedback.impactOccurred('light'); setActiveTab('status'); }}>
         📊 STATUS
       </button>
-      <button className={`${styles.tabButton} ${activeTab === 'ops' ? styles.tabButtonActive : ''}`} onClick={() => { hapticFeedback.impactOccurred('light'); setActiveTab('ops'); }}>
-        ⚔️ OPS
+      <button className={`${styles.tabButton} ${activeTab === 'missions' ? styles.tabButtonActive : ''}`} onClick={() => { hapticFeedback.impactOccurred('light'); setActiveTab('missions'); }}>
+        🎯 MISSIONS
       </button>
-      <button className={`${styles.tabButton} ${activeTab === 'armory' ? styles.tabButtonActive : ''}`} onClick={() => { hapticFeedback.impactOccurred('light'); setActiveTab('armory'); }}>
-        🛒 ARMORY
+      <button className={`${styles.tabButton} ${activeTab === 'rewards' ? styles.tabButtonActive : ''}`} onClick={() => { hapticFeedback.impactOccurred('light'); setActiveTab('rewards'); }}>
+        🎁 REWARDS
       </button>
     </nav>
   );
 
   const renderStatus = () => (
     <div className={styles.tabContent}>
-      <h3 className={styles.sectionTitle}>PERFORMANCE PULSE</h3>
+      <h3 className={styles.sectionTitle}>YOUR STATS</h3>
       <div className={styles.statsGrid}>
         <div className={styles.statCard}>
           <span className={styles.statLabel}>Global Rank</span>
@@ -214,30 +214,30 @@ export function ProfilePage() {
           <span className={styles.statHint}>Top 5%</span>
         </div>
         <div className={styles.statCard}>
-          <span className={styles.statLabel}>Missions Cleared</span>
+          <span className={styles.statLabel}>Missions Done</span>
           <span className={styles.statValue}>{profile?.missionsCleared ?? 0}</span>
         </div>
         <div className={styles.statCard}>
-          <span className={styles.statLabel}>Uptime Score</span>
+          <span className={styles.statLabel}>Activity Score</span>
           <span className={styles.statValue}>{profile?.uptimeScore ?? 100}%</span>
-          <span className={styles.statHint}>Stable</span>
+          <span className={styles.statHint}>Active</span>
         </div>
       </div>
 
-      <h3 className={styles.sectionTitle} style={{ marginTop: 24 }}>LATEST INTEL</h3>
+      <h3 className={styles.sectionTitle} style={{ marginTop: 24 }}>RECENT ACTIVITY</h3>
       <div className={styles.activityList}>
         {completions.slice(0, 5).map((log) => (
           <div key={log.completedAt} className={styles.activityItem}>
             <span className={styles.activityTime}>{new Date(log.completedAt).toLocaleDateString()}</span>
-            <span className={styles.activityText}>Completed operation: {log.missionId} (+{log.xpEarned} XP)</span>
+            <span className={styles.activityText}>Completed: {log.missionId} (+{log.xpEarned} XP)</span>
           </div>
         ))}
-        {completions.length === 0 && <span style={{ color: '#666', fontStyle: 'italic' }}>No recent activity logged.</span>}
+        {completions.length === 0 && <span style={{ color: '#666', fontStyle: 'italic' }}>No recent activity.</span>}
       </div>
     </div>
   );
 
-  const renderOps = () => {
+  const renderMissions = () => {
     // Combine local definitions with backend state (simplified for demo)
     const allMissions: any[] = [
       ...MISSIONS.daily.map(m => ({ ...m, category: 'daily' })),
@@ -289,18 +289,18 @@ export function ProfilePage() {
     );
   };
 
-  const renderArmory = () => (
+  const renderRewards = () => (
     <div>
       <div className={styles.referralCard}>
-        <h3 style={{ color: '#fff', margin: 0 }}>INVITE NEW OPERATIVES</h3>
-        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>Earn 100 XP for every activated recruit.</p>
+        <h3 style={{ color: '#fff', margin: 0 }}>INVITE FRIENDS</h3>
+        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>Earn 100 XP for every friend who joins.</p>
         <div className={styles.referralCode}>
           {referralLink}
           <button className={styles.copyBtn} onClick={copyReferral}>📋</button>
         </div>
       </div>
 
-      <h3 className={styles.sectionTitle} style={{ marginTop: 24 }}>SUPPLY DROP</h3>
+      <h3 className={styles.sectionTitle} style={{ marginTop: 24 }}>REWARD SHOP</h3>
       <div className={styles.marketGrid}>
         {REWARDS.map(reward => {
           const affordable = xp >= reward.cost;
@@ -316,7 +316,7 @@ export function ProfilePage() {
                 loading={processing === reward.id}
                 onClick={() => handleRedeem(reward)}
               >
-                ACQUIRE
+                GET
               </Button>
             </div>
           );
@@ -329,7 +329,7 @@ export function ProfilePage() {
     return (
       <div className={styles.page} style={{ justifyContent: 'center', alignItems: 'center' }}>
         <Spinner size="l" />
-        <Text style={{ marginTop: 16 }}>Establishing Uplink...</Text>
+        <Text style={{ marginTop: 16 }}>Loading Profile...</Text>
       </div>
     );
   }
@@ -341,8 +341,8 @@ export function ProfilePage() {
 
       <main style={{ flex: 1 }}>
         {activeTab === 'status' && renderStatus()}
-        {activeTab === 'ops' && renderOps()}
-        {activeTab === 'armory' && renderArmory()}
+        {activeTab === 'missions' && renderMissions()}
+        {activeTab === 'rewards' && renderRewards()}
       </main>
 
       {snackbar && (

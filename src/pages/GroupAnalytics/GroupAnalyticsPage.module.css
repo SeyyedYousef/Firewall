@@ -1,191 +1,313 @@
-﻿.page {
+﻿/* ═══════════════════════════════════════════════════════════════════════════
+   🔥 FIREWALL ANALYTICS - Magma Cyber-Defense 2026
+   Premium analytics dashboard with glassmorphism and neon accents
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.page {
   display: flex;
   flex-direction: column;
-  padding-bottom: 90px;
-  background: var(--oled-black);
   min-height: 100vh;
+  background: var(--oled-black, #000);
+  padding-bottom: 100px;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Header
+   ───────────────────────────────────────────────────────────────────────────── */
 
 .header {
   position: sticky;
   top: 0;
-  z-index: 10;
-  background: var(--surface-glass-heavy);
-  backdrop-filter: var(--glass-blur);
+  z-index: 50;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.8) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   padding: 16px 20px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 12px;
+  border-bottom: 1px solid rgba(255, 100, 50, 0.15);
 }
 
-.headerLeft,
-.headerRight {
-  flex: 0 0 40px;
-  display: flex;
-  justify-content: center;
-}
-
-.headerCenter {
-  flex: 1;
+.backButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
-  gap: 12px;
   justify-content: center;
-  text-align: center;
+  cursor: pointer;
+  color: #fff;
+  font-size: 1.2rem;
+  transition: all 0.2s ease;
 }
 
-.headerTitles {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+.backButton:active {
+  transform: scale(0.95);
+  background: rgba(255, 100, 50, 0.15);
 }
 
-.groupName {
-  font-size: 1rem;
+.headerInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.headerTitle {
+  font-size: 1.1rem;
   font-weight: 700;
   color: #fff;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.groupSubtitle {
-  font-size: 0.8rem;
-  color: var(--text-muted);
+.headerSubtitle {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 2px 0 0;
 }
 
-.backButton,
 .menuButton {
   width: 40px;
   height: 40px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: none;
+  gap: 4px;
   cursor: pointer;
-  color: #fff;
+  transition: all 0.2s ease;
 }
 
-.body {
-  padding: 24px;
+.menuButton span {
+  width: 16px;
+  height: 2px;
+  background: #fff;
+  border-radius: 2px;
+}
+
+.menuButton:active {
+  transform: scale(0.95);
+  background: rgba(255, 100, 50, 0.15);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Stats Hero Section
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.statsHero {
+  padding: 20px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.statCard {
+  background: linear-gradient(135deg, rgba(255, 100, 50, 0.08) 0%, rgba(255, 60, 30, 0.03) 100%);
+  border: 1px solid rgba(255, 100, 50, 0.15);
+  border-radius: 16px;
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.statCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--magma-primary, #ff6432), transparent);
+  opacity: 0.6;
+}
+
+.statCard:active {
+  transform: scale(0.98);
+}
+
+.statIcon {
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.statValue {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #fff;
+  display: block;
+  font-variant-numeric: tabular-nums;
+}
+
+.statLabel {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 4px;
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.statTrend {
+  font-size: 0.75rem;
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.trendUp {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.trendDown {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.trendFlat {
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Filter Controls
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.filterSection {
+  padding: 0 20px 16px;
+}
+
+.filterRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.filterRow:last-child {
+  margin-bottom: 0;
+}
+
+.filterChip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 8px 14px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.filterChip:active {
+  transform: scale(0.95);
+}
+
+.filterChipActive {
+  background: var(--magma-primary, #ff6432);
+  color: #000;
+  border-color: var(--magma-primary, #ff6432);
+  font-weight: 600;
+  box-shadow: 0 0 20px rgba(255, 100, 50, 0.3);
+}
+
+.filterChipDisabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Chart Cards
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.chartSection {
+  padding: 0 20px;
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.chip {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  padding: 6px 12px;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.chipActive {
-  background: var(--magma-primary);
-  color: #000;
-  border-color: var(--magma-primary);
-  font-weight: 600;
-}
-
-.customRange {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.dateInputs {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-top: 8px;
-  width: 100%;
-}
-
-.dateInput {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 8px;
-  color: #fff;
-  font-size: 0.9rem;
-  flex: 1;
-  outline: none;
-  transition: all 0.2s ease;
-  font-family: var(--font-family-mono);
-}
-
-.dateInput:focus {
-  border-color: var(--magma-primary);
-  box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.dateInputs span {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-
-.card {
-  background: rgba(10, 10, 10, 0.6) !important;
+.chartCard {
+  background: linear-gradient(180deg, rgba(20, 20, 20, 0.9) 0%, rgba(10, 10, 10, 0.95) 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px !important;
-  padding: 16px;
-  box-shadow: none !important;
+  border-radius: 20px;
+  padding: 20px;
+  position: relative;
   overflow: hidden;
 }
 
-/* ... existing styles ... */
-
-.statTrend {
-  font-size: 0.75rem;
-  margin-top: 4px;
-  display: block;
+.chartCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 20px;
+  right: 20px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 100, 50, 0.4), transparent);
 }
 
-/* Trend aliases to match TSX usage if needed, or we just map them here */
-.summaryTrendPositive,
-.trendUp {
-  color: var(--status-safe);
-}
-
-.summaryTrendNegative,
-.trendDown {
-  color: var(--status-danger);
-}
-
-.trendFlat {
-  color: var(--text-muted);
-}
-
-.cardHeader {
+.chartHeader {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 16px;
   margin-bottom: 16px;
 }
 
-.cardTitle {
-  font-size: 0.95rem;
+.chartTitle {
+  font-size: 0.9rem;
   font-weight: 700;
   color: #fff;
+  margin: 0;
+}
+
+.chartSubtitle {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 4px 0 0;
+}
+
+.chartActions {
+  display: flex;
+  gap: 8px;
+}
+
+.chartActionBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.chartActionBtn:active {
+  transform: scale(0.9);
+  background: rgba(255, 100, 50, 0.2);
 }
 
 .chartContainer {
   position: relative;
-  height: 300px;
+  height: 200px;
   width: 100%;
 }
 
@@ -195,85 +317,65 @@
   overflow: visible;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Tooltip
+   ───────────────────────────────────────────────────────────────────────────── */
+
 .tooltip {
   position: absolute;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 100, 50, 0.3);
+  border-radius: 12px;
+  padding: 10px 14px;
   pointer-events: none;
   transform: translate(-50%, -100%);
-  margin-top: -10px;
-  z-index: 10;
+  margin-top: -12px;
+  z-index: 100;
   white-space: nowrap;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.tooltipDate {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 4px;
+}
+
+.tooltipValue {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
 }
 
 .tooltipList {
   list-style: none;
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   padding: 0;
-  font-size: 0.8rem;
-  color: #ddd;
-}
-
-.emptyState {
-  position: absolute;
-  inset: 0;
   display: flex;
   flex-direction: column;
+  gap: 4px;
+}
+
+.tooltipItem {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.4);
-  border-radius: 8px;
-  pointer-events: none;
-}
-
-.statsGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.statItem {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  padding: 12px;
-  text-align: center;
-}
-
-.statValue {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #fff;
-  display: block;
-}
-
-.statLabel {
+  gap: 8px;
   font-size: 0.75rem;
-  color: var(--text-muted);
-  margin-top: 4px;
-  display: block;
+  color: rgba(255, 255, 255, 0.8);
 }
 
-.statTrend {
-  font-size: 0.75rem;
-  margin-top: 4px;
-  display: block;
+.tooltipDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
-.trendUp {
-  color: var(--status-safe);
-}
-
-.trendDown {
-  color: var(--status-danger);
-}
-
-.trendFlat {
-  color: var(--text-muted);
-}
+/* ─────────────────────────────────────────────────────────────────────────────
+   Legend
+   ───────────────────────────────────────────────────────────────────────────── */
 
 .legend {
   display: flex;
@@ -286,25 +388,157 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 4px 8px;
+  padding: 6px 10px;
   background: rgba(255, 255, 255, 0.03);
-  border-radius: 4px;
-  border: 1px solid transparent;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.legendItem:active {
+  transform: scale(0.95);
 }
 
 .legendItemActive {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
   color: #fff;
 }
 
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Empty & Error States
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: rgba(255, 255, 255, 0.4);
+  text-align: center;
+  gap: 8px;
+}
+
+.emptyIcon {
+  font-size: 2.5rem;
+  opacity: 0.5;
+}
+
+.emptyText {
+  font-size: 0.85rem;
+}
+
+.errorState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  gap: 16px;
+}
+
+.errorIcon {
+  font-size: 3rem;
+}
+
+.errorTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.errorText {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.retryButton {
+  background: var(--magma-primary, #ff6432);
+  color: #000;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retryButton:active {
+  transform: scale(0.95);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Loading Skeleton
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Snackbar
+   ───────────────────────────────────────────────────────────────────────────── */
+
 .snackbar {
   position: fixed;
-  bottom: 90px;
+  bottom: 100px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 200;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Granularity Toggle
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.granularityToggle {
+  display: flex;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.granularityBtn {
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.granularityBtnActive {
+  background: var(--magma-primary, #ff6432);
+  color: #000;
+  font-weight: 600;
 }

@@ -33,16 +33,16 @@ export function ConfigPage() {
         <div className={styles.page}>
             <header className={styles.header}>
                 <h1 className={styles.title}>
-                    FIREWALL MODULES
+                    YOUR GROUPS
                 </h1>
-                <p className={styles.subtitle}>SECURE NETWORK CONFIGURATION</p>
+                <p className={styles.subtitle}>SECURE GROUP MANAGEMENT</p>
             </header>
 
             <div className={styles.serverList}>
                 {groups.length === 0 ? (
                     <div className={styles.emptyState}>
                         <div className={styles.emptyIcon}>🚫</div>
-                        <div style={{ color: '#888', fontSize: '14px' }}>NO ACTIVE MODULES DETECTED</div>
+                        <div style={{ color: '#888', fontSize: '14px' }}>NO GROUPS FOUND</div>
                     </div>
                 ) : (
                     groups.map(group => {
@@ -63,12 +63,12 @@ export function ConfigPage() {
                                 onClick={() => handleAccess(group.id)}
                             >
                                 <div className={styles.moduleInfo}>
-                                    <div className={styles.moduleId}>MOD::{shortId}</div>
+                                    <div className={styles.moduleId}>GRP::{shortId}</div>
                                     <div className={styles.moduleName}>{group.title}</div>
                                     <div className={styles.moduleStatus}>
                                         <span className={`${styles.led} ${isActive ? styles.on : styles.off}`} />
                                         <span style={{ color: isActive ? '#10b981' : isExpired ? '#ef4444' : '#9ca3af' }}>
-                                            {isActive ? 'NOMINAL' : isExpired ? 'CRITICAL' : 'OFFLINE'}
+                                            {isActive ? 'PREMIUM' : isExpired ? 'EXPIRED' : 'FREE'}
                                         </span>
                                         {group.status.kind === 'active' && group.status.daysLeft && (
                                             <span style={{ opacity: 0.5, marginLeft: 4 }}>

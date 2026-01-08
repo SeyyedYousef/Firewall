@@ -289,3 +289,39 @@
   text-align: center;
   padding: 12px;
 }
+
+/* Giveaway Card */
+.giveawayCard {
+  background: linear-gradient(135deg, rgba(255, 100, 50, 0.08) 0%, rgba(255, 60, 30, 0.03) 100%);
+  border: 1px solid rgba(255, 100, 50, 0.2);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: center;
+}
+
+.giveawayTitle {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  display: block;
+}
+
+.giveawayDescription {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+  margin: 0;
+  display: block;
+}
+
+/* Group Days */
+.groupDays {
+  font-size: 0.75rem;
+  color: var(--status-premium, #ffd700);
+  font-weight: 600;
+  white-space: nowrap;
+}
