@@ -210,7 +210,30 @@ select {
 [class*="Input__wrapper"],
 [class*="Textarea__wrapper"],
 [class*="Input__container"],
-[class*="tgui"]>div {
+[class*="tgui"]>div,
+[class*="Input"],
+[class*="Textarea"],
+div:has(> input),
+div:has(> textarea),
+label:has(> input),
+label:has(> textarea) {
   background: transparent !important;
   background-color: transparent !important;
+}
+
+/* Target the specific Telegram UI wrapper that shows white */
+.tgui-input,
+.tgui-textarea,
+[class*="tgui-"][class*="Input"],
+[class*="tgui-"][class*="Textarea"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* Force entire Input component tree to be dark */
+[class*="Input"] *,
+[class*="Textarea"] * {
+  background-color: inherit;
 }
