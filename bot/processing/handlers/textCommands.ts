@@ -2971,15 +2971,7 @@ async function processCommand(
   if (command === "filterlist" || command === "filters" || command === "listfilters") {
     return handleFilterList(ctx);
   }
-  if (command === "filterwarn") {
-    return handleFilterWithPunishment(ctx, rawArgs, "warn");
-  }
-  if (command === "filterban") {
-    return handleFilterWithPunishment(ctx, rawArgs, "ban");
-  }
-  if (command === "filtermute") {
-    return handleFilterWithPunishment(ctx, rawArgs, "mute");
-  }
+
 
   // Purge commands
   if (command === "purge" || command === "clean" || command === "clear") {
@@ -3258,15 +3250,6 @@ async function processCommand(
   // ============================================
   // ENTERTAINMENT & UTILITIES COMMANDS
   // ============================================
-
-  // Font - Convert text to stylish fonts
-  if (command === "font") {
-    if (!rawArgs) {
-      return [{ type: "send_message", text: "❌ Usage: <code>!Font &lt;text&gt;</code>", parseMode: "HTML" }];
-    }
-    const stylish = convertToStylishFonts(rawArgs);
-    return [{ type: "send_message", text: stylish, parseMode: "HTML" }];
-  }
 
   // Time - Show current time
   if (command === "time") {
@@ -3994,9 +3977,7 @@ async function processCommand(
   if (command === "panelpv" || command === "privatepanel") {
     return [{ type: "send_message", text: "🔐 <b>Private Panel</b>\n\n<i>Access the Mini App to manage filters privately.</i>", parseMode: "HTML", autoDeleteSeconds: 30 }];
   }
-  if (command === "cleanfilterlist") {
-    return handleCleanFilters(ctx);
-  }
+
 
   // Unknown command - return feedback instead of silently failing
   return [{

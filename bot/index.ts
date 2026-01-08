@@ -4680,16 +4680,7 @@ bot.action(INLINE_MENU_REGEX, async (ctx) => {
   await showInlineGroupMenu(ctx, chatId);
 });
 
-bot.action(INLINE_HELP_REGEX, async (ctx) => {
-  await ctx.answerCbQuery();
-  const data = (ctx.callbackQuery as any)?.data ?? "";
-  const match = data.match(INLINE_HELP_REGEX);
-  const chatId = match?.[1];
-  if (!chatId) return;
 
-  // Show comprehensive help center with all sections
-  await showInlineHelp(ctx, chatId);
-});
 
 bot.action(INLINE_LIST_ADD_REGEX, async (ctx) => {
   await ctx.answerCbQuery();
@@ -5673,8 +5664,8 @@ async function showUserPanelPunishments(ctx: Context, chatId: string, targetUser
 «Punishments & Release Section»`;
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("• Ban", `fw_up_ban:${chatId}:${targetUserId}`)],
-    [Markup.button.callback("• Mute", `fw_up_mute:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("• Ban", `fw_up_ban:${chatId}:${targetUserId}`), Markup.button.callback("• Unban", `fw_up_unban:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("• Mute", `fw_up_mute:${chatId}:${targetUserId}`), Markup.button.callback("• Unmute", `fw_up_unmute:${chatId}:${targetUserId}`)],
     [Markup.button.callback("◀️ Back", `fw_userpanel:${chatId}:${targetUserId}`)],
   ]);
 
@@ -5698,8 +5689,8 @@ async function showUserPanelPromote(ctx: Context, chatId: string, targetUserId: 
 «Promote & Demote Section»`;
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback("• Promote to VIP Member", `fw_up_vip:${chatId}:${targetUserId}`)],
-    [Markup.button.callback("• Promote to Bot Admin", `fw_up_admin:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("• Promote to VIP", `fw_up_vip:${chatId}:${targetUserId}`), Markup.button.callback("• Demote VIP", `fw_up_demote_vip:${chatId}:${targetUserId}`)],
+    [Markup.button.callback("• Promote to Admin", `fw_up_admin:${chatId}:${targetUserId}`), Markup.button.callback("• Demote Admin", `fw_up_demote_admin:${chatId}:${targetUserId}`)],
     [Markup.button.callback("◀️ Back", `fw_userpanel:${chatId}:${targetUserId}`)],
   ]);
 
@@ -5918,6 +5909,137 @@ bot.action(USER_PANEL_ADMIN_REGEX, async (ctx) => {
   } catch (error) {
     logger.error("Failed to promote user to Bot Admin", { chatId, targetUserId, error });
     await ctx.answerCbQuery("❌ Failed to promote user", { show_alert: true });
+  }
+
+  // Refresh the promote view
+  await showUserPanelPromote(ctx, chatId, targetUserId);
+});
+
+// UserPanel Unban Handler
+bot.action(/^fw_up_unban:(-?\d+):(\d+)$/, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_up_unban:(-?\d+):(\d+)$/);
+  const chatId = match?.[1];
+  const targetUserId = match?.[2];
+  if (!chatId || !targetUserId) return;
+
+  try {
+    const numericChatId = parseInt(chatId, 10);
+    const numericUserId = parseInt(targetUserId, 10);
+    await ctx.telegram.unbanChatMember(numericChatId, numericUserId, { only_if_banned: true });
+    await ctx.answerCbQuery("✅ User has been unbanned", { show_alert: true });
+  } catch (error) {
+    logger.error("Failed to unban user from UserPanel", { chatId, targetUserId, error });
+    await ctx.answerCbQuery("❌ Failed to unban user", { show_alert: true });
+  }
+
+  // Refresh the punishments view
+  await showUserPanelPunishments(ctx, chatId, targetUserId);
+});
+
+// UserPanel Unmute Handler
+bot.action(/^fw_up_unmute:(-?\d+):(\d+)$/, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_up_unmute:(-?\d+):(\d+)$/);
+  const chatId = match?.[1];
+  const targetUserId = match?.[2];
+  if (!chatId || !targetUserId) return;
+
+  try {
+    const numericChatId = parseInt(chatId, 10);
+    const numericUserId = parseInt(targetUserId, 10);
+    await ctx.telegram.restrictChatMember(numericChatId, numericUserId, {
+      permissions: {
+        can_send_messages: true,
+        can_send_audios: true,
+        can_send_documents: true,
+        can_send_photos: true,
+        can_send_videos: true,
+        can_send_video_notes: true,
+        can_send_voice_notes: true,
+        can_send_polls: true,
+        can_send_other_messages: true,
+        can_add_web_page_previews: true,
+        can_change_info: false,
+        can_invite_users: true,
+        can_pin_messages: false,
+        can_manage_topics: false,
+      },
+    });
+    await ctx.answerCbQuery("✅ User has been unmuted", { show_alert: true });
+  } catch (error) {
+    logger.error("Failed to unmute user from UserPanel", { chatId, targetUserId, error });
+    await ctx.answerCbQuery("❌ Failed to unmute user", { show_alert: true });
+  }
+
+  // Refresh the punishments view
+  await showUserPanelPunishments(ctx, chatId, targetUserId);
+});
+
+// UserPanel Demote VIP Handler
+bot.action(/^fw_up_demote_vip:(-?\d+):(\d+)$/, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_up_demote_vip:(-?\d+):(\d+)$/);
+  const chatId = match?.[1];
+  const targetUserId = match?.[2];
+  if (!chatId || !targetUserId) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!Array.isArray(rawSettings.vipMembers)) {
+      rawSettings.vipMembers = [];
+    }
+
+    const vipMembers = rawSettings.vipMembers as string[];
+    const index = vipMembers.indexOf(targetUserId);
+
+    if (index === -1) {
+      await ctx.answerCbQuery("⚠️ User is not a VIP member", { show_alert: true });
+    } else {
+      vipMembers.splice(index, 1);
+      await saveBanSettingsByChatId(chatId, settings);
+      await ctx.answerCbQuery("✅ User demoted from VIP", { show_alert: true });
+    }
+  } catch (error) {
+    logger.error("Failed to demote user from VIP", { chatId, targetUserId, error });
+    await ctx.answerCbQuery("❌ Failed to demote user", { show_alert: true });
+  }
+
+  // Refresh the promote view
+  await showUserPanelPromote(ctx, chatId, targetUserId);
+});
+
+// UserPanel Demote Bot Admin Handler
+bot.action(/^fw_up_demote_admin:(-?\d+):(\d+)$/, async (ctx) => {
+  const data = (ctx.callbackQuery as any)?.data ?? "";
+  const match = data.match(/^fw_up_demote_admin:(-?\d+):(\d+)$/);
+  const chatId = match?.[1];
+  const targetUserId = match?.[2];
+  if (!chatId || !targetUserId) return;
+
+  try {
+    const settings = await loadBanSettingsByChatId(chatId);
+    const rawSettings = settings as unknown as Record<string, unknown>;
+
+    if (!Array.isArray(rawSettings.botAdmins)) {
+      rawSettings.botAdmins = [];
+    }
+
+    const botAdmins = rawSettings.botAdmins as string[];
+    const index = botAdmins.indexOf(targetUserId);
+
+    if (index === -1) {
+      await ctx.answerCbQuery("⚠️ User is not a Bot Admin", { show_alert: true });
+    } else {
+      botAdmins.splice(index, 1);
+      await saveBanSettingsByChatId(chatId, settings);
+      await ctx.answerCbQuery("✅ User demoted from Bot Admin", { show_alert: true });
+    }
+  } catch (error) {
+    logger.error("Failed to demote user from Bot Admin", { chatId, targetUserId, error });
+    await ctx.answerCbQuery("❌ Failed to demote user", { show_alert: true });
   }
 
   // Refresh the promote view
