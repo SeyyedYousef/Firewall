@@ -1027,11 +1027,16 @@ ${dailyTaskChannel.channelLink}`,
       <section className={styles.quickStats}>
         <Card className={styles.statCard}>
           <Text weight="2" className={styles.statTitle}>
-            Daily focus
+            Daily Focus
           </Text>
           <Text className={styles.statValue}>
             {completedMissions.daily.size}/{missionsByCategory.daily.length} done
           </Text>
+          {dailyWheelReward && completedMissions.daily.has(DAILY_WHEEL_ID) && (
+            <Text className={styles.statXpEarned}>
+              ✨ +{dailyWheelReward} XP earned today!
+            </Text>
+          )}
           <Text className={styles.statHint}>{TEXT.dailyBonusHint}</Text>
         </Card>
         <Card className={styles.statCard}>

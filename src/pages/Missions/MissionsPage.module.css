@@ -211,6 +211,16 @@
   line-height: 1.5;
 }
 
+.statXpEarned {
+  color: rgba(74, 222, 128, 1);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 6px 12px;
+  background: rgba(74, 222, 128, 0.12);
+  border-radius: 8px;
+  text-align: center;
+}
+
 .tabs {
   display: inline-flex;
   flex-wrap: wrap;
@@ -279,8 +289,24 @@
 }
 
 .missionCardCompleted {
-  border-color: rgba(74, 222, 128, 0.45);
-  background: rgba(10, 16, 28, 0.92);
+  border-color: rgba(74, 222, 128, 0.5);
+  background: linear-gradient(135deg, rgba(10, 35, 20, 0.95) 0%, rgba(8, 12, 22, 0.92) 100%);
+  box-shadow:
+    0 0 20px rgba(74, 222, 128, 0.15),
+    inset 0 1px 0 rgba(74, 222, 128, 0.1);
+}
+
+.missionCardCompleted:hover {
+  transform: translateY(-2px);
+  border-color: rgba(74, 222, 128, 0.6);
+}
+
+.missionCardCompleted .missionTitle {
+  color: rgba(74, 222, 128, 0.95);
+}
+
+.missionCardCompleted .missionXp {
+  color: rgba(74, 222, 128, 0.9);
 }
 
 .missionCardHeader {
@@ -359,8 +385,10 @@
 }
 
 .statusChipDone {
-  background: rgba(74, 222, 128, 0.18);
-  color: rgba(74, 222, 128, 0.95);
+  background: rgba(74, 222, 128, 0.22);
+  color: rgba(74, 222, 128, 1);
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(74, 222, 128, 0.3);
 }
 
 .missionAction {
@@ -883,12 +911,6 @@
   to {
     transform: translateY(-5px);
   }
-}
-
-width: 14px;
-height: 14px;
-border-radius: 50%;
-box-shadow: 0 0 12px rgba(255, 69, 0, 0.45);
 }
 
 .iconStub::after {

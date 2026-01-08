@@ -61,22 +61,39 @@ input[type="password"],
 input[type="number"],
 input[type="email"],
 input[type="search"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
 .tgui-input,
 [class*="tgui-Input"],
-[class*="tgui-"] input {
-  background-color: var(--app-color-surface) !important;
-  color: var(--app-color-text-primary) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 8px !important;
-  padding: 8px 12px !important;
+[class*="tgui-Textarea"],
+[class*="tgui-"] input,
+[class*="tgui-"] textarea,
+[class*="Input"] input,
+[class*="Textarea"] textarea,
+div[class*="Input"] input,
+div[class*="Textarea"] textarea {
+  background-color: rgba(30, 30, 30, 0.95) !important;
+  background: rgba(30, 30, 30, 0.95) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 12px !important;
+  padding: 12px 16px !important;
   user-select: text !important;
   -webkit-user-select: text !important;
   box-shadow: none !important;
-  -webkit-appearance: none;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  caret-color: var(--magma-primary, #ff6432) !important;
 }
 
-/* Specific fix for Telegram UI Input wrapper/container if it has a background */
-[class*="tgui-Input"] {
+/* Fix wrapper/container backgrounds */
+[class*="tgui-Input"],
+[class*="tgui-Textarea"],
+[class*="Input__wrapper"],
+[class*="Textarea__wrapper"],
+div[class*="Input"],
+div[class*="Textarea"] {
   background: transparent !important;
   background-color: transparent !important;
 }
@@ -85,18 +102,22 @@ input[type="search"],
 input:focus,
 textarea:focus,
 select:focus,
-[class*="tgui-"] input:focus {
-  border-color: var(--magma-primary) !important;
+[class*="tgui-"] input:focus,
+[class*="tgui-"] textarea:focus {
+  border-color: var(--magma-primary, #ff6432) !important;
   outline: none !important;
-  background-color: rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 0 0 2px rgba(255, 69, 0, 0.1) !important;
+  background-color: rgba(40, 40, 40, 0.95) !important;
+  background: rgba(40, 40, 40, 0.95) !important;
+  box-shadow: 0 0 0 3px rgba(255, 100, 50, 0.15) !important;
 }
 
 /* Ensure all placeholders are visible */
 input::placeholder,
 textarea::placeholder,
-[class*="tgui-"]::placeholder {
-  color: var(--text-muted) !important;
+[class*="tgui-"]::placeholder,
+[class*="tgui-"] input::placeholder,
+[class*="tgui-"] textarea::placeholder {
+  color: rgba(255, 255, 255, 0.4) !important;
   opacity: 1 !important;
 }
 
@@ -155,4 +176,41 @@ html[data-theme="dark"] body {
 .allow-text-selection {
   user-select: text !important;
   -webkit-user-select: text !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FORCE DARK THEME ON ALL TELEGRAM UI INPUTS
+   This section ensures NO white inputs anywhere in the app
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Color scheme override */
+input,
+textarea,
+select {
+  color-scheme: dark !important;
+}
+
+/* Target Telegram UI specifically */
+.tgui-input__input,
+[class*="Input__input"],
+[class*="Textarea__textarea"],
+[class*="Input"] input,
+[class*="Textarea"] textarea,
+[class*="tgui"] input,
+[class*="tgui"] textarea {
+  background: #1e1e1e !important;
+  background-color: #1e1e1e !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 12px !important;
+  caret-color: #ff6432 !important;
+}
+
+/* Kill any white backgrounds on wrapper divs */
+[class*="Input__wrapper"],
+[class*="Textarea__wrapper"],
+[class*="Input__container"],
+[class*="tgui"]>div {
+  background: transparent !important;
+  background-color: transparent !important;
 }
