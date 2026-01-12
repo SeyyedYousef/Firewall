@@ -265,3 +265,76 @@ input[type="number"]::-webkit-inner-spin-button {
   background: transparent !important;
   background-color: transparent !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ULTRA-AGGRESSIVE INPUT OVERRIDE - حذف کامل همه پس‌زمینه‌های سفید
+   This section uses maximum specificity to override Telegram UI defaults
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Target the actual Telegram UI Input wrapper div - EVERYTHING */
+div[class*="tgui-"],
+label[class*="tgui-"],
+span[class*="tgui-"],
+div[class*="Input"],
+label[class*="Input"],
+div:has(> input[type="text"]),
+div:has(> input[type="number"]),
+div:has(> input[type="password"]),
+div:has(> input[type="email"]),
+div:has(> input[type="search"]),
+div:has(> input[type="tel"]),
+div:has(> input[type="url"]),
+div:has(> textarea) {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Force input and all parent containers to be dark */
+input,
+textarea,
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="email"],
+input[type="search"],
+input[type="tel"],
+input[type="url"] {
+  background: rgba(30, 30, 30, 0.95) !important;
+  background-color: rgba(30, 30, 30, 0.95) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 10px !important;
+  padding: 10px 14px !important;
+  caret-color: #ff6432 !important;
+}
+
+/* Focus state */
+input:focus,
+textarea:focus {
+  background: rgba(40, 40, 40, 0.98) !important;
+  background-color: rgba(40, 40, 40, 0.98) !important;
+  border-color: #ff6432 !important;
+  box-shadow: 0 0 0 3px rgba(255, 100, 50, 0.2) !important;
+  outline: none !important;
+}
+
+/* Disabled state */
+input:disabled,
+textarea:disabled {
+  background: rgba(20, 20, 20, 0.5) !important;
+  background-color: rgba(20, 20, 20, 0.5) !important;
+  color: rgba(255, 255, 255, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Kill any internal Telegram UI element backgrounds */
+[class*="tgui-"]>*,
+[class*="tgui-"]>*>*,
+[class*="tgui-"]>*>*>*,
+[class*="Input"]>*,
+[class*="Input"]>*>*,
+[class*="Input"]>*>*>* {
+  background: transparent !important;
+  background-color: transparent !important;
+}
