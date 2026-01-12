@@ -224,4 +224,42 @@ describe("Firewall Lock Verification", () => {
         const actions = await evaluateBanGuards(ctx);
         expect(actions.some((a: any) => a.type === 'delete_message')).toBe(true);
     });
+
+    it("should BLOCK usernames when Username Lock is enabled (entity)", async () => {
+        const chatId = "1009";
+        testState.currentSettings = {
+            ...defaultBanSettings,
+            chatId,
+            rules: { ...defaultBanSettings.rules, banUsernames: { enabled: true } }
+        };
+
+        // Test with mention entity (Telegram native)
+        const ctx = createMockContext({
+            text: "Check out @testuser123 for more info",
+            entities: [{ type: 'mention', offset: 10, length: 13 }]
+        });
+        ctx.chat.id = Number(chatId);
+
+        const actions = await evaluateBanGuards(ctx);
+        expect(actions.some((a: any) => a.type === 'delete_message')).toBe(true);
+    });
+
+    it("should BLOCK usernames when Username Lock is enabled (plain text)", async () => {
+        const chatId = "1010";
+        testState.currentSettings = {
+            ...defaultBanSettings,
+            chatId,
+            rules: { ...defaultBanSettings.rules, banUsernames: { enabled: true } }
+        };
+
+        // Test with plain text username (no entity - edge case)
+        const ctx = createMockContext({
+            text: "@testuser123 hello",
+            entities: []
+        });
+        ctx.chat.id = Number(chatId);
+
+        const actions = await evaluateBanGuards(ctx);
+        expect(actions.some((a: any) => a.type === 'delete_message')).toBe(true);
+    });
 });

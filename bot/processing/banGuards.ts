@@ -1104,7 +1104,8 @@ export async function evaluateBanGuards(ctx: GroupChatContext): Promise<Processi
       /https?:\/\/\S+/i.test(textLower);
 
     const hasUsername =
-      entities.some((entity) => entity.type === "mention" || entity.type === "text_mention") || /@\w{3,32}/.test(text);
+      entities.some((entity) => entity.type === "mention" || entity.type === "text_mention") ||
+      /@[a-zA-Z][a-zA-Z0-9_]{4,31}\b/.test(text);
 
     const hasHashtag = entities.some((entity) => entity.type === "hashtag");
     const hasBotCommand = entities.some((entity) => entity.type === "bot_command");

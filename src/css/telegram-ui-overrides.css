@@ -1,93 +1,133 @@
-/* Minimal Telegram UI input styling - only override what's absolutely necessary */
+/* ═══════════════════════════════════════════════════════════════════════════
+   TELEGRAM UI INPUT OVERRIDES - COMPLETELY DARK THEME
+   NO WHITE BACKGROUNDS AT ALL
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 /* Reset any conflicting styles */
 [class*="tgui-"] {
   box-sizing: border-box;
 }
 
-/* Main input container - simple dark style */
-.tgui-8ca550c2fc85eff5 {
-  background: var(--app-color-surface-muted) !important;
-  border: 1px solid rgba(148, 163, 184, 0.25) !important;
+/* ═══════════════════════════════════════════════════════════════════════════
+   KILL ALL WHITE BACKGROUNDS - این خط همه سفیدی ها رو از بین میبره
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Target ALL possible Telegram UI elements that could have white background */
+[class*="tgui-"],
+[class*="tgui-"]>*,
+[class*="tgui-"]>*>*,
+[class*="Input"],
+[class*="Input"]>*,
+[class*="Textarea"],
+[class*="Textarea"]>*,
+div[class*="tgui-"],
+label[class*="tgui-"],
+span[class*="tgui-"] {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Main input container - dark style */
+.tgui-8ca550c2fc85eff5,
+[class*="tgui-"][class*="Input"],
+[class*="Input__wrapper"],
+[class*="Input__container"] {
+  background: rgba(30, 30, 30, 0.95) !important;
+  background-color: rgba(30, 30, 30, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
   border-radius: 12px !important;
 }
 
 /* Focus state */
-.tgui-8ca550c2fc85eff5:focus-within {
-  border-color: var(--magma-primary) !important;
+.tgui-8ca550c2fc85eff5:focus-within,
+[class*="Input"]:focus-within {
+  border-color: var(--magma-primary, #ff6432) !important;
+  box-shadow: 0 0 0 3px rgba(255, 100, 50, 0.15) !important;
 }
 
-/* Input text color - همه ورودی‌ها */
+/* Actual input elements - force dark */
 .tgui-0f5050defacbf813,
 [class*="tgui-"] input,
-[class*="tgui-"] textarea {
-  color: #E2E8F0 !important;
-  /* رنگ روشن و خوانا */
+[class*="tgui-"] textarea,
+[class*="Input"] input,
+[class*="Textarea"] textarea,
+input[class*="tgui-"],
+textarea[class*="tgui-"] {
+  color: #ffffff !important;
   background: transparent !important;
+  background-color: transparent !important;
   border: none !important;
   outline: none !important;
+  caret-color: #ff6432 !important;
 }
 
-/* Textarea مخصوص */
+/* Textarea specific */
 .tgui-d40ec83150e66029,
-textarea[class*="tgui-"] {
-  color: #E2E8F0 !important;
-  /* رنگ سفید کرمی */
+textarea[class*="tgui-"],
+[class*="Textarea"] textarea {
+  color: #ffffff !important;
   background: transparent !important;
   line-height: 1.6 !important;
   font-size: 15px !important;
 }
 
-/* Placeholder text - رنگ روشن‌تر */
+/* Placeholder text */
 .tgui-0f5050defacbf813::placeholder,
 .tgui-d40ec83150e66029::placeholder,
 [class*="tgui-"] input::placeholder,
-[class*="tgui-"] textarea::placeholder {
-  color: #94A3B8 !important;
-  /* رنگ خاکستری روشن */
+[class*="tgui-"] textarea::placeholder,
+[class*="Input"] input::placeholder,
+[class*="Textarea"] textarea::placeholder {
+  color: rgba(255, 255, 255, 0.4) !important;
   opacity: 1 !important;
 }
 
-/* Placeholder component styling */
-[class*="Placeholder"] {
-  background: var(--app-color-surface) !important;
-  color: var(--app-color-text-primary) !important;
+/* ═══════════════════════════════════════════════════════════════════════════
+   PLACEHOLDER COMPONENT (not input placeholder)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+[class*="Placeholder"]:not([class*="Input"]):not([class*="Textarea"]) {
+  background: var(--app-color-surface, rgba(255, 255, 255, 0.05)) !important;
+  color: var(--app-color-text-primary, #ffffff) !important;
   border-radius: 12px !important;
   padding: 24px !important;
   text-align: center !important;
 }
 
-[class*="Placeholder"] h1,
-[class*="Placeholder"] h2,
-[class*="Placeholder"] h3 {
-  color: var(--app-color-text-primary) !important;
+[class*="Placeholder"]:not([class*="Input"]):not([class*="Textarea"]) h1,
+[class*="Placeholder"]:not([class*="Input"]):not([class*="Textarea"]) h2,
+[class*="Placeholder"]:not([class*="Input"]):not([class*="Textarea"]) h3 {
+  color: var(--app-color-text-primary, #ffffff) !important;
   margin-bottom: 8px !important;
 }
 
-[class*="Placeholder"] p,
-[class*="Placeholder"] div {
-  color: var(--app-color-text-muted) !important;
+[class*="Placeholder"]:not([class*="Input"]):not([class*="Textarea"]) p,
+[class*="Placeholder"]:not([class*="Input"]):not([class*="Textarea"]) div {
+  color: var(--app-color-text-muted, rgba(255, 255, 255, 0.6)) !important;
   line-height: 1.5 !important;
 }
 
-/* Switch styling */
+/* ═══════════════════════════════════════════════════════════════════════════
+   SWITCH STYLING
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 .tgui-a1dc55b304d32032 {
-  background: var(--app-color-surface-muted);
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: var(--app-color-surface-muted, rgba(255, 255, 255, 0.1)) !important;
+  border: 1px solid rgba(148, 163, 184, 0.22) !important;
 }
 
 .tgui-a1dc55b304d32032::before {
-  background: rgba(148, 163, 184, 0.9);
-  box-shadow: var(--app-shadow-ambient);
+  background: rgba(148, 163, 184, 0.9) !important;
+  box-shadow: var(--app-shadow-ambient) !important;
 }
 
 .tgui-520270a6b0e44a8b .tgui-a1dc55b304d32032 {
-  background: var(--magma-primary);
-  border-color: var(--app-color-accent-cyan);
+  background: var(--magma-primary, #ff6432) !important;
+  border-color: var(--app-color-accent-cyan) !important;
 }
 
 .tgui-520270a6b0e44a8b .tgui-a1dc55b304d32032::before {
   transform: translateX(20px);
-  background: var(--app-color-text-primary);
-  box-shadow: 0 0 20px rgba(255, 69, 0, 0.45);
+  background: var(--app-color-text-primary, #ffffff) !important;
+  box-shadow: 0 0 20px rgba(255, 69, 0, 0.45) !important;
 }

@@ -237,3 +237,31 @@ label:has(> textarea) {
 [class*="Textarea"] * {
   background-color: inherit;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   NUMBER INPUT SPECIFIC FIXES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Number input specific fix */
+input[type="number"] {
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
+  text-align: left !important;
+  color: #ffffff !important;
+  background: rgba(30, 30, 30, 0.95) !important;
+}
+
+/* Remove spinner buttons */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+
+/* Telegram UI Input wrapper - force transparent background */
+[class*="tgui-"][class*="wrapper"],
+[class*="Input"][class*="wrapper"],
+[class*="wrapper"]:has(> input) {
+  background: transparent !important;
+  background-color: transparent !important;
+}
