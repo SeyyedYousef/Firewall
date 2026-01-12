@@ -284,7 +284,7 @@ textarea {
   background: rgba(30, 30, 30, 0.95) !important;
   background-color: rgba(30, 30, 30, 0.95) !important;
   color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
   border-radius: 10px !important;
   padding: 10px 14px !important;
   caret-color: #ff6432 !important;
@@ -295,8 +295,8 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type=
 textarea:focus {
   background: rgba(40, 40, 40, 0.98) !important;
   background-color: rgba(40, 40, 40, 0.98) !important;
-  border-color: #ff6432 !important;
-  box-shadow: 0 0 0 3px rgba(255, 100, 50, 0.2) !important;
+  border-color: rgba(255, 100, 50, 0.5) !important;
+  box-shadow: none !important;
   outline: none !important;
 }
 
