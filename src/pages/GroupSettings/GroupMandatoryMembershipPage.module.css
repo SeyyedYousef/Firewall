@@ -268,7 +268,7 @@
 
 .saveBar {
   position: fixed;
-  bottom: 0;
+  bottom: 70px;
   left: 0;
   right: 0;
   background: var(--surface-dark);
@@ -276,7 +276,7 @@
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   justify-content: center;
-  z-index: 100;
+  z-index: 150;
 }
 
 .snackbar {

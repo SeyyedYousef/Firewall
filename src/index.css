@@ -308,3 +308,30 @@ textarea:disabled {
   color: rgba(255, 255, 255, 0.3) !important;
   border-color: rgba(255, 255, 255, 0.05) !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TELEGRAM UI WRAPPER OVERRIDES - برای Wrapper های Input
+   Target specific Telegram UI Input component wrappers without affecting text
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Telegram UI Input component specific wrapper classes */
+[class*="tgui-"][class*="Input"],
+[class*="tgui-"][class*="input"],
+[class*="Input__wrapper"],
+[class*="Input__container"],
+[class*="Textarea__wrapper"],
+[class*="Textarea__container"],
+div[class*="Input"]:has(input),
+div[class*="Textarea"]:has(textarea) {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Target immediate children of Input containers (but not deeply nested text) */
+[class*="tgui-"][class*="Input"]>div,
+[class*="tgui-"][class*="input"]>div,
+[class*="Input__wrapper"]>div,
+div[class*="Input"]:has(input)>div {
+  background: transparent !important;
+  background-color: transparent !important;
+}
